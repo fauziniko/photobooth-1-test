@@ -127,7 +127,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           padding: '12px 24px',
           fontSize: '16px',
           fontWeight: 'bold',
-          backgroundColor: '#4285F4',
+          backgroundColor: '#fa75aa', // ubah di sini
           color: 'white',
           border: 'none',
           borderRadius: '24px',
