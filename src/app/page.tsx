@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import Camera from '../../components/Camera';
 import LayoutSelector from '../../components/LayoutSelector';
 import FilterSelector from '../../components/FilterSelector';
@@ -7,8 +7,6 @@ import FrameCustomizer from '../../components/FrameCustomizer';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
-import BIRDS from 'vanta/dist/vanta.birds.min';
-import * as THREE from 'three';
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -19,42 +17,6 @@ export default function Home() {
   const [bottomSpace, setBottomSpace] = useState(85); // default 85
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
-
-  const vantaRef = useRef<HTMLDivElement>(null);
-  const vantaEffect = useRef<ReturnType<typeof BIRDS> | null>(null);
-
-  useEffect(() => {
-    if (!vantaEffect.current && vantaRef.current) {
-      vantaEffect.current = BIRDS({
-        el: vantaRef.current,
-        THREE,
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200.00,
-        minWidth: 200.00,
-        scale: 1.00,
-        scaleMobile: 1.00,
-        backgroundColor: 0xff7dc7,
-        color1: 0xcd5ee8,
-        birdSize: 1.60,
-        speedLimit: 8.00,
-        separation: 17.00,
-        alignment: 18.00,
-        cohesion: 27.00,
-        backgroundAlpha: 0.61
-      });
-    }
-    return () => {
-      if (
-        vantaEffect.current &&
-        typeof (vantaEffect.current as { destroy?: () => void }).destroy === 'function'
-      ) {
-        (vantaEffect.current as { destroy: () => void }).destroy();
-        vantaEffect.current = null;
-      }
-    };
-  }, []);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -156,270 +118,266 @@ export default function Home() {
   };
 
   return (
-    <div ref={vantaRef} style={{ minHeight: '100vh', width: '100vw' }}>
-      <main
+    <main
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 24,
+      }}
+    >
+      <h1
         style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 24,
+          color: '#111',
+          fontSize: 48,
+          fontWeight: 'bold',
+          marginBottom: 16,
+          letterSpacing: 2,
         }}
       >
-        <h1
+        Photo Booth
+      </h1>
+      {photos.length < layout ? (
+        <>
+          {/* Kamera di atas */}
+          <Camera
+            onCapture={handleCapture}
+            photosToTake={layout}
+            countdown={countdown}
+            onStartCapture={handleStartCapture}
+          />
+          {/* Countdown di atas, lalu Pilih Layout */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
+            <label style={{ color: '#111', fontWeight: 'bold' }}>
+              Countdown:
+              <select
+                value={countdown}
+                onChange={e => setCountdown(Number(e.target.value))}
+                style={{
+                  marginLeft: 8,
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  color: '#111',
+                  background: '#fff',
+                }}
+              >
+                <option value={1}>1s</option>
+                <option value={3}>3s</option>
+                <option value={5}>5s</option>
+              </select>
+            </label>
+            <LayoutSelector onSelect={handleLayoutChange} />
+          </div>
+          <div style={{ marginTop: 16, color: '#888' }}>
+            {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
+          </div>
+        </>
+      ) : (
+        <div
+          className="strip-controls-wrapper"
           style={{
-            color: '#111',
-            fontSize: 48,
-            fontWeight: 'bold',
-            marginBottom: 16,
-            letterSpacing: 2,
+            width: '100%',
+            maxWidth: 900,
+            margin: '0 auto',
           }}
         >
-          Photo Booth
-        </h1>
-        {photos.length < layout ? (
-          <>
-            {/* Kamera di atas */}
-            <Camera
-              onCapture={handleCapture}
-              photosToTake={layout}
-              countdown={countdown}
-              onStartCapture={handleStartCapture}
-            />
-            {/* Countdown di atas, lalu Pilih Layout */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
-              <label style={{ color: '#111', fontWeight: 'bold' }}>
-                Countdown:
-                <select
-                  value={countdown}
-                  onChange={e => setCountdown(Number(e.target.value))}
+          <style>
+            {`
+              @media (min-width: 900px) {
+                .strip-controls-flex {
+                  display: flex;
+                  flex-direction: row;
+                  align-items: flex-start;
+                  justify-content: center;
+                  gap: 32px;
+                }
+                .strip-frame-col {
+                  flex: 1 1 0%;
+                  display: flex;
+                  justify-content: flex-end;
+                }
+                .strip-controls-col {
+                  flex: 1 1 0%;
+                  min-width: 280px;
+                  max-width: 340px;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 24px;
+                  align-items: flex-start;
+                  margin-left: 40px;
+                }
+              }
+              @media (max-width: 899px) {
+                .strip-controls-flex {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 32px;
+                  align-items: center;
+                }
+                .strip-controls-col, .strip-frame-col {
+                  width: 100%;
+                  margin: 0;
+                  justify-content: center;
+                  align-items: center;
+                }
+              }
+            `}
+          </style>
+          <div className="strip-controls-flex">
+            {/* Frame strip di kiri */}
+            <div className="strip-frame-col">
+              <PhotoPreview
+                photos={photos}
+                filter={filter}
+                frameColor={frameColor}
+                bottomSpace={bottomSpace}
+              />
+            </div>
+            {/* Kontrol di kanan */}
+            <div className="strip-controls-col">
+              <div style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <label htmlFor="bottom-space" style={{ fontWeight: 'bold', color: '#111' }}>
+                  Space Bawah:
+                </label>
+                <input
+                  id="bottom-space"
+                  type="range"
+                  min={0}
+                  max={400}
+                  value={bottomSpace}
+                  onChange={e => setBottomSpace(Number(e.target.value))}
+                  style={{ width: 120 }}
+                />
+                <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
+              </div>
+              <FilterSelector onSelect={setFilter} />
+              <FrameCustomizer onColorChange={setFrameColor} />
+              <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
+                <button
+                  onClick={() => setPhotos([])}
                   style={{
-                    marginLeft: 8,
-                    padding: '8px 12px',
-                    borderRadius: '4px',
-                    border: '1px solid #ccc',
-                    color: '#111',
-                    background: '#fff',
+                    padding: '12px 24px',
+                    backgroundColor: '#ff1744',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
+                    transition: 'background 0.2s',
                   }}
                 >
-                  <option value={1}>1s</option>
-                  <option value={3}>3s</option>
-                  <option value={5}>5s</option>
-                </select>
-              </label>
-              <LayoutSelector onSelect={handleLayoutChange} />
-            </div>
-            <div style={{ marginTop: 16, color: '#888' }}>
-              {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
-            </div>
-          </>
-        ) : (
-          <div
-            className="strip-controls-wrapper"
-            style={{
-              width: '100%',
-              maxWidth: 900,
-              margin: '0 auto',
-            }}
-          >
-            <style>
-              {`
-                @media (min-width: 900px) {
-                  .strip-controls-flex {
-                    display: flex;
-                    flex-direction: row;
-                    align-items: flex-start;
-                    justify-content: center;
-                    gap: 32px;
-                  }
-                  .strip-frame-col {
-                    flex: 1 1 0%;
-                    display: flex;
-                    justify-content: flex-end;
-                  }
-                  .strip-controls-col {
-                    flex: 1 1 0%;
-                    min-width: 280px;
-                    max-width: 340px;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 24px;
-                    align-items: flex-start;
-                    margin-left: 40px;
-                  }
-                }
-                @media (max-width: 899px) {
-                  .strip-controls-flex {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 32px;
-                    align-items: center;
-                  }
-                  .strip-controls-col, .strip-frame-col {
-                    width: 100%;
-                    margin: 0;
-                    justify-content: center;
-                    align-items: center;
-                  }
-                }
-              `}
-            </style>
-            <div className="strip-controls-flex">
-              {/* Frame strip di kiri */}
-              <div className="strip-frame-col">
-                <PhotoPreview
-                  photos={photos}
-                  filter={filter}
-                  frameColor={frameColor}
-                  bottomSpace={bottomSpace}
-                />
-              </div>
-              {/* Kontrol di kanan */}
-              <div className="strip-controls-col">
-                <div style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <label htmlFor="bottom-space" style={{ fontWeight: 'bold', color: '#111' }}>
-                    Space Bawah:
-                  </label>
-                  <input
-                    id="bottom-space"
-                    type="range"
-                    min={0}
-                    max={400}
-                    value={bottomSpace}
-                    onChange={e => setBottomSpace(Number(e.target.value))}
-                    style={{ width: 120 }}
-                  />
-                  <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
-                </div>
-                <FilterSelector onSelect={setFilter} />
-                <FrameCustomizer onColorChange={setFrameColor} />
-                <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                  <button
-                    onClick={() => setPhotos([])}
-                    style={{
-                      padding: '12px 24px',
-                      backgroundColor: '#ff1744',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '24px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
-                      transition: 'background 0.2s',
-                    }}
-                  >
-                    Ambil Ulang
-                  </button>
-                  <button
-                    onClick={handleDownloadStrip}
-                    style={{
-                      padding: '12px 24px',
-                      backgroundColor: '#4CAF50',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '24px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    Download Strip
-                  </button>
-                  <button
-                    onClick={handleShowQR}
-                    style={{
-                      padding: '12px 24px',
-                      backgroundColor: '#FFD600',
-                      color: '#222',
-                      border: 'none',
-                      borderRadius: '24px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    QR Code
-                  </button>
-                  <button
-                    onClick={handleDownloadGIF}
-                    style={{
-                      padding: '12px 24px',
-                      backgroundColor: '#00B8D9',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '24px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    Download GIF
-                  </button>
-                </div>
+                  Ambil Ulang
+                </button>
+                <button
+                  onClick={handleDownloadStrip}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Download Strip
+                </button>
+                <button
+                  onClick={handleShowQR}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#FFD600',
+                    color: '#222',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  QR Code
+                </button>
+                <button
+                  onClick={handleDownloadGIF}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#00B8D9',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Download GIF
+                </button>
               </div>
             </div>
-            {/* Popup QR Code */}
-            {showQR && qrData && (
+          </div>
+          {/* Popup QR Code */}
+          {showQR && qrData && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000
+              }}
+              onClick={handleCloseQR}
+            >
               <div
                 style={{
-                  position: 'fixed',
-                  top: 0, left: 0, right: 0, bottom: 0,
-                  background: 'rgba(0,0,0,0.5)',
+                  background: '#fff',
+                  padding: 32,
+                  borderRadius: 16,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1000
+                  gap: 16,
+                  minWidth: 320
                 }}
-                onClick={handleCloseQR}
+                onClick={e => e.stopPropagation()}
               >
-                <div
+                <h2 style={{ margin: 0, color: '#111' }}>Scan QR untuk Download</h2>
+                <QRCodeCanvas value={qrData} size={220} />
+                <button
+                  onClick={handleCloseQR}
                   style={{
-                    background: '#fff',
-                    padding: 32,
-                    borderRadius: 16,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 16,
-                    minWidth: 320
+                    marginTop: 16,
+                    padding: '8px 24px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: '#ff1744',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    fontSize: 16,
+                    cursor: 'pointer'
                   }}
-                  onClick={e => e.stopPropagation()}
                 >
-                  <h2 style={{ margin: 0, color: '#111' }}>Scan QR untuk Download</h2>
-                  <QRCodeCanvas value={qrData} size={220} />
-                  <button
-                    onClick={handleCloseQR}
-                    style={{
-                      marginTop: 16,
-                      padding: '8px 24px',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: '#ff1744',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      fontSize: 16,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Tutup
-                  </button>
-                </div>
+                  Tutup
+                </button>
               </div>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+            </div>
+          )}
+        </div>
+      )}
+    </main>
   );
 }
-
-
