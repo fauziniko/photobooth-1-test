@@ -21,7 +21,7 @@ export default function Home() {
   const [qrData, setQrData] = useState<string | null>(null);
 
   const vantaRef = useRef<HTMLDivElement>(null);
-  const vantaEffect = useRef<any>(null);
+  const vantaEffect = useRef<ReturnType<typeof BIRDS> | null>(null);
 
   useEffect(() => {
     if (!vantaEffect.current && vantaRef.current) {
@@ -46,8 +46,11 @@ export default function Home() {
       });
     }
     return () => {
-      if (vantaEffect.current) {
-        vantaEffect.current.destroy();
+      if (
+        vantaEffect.current &&
+        typeof (vantaEffect.current as { destroy?: () => void }).destroy === 'function'
+      ) {
+        (vantaEffect.current as { destroy: () => void }).destroy();
         vantaEffect.current = null;
       }
     };
