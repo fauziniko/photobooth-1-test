@@ -34,7 +34,7 @@ export async function POST(req) {
   });
 
   // URL public (ubah sesuai config MinIO kamu)
-  const url = `${process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'}://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${BUCKET}/${filename}`;
+  const url = `${process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'}://${process.env.MINIO_ENDPOINT}/${BUCKET}/${filename}`;
 
   return NextResponse.json({ url });
 }
