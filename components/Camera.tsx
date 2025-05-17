@@ -15,31 +15,13 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      // 1. Coba constraint paling umum dulu
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
           if (videoRef.current) videoRef.current.srcObject = stream;
         })
-        .catch(() => {
-          // 2. Jika gagal, coba prefer kamera belakang
-          navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          })
-            .then(stream => {
-              if (videoRef.current) videoRef.current.srcObject = stream;
-            })
-            .catch(() => {
-              // 3. Jika masih gagal, coba kamera depan
-              navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' }
-              })
-                .then(stream => {
-                  if (videoRef.current) videoRef.current.srcObject = stream;
-                })
-                .catch(err => {
-                  alert('Tidak bisa mengakses kamera: ' + err.message);
-                });
-            });
+        .catch(err => {
+          console.error('getUserMedia error', err);
+          alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
         });
     }
   }, []);
