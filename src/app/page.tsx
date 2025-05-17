@@ -34,7 +34,7 @@ export default function Home() {
       {photos.length < layout ? (
         <>
           <LayoutSelector onSelect={handleLayoutChange} />
-          <label>
+          <label style={{ color: '#111', fontWeight: 'bold' }}>
             Countdown:
             <select
               value={countdown}
