@@ -5,7 +5,7 @@ interface Props {
   onCapture: (dataUrl: string) => void;
   countdown: number;
   photosToTake: number;
-  onStartCapture?: () => void; // Tambahan
+  onStartCapture?: () => void;
 }
 
 export default function Camera({ onCapture, countdown, photosToTake, onStartCapture }: Props) {
@@ -36,23 +36,33 @@ export default function Camera({ onCapture, countdown, photosToTake, onStartCapt
       setIsCapturing(false);
       return;
     }
-    for (let i = 0; i < photosToTake; i++) {
-      // Countdown animasi
-      for (let c = countdown; c > 0; c--) {
-        setCount(c);
-        await new Promise(res => setTimeout(res, 1000));
-      }
-      setCount(null);
-      if (!videoRef.current || videoRef.current.readyState < 2) continue;
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      onCapture(canvas.toDataURL('image/png'));
-      // Tunggu sebentar sebelum lanjut ke pose berikutnya
-      await new Promise(res => setTimeout(res, 500));
+
+    // Target rasio landscape 4:3
+    const targetRatio = 4 / 3;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    let sx = 0, sy = 0, sw = vw, sh = vh;
+
+    // Crop tengah jika rasio video tidak 4:3
+    if (vw / vh > targetRatio) {
+      // Video terlalu lebar, crop kiri-kanan
+      sw = vh * targetRatio;
+      sx = (vw - sw) / 2;
+    } else if (vw / vh < targetRatio) {
+      // Video terlalu tinggi, crop atas-bawah
+      sh = vw / targetRatio;
+      sy = (vh - sh) / 2;
     }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 640; // landscape
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+    onCapture(canvas.toDataURL('image/png'));
+    // Tunggu sebentar sebelum lanjut ke pose berikutnya
+    await new Promise(res => setTimeout(res, 500));
     setIsCapturing(false);
   };
 

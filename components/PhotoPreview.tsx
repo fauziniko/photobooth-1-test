@@ -29,9 +29,10 @@ export default function PhotoPreview({ photos, filter, frameColor, bottomSpace =
             alt={`photo-${i}`} 
             style={{ 
               filter, 
-              width: 200, 
+              width: 240, // landscape, bisa sesuaikan
+              height: 180,
+              objectFit: 'cover',
               borderRadius: 8,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }} 
           />
         ))}
