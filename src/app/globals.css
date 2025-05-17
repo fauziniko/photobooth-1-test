@@ -20,7 +20,7 @@
 }
 
 body {
-  background: #FFC1DA !important; /* pink sesuai permintaan */
+  background: #fbd0e1 !important; /* pink sesuai permintaan */
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
