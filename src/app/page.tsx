@@ -11,7 +11,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 const STICKERS = [
   { src: '/stickers/heart.png', label: 'Heart' },
   { src: '/stickers/star.png', label: 'Star' },
-  { src: '/stickers/glasses.png', label: 'Glasses' },
+  { src: '/stickers/flamingo.png', label: 'flamingo' },
   // Tambahkan stiker lain sesuai kebutuhan
 ];
 
