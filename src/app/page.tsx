@@ -146,42 +146,42 @@ export default function Home() {
               </div>
               <FilterSelector onSelect={setFilter} />
               <FrameCustomizer onColorChange={setFrameColor} />
-              <button
-                onClick={() => downloadRef.current && downloadRef.current()}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '24px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  transition: 'all 0.3s ease',
-                  marginBottom: '12px'
-                }}
-              >
-                Download Strip
-              </button>
-              <button
-                onClick={() => setPhotos([])}
-                style={{
-                  marginTop: '20px',
-                  padding: '12px 24px',
-                  backgroundColor: '#ff1744',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '24px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
-                  transition: 'background 0.2s',
-                }}
-              >
-                Ambil Ulang
-              </button>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={() => downloadRef.current && downloadRef.current()}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Download Strip
+                </button>
+                <button
+                  onClick={() => setPhotos([])}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#ff1744',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  Ambil Ulang
+                </button>
+              </div>
             </div>
           </div>
         </div>
