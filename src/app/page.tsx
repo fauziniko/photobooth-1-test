@@ -83,7 +83,6 @@ export default function Home() {
               </select>
             </label>
           </div>
-          {/* Tombol Start Capture ada di dalam komponen Camera */}
           <div style={{ marginTop: 16, color: '#888' }}>
             {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
           </div>
