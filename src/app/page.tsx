@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Camera from '../../components/Camera';
 import LayoutSelector from '../../components/LayoutSelector';
 import FilterSelector from '../../components/FilterSelector';
@@ -13,7 +13,6 @@ export default function Home() {
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
   const [bottomSpace, setBottomSpace] = useState(200);
-  const downloadRef = useRef<() => void>(null);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -73,7 +72,14 @@ export default function Home() {
           </div>
         </>
       ) : (
-        <div className="strip-controls-wrapper" style={{ width: '100%', maxWidth: 900, margin: '0 auto' }}>
+        <div
+          className="strip-controls-wrapper"
+          style={{
+            width: '100%',
+            maxWidth: 900,
+            margin: '0 auto',
+          }}
+        >
           <style>
             {`
               @media (min-width: 900px) {
@@ -124,7 +130,6 @@ export default function Home() {
                 filter={filter}
                 frameColor={frameColor}
                 bottomSpace={bottomSpace}
-                onDownload={downloadRef}
               />
             </div>
             {/* Kontrol di kanan */}
@@ -146,42 +151,24 @@ export default function Home() {
               </div>
               <FilterSelector onSelect={setFilter} />
               <FrameCustomizer onColorChange={setFrameColor} />
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button
-                  onClick={() => downloadRef.current && downloadRef.current()}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Download Strip
-                </button>
-                <button
-                  onClick={() => setPhotos([])}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#ff1744',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
-                    transition: 'background 0.2s',
-                  }}
-                >
-                  Ambil Ulang
-                </button>
-              </div>
+              <button
+                onClick={() => setPhotos([])}
+                style={{
+                  marginTop: '20px',
+                  padding: '12px 24px',
+                  backgroundColor: '#ff1744',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '24px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Ambil Ulang
+              </button>
             </div>
           </div>
         </div>
