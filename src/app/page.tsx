@@ -7,7 +7,6 @@ import FrameCustomizer from '../../components/FrameCustomizer';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
-import GIF from 'gif.js';
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -70,6 +69,9 @@ export default function Home() {
     const stripNode = document.getElementById('strip');
     if (!stripNode || photos.length === 0) return;
 
+    // Dynamic import agar hanya jalan di client
+    const GIF = (await import('gif.js')).default;
+
     const gif = new GIF({
       workers: 2,
       quality: 10,
@@ -77,20 +79,17 @@ export default function Home() {
       height: stripNode.clientHeight,
     });
 
-    // Render setiap foto ke canvas, lalu tambahkan ke GIF
     for (let i = 0; i < photos.length; i++) {
       const img = new window.Image();
       img.src = photos[i];
       await new Promise(resolve => { img.onload = resolve; });
 
-      // Buat canvas sementara
       const canvas = document.createElement('canvas');
       canvas.width = stripNode.clientWidth;
       canvas.height = stripNode.clientHeight;
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
-      // Render frame preview (menggunakan PhotoPreview lebih baik, tapi ini versi sederhana)
       ctx.fillStyle = frameColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height - bottomSpace);
