@@ -12,6 +12,7 @@ export default function Home() {
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
+  const [bottomSpace, setBottomSpace] = useState(200);
 
   // Reset photos setiap kali layout berubah
   const handleLayoutChange = (n: number) => {
@@ -65,9 +66,30 @@ export default function Home() {
         </>
       ) : (
         <>
+          {/* Kontrol untuk mengatur panjang space kosong */}
+          <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <label htmlFor="bottom-space" style={{ fontWeight: 'bold', color: '#111' }}>
+              Space Bawah:
+            </label>
+            <input
+              id="bottom-space"
+              type="range"
+              min={0}
+              max={400}
+              value={bottomSpace}
+              onChange={e => setBottomSpace(Number(e.target.value))}
+              style={{ width: 160 }}
+            />
+            <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
+          </div>
           <FilterSelector onSelect={setFilter} />
           <FrameCustomizer onColorChange={setFrameColor} />
-          <PhotoPreview photos={photos} filter={filter} frameColor={frameColor} />
+          <PhotoPreview
+            photos={photos}
+            filter={filter}
+            frameColor={frameColor}
+            bottomSpace={bottomSpace}
+          />
           <button
             onClick={() => setPhotos([])}
             style={{
