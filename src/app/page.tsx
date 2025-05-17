@@ -60,27 +60,30 @@ export default function Home() {
             photosToTake={layout}
             onStartCapture={handleStartCapture}
           />
-          {/* LayoutSelector dan Countdown di bawah kamera */}
-          <LayoutSelector onSelect={handleLayoutChange} />
-          <label style={{ color: '#111', fontWeight: 'bold' }}>
-            Countdown:
-            <select
-              value={countdown}
-              onChange={e => setCountdown(Number(e.target.value))}
-              style={{
-                marginLeft: 8,
-                padding: '8px 12px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                color: '#111',
-                background: '#fff',
-              }}
-            >
-              <option value={1}>1s</option>
-              <option value={3}>3s</option>
-              <option value={5}>5s</option>
-            </select>
-          </label>
+          {/* LayoutSelector dan Countdown di bawah kamera, di atas tombol Start Capture */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
+            <LayoutSelector onSelect={handleLayoutChange} />
+            <label style={{ color: '#111', fontWeight: 'bold' }}>
+              Countdown:
+              <select
+                value={countdown}
+                onChange={e => setCountdown(Number(e.target.value))}
+                style={{
+                  marginLeft: 8,
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  color: '#111',
+                  background: '#fff',
+                }}
+              >
+                <option value={1}>1s</option>
+                <option value={3}>3s</option>
+                <option value={5}>5s</option>
+              </select>
+            </label>
+          </div>
+          {/* Tombol Start Capture ada di dalam komponen Camera */}
           <div style={{ marginTop: 16, color: '#888' }}>
             {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
           </div>
