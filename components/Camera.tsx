@@ -65,7 +65,15 @@ export default function Camera({ onCapture, countdown, photosToTake, onStartCapt
           playsInline 
           width="640" 
           height="480" 
-          style={{ borderRadius: '8px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }} 
+          style={{
+            borderRadius: '8px',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+            width: '100%',
+            height: 'auto',
+            maxWidth: 640,
+            background: '#000',
+            aspectRatio: '4/3', // agar tetap landscape
+          }} 
         />
         {count !== null && (
           <div style={{
