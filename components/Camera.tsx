@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 interface Props {
   onCapture: (dataUrl: string) => void;
@@ -9,6 +9,7 @@ interface Props {
 
 export default function Camera({ onCapture, countdown, photosToTake }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
@@ -29,8 +30,12 @@ export default function Camera({ onCapture, countdown, photosToTake }: Props) {
       return;
     }
     for (let i = 0; i < photosToTake; i++) {
-      await new Promise(resolve => setTimeout(resolve, countdown * 1000));
-      // Cek ulang setiap loop
+      // Countdown animasi
+      for (let c = countdown; c > 0; c--) {
+        setCount(c);
+        await new Promise(res => setTimeout(res, 1000));
+      }
+      setCount(null);
       if (!videoRef.current || videoRef.current.readyState < 2) continue;
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
@@ -42,15 +47,27 @@ export default function Camera({ onCapture, countdown, photosToTake }: Props) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-      <video 
-        ref={videoRef} 
-        autoPlay 
-        playsInline 
-        width="640" 
-        height="480" 
-        style={{ borderRadius: '8px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }} 
-      />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
+        <video 
+          ref={videoRef} 
+          autoPlay 
+          playsInline 
+          width="640" 
+          height="480" 
+          style={{ borderRadius: '8px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }} 
+        />
+        {count !== null && (
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, width: '100%', height: '100%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 80, fontWeight: 'bold', color: '#fff', background: 'rgba(0,0,0,0.4)'
+          }}>
+            {count}
+          </div>
+        )}
+      </div>
       <button 
         onClick={takePhotos} 
         style={{

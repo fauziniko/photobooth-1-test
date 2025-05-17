@@ -26,8 +26,8 @@ export default function PhotoPreview({ photos, filter, frameColor }: Props) {
           padding: 20, 
           borderRadius: 12,
           display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
+          flexDirection: 'column', // vertikal
+          alignItems: 'center',
           gap: 10,
           boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
           maxWidth: '90vw'

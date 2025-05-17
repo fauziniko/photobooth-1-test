@@ -4,11 +4,11 @@ interface Props {
 
 export default function FilterSelector({ onSelect }: Props) {
   const filters = [
-    { name: 'none', label: 'Normal' },
-    { name: 'grayscale(1)', label: 'B&W' },
-    { name: 'sepia(1)', label: 'Sepia' },
-    { name: 'contrast(1.2)', label: 'Contrast' },
-    { name: 'brightness(1.2)', label: 'Bright' }
+    { name: 'none', label: 'Normal', color: '#FFF9C4' },
+    { name: 'grayscale(1)', label: 'B&W', color: '#B0BEC5' },
+    { name: 'sepia(1)', label: 'Sepia', color: '#FFD180' },
+    { name: 'contrast(1.2)', label: 'Contrast', color: '#B2FF59' },
+    { name: 'brightness(1.2)', label: 'Bright', color: '#81D4FA' }
   ];
   
   return (
@@ -21,11 +21,13 @@ export default function FilterSelector({ onSelect }: Props) {
             onClick={() => onSelect(filter.name)}
             style={{
               padding: '10px 16px',
-              backgroundColor: '#f0f0f0',
+              backgroundColor: filter.color,
+              color: '#222',
               border: '2px solid #ddd',
               borderRadius: '8px',
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              fontWeight: 'bold'
             }}
           >
             {filter.label}

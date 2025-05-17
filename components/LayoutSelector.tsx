@@ -13,7 +13,8 @@ export default function LayoutSelector({ onSelect }: Props) {
             onClick={() => onSelect(n)} 
             style={{
               padding: '10px 16px',
-              backgroundColor: '#e0e0e0',
+              backgroundColor: '#BBDEFB', // biru muda
+              color: '#222', // font gelap
               border: 'none',
               borderRadius: '20px',
               cursor: 'pointer',
