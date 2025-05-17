@@ -8,6 +8,13 @@ import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
 
+const STICKERS = [
+  { src: '/stickers/heart.png', label: 'Heart' },
+  { src: '/stickers/star.png', label: 'Star' },
+  { src: '/stickers/glasses.png', label: 'Glasses' },
+  // Tambahkan stiker lain sesuai kebutuhan
+];
+
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [countdown, setCountdown] = useState(3);
@@ -19,6 +26,7 @@ export default function Home() {
   const [qrData, setQrData] = useState<string | null>(null);
   const [frameBorderRadius, setFrameBorderRadius] = useState(24);
   const [photoBorderRadius, setPhotoBorderRadius] = useState(24);
+  const [stickers, setStickers] = useState<{src: string, x: number, y: number}[]>([]);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -117,6 +125,16 @@ export default function Home() {
     });
 
     gif.render();
+  };
+
+  // Fungsi untuk menambah stiker ke posisi default (tengah frame)
+  const handleAddSticker = (src: string) => {
+    setStickers(prev => [...prev, { src, x: 100, y: 100 }]);
+  };
+
+  // Fungsi untuk mengubah posisi stiker (drag & drop)
+  const handleMoveSticker = (idx: number, x: number, y: number) => {
+    setStickers(prev => prev.map((s, i) => i === idx ? { ...s, x, y } : s));
   };
 
   return (
@@ -238,6 +256,8 @@ export default function Home() {
                 bottomSpace={bottomSpace}
                 frameBorderRadius={frameBorderRadius}
                 photoBorderRadius={photoBorderRadius}
+                stickers={stickers}
+                onMoveSticker={handleMoveSticker}
               />
             </div>
             {/* Kontrol di kanan */}
@@ -410,6 +430,21 @@ export default function Home() {
               </div>
             </div>
           )}
+          {/* Sticker selector */}
+          <div style={{ margin: '16px 0', background: '#f6e6f0', borderRadius: 16, padding: 20, maxWidth: 480 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 12, color: '#a03a7a' }}>Stickers</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {STICKERS.map(sticker => (
+                <img
+                  key={sticker.src}
+                  src={sticker.src}
+                  alt={sticker.label}
+                  style={{ width: 48, height: 48, cursor: 'pointer', borderRadius: 8, border: '2px solid #eee', background: '#fff' }}
+                  onClick={() => handleAddSticker(sticker.src)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </main>
