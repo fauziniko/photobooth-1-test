@@ -42,14 +42,22 @@ export default function Home() {
     });
   };
 
-  const handleShowQR = () => {
+  const handleShowQR = async () => {
     const node = document.getElementById('strip');
     if (!node) return;
-    html2canvas(node).then(canvas => {
-      const dataUrl = canvas.toDataURL('image/png');
-      setQrData(dataUrl);
-      setShowQR(true);
+    const canvas = await html2canvas(node);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    // Upload ke API
+    const res = await fetch('/api/upload-strip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl }),
     });
+    const { url } = await res.json();
+
+    setQrData(`${window.location.origin}${url}`);
+    setShowQR(true);
   };
 
   const handleCloseQR = () => {
