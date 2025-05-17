@@ -66,18 +66,24 @@ export default function Home() {
   };
 
   const handleDownloadGIF = async () => {
-    const stripNode = document.getElementById('strip');
-    if (!stripNode || photos.length === 0) return;
+    if (photos.length === 0) return;
 
-    // Dynamic import agar hanya jalan di client
+    // Buat image pertama untuk ambil ukuran asli
+    const firstImg = new window.Image();
+    firstImg.src = photos[0];
+    await new Promise(resolve => { firstImg.onload = resolve; });
+
+    const width = firstImg.naturalWidth;
+    const height = firstImg.naturalHeight;
+
     const GIF = (await import('gif.js')).default;
 
     const gif = new GIF({
       workers: 2,
       quality: 10,
-      width: stripNode.clientWidth,
-      height: stripNode.clientHeight,
-      workerScript: '/gif.worker.js', // pastikan file ini ada di public/
+      width,
+      height,
+      workerScript: '/gif.worker.js',
     });
 
     for (let i = 0; i < photos.length; i++) {
@@ -85,15 +91,16 @@ export default function Home() {
       img.src = photos[i];
       await new Promise(resolve => { img.onload = resolve; });
 
+      // Render ke canvas dengan ukuran asli kamera
       const canvas = document.createElement('canvas');
-      canvas.width = stripNode.clientWidth;
-      canvas.height = stripNode.clientHeight;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
       ctx.fillStyle = frameColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height - bottomSpace);
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
 
       gif.addFrame(canvas, { delay: 800 });
     }
@@ -102,7 +109,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'photostrip.gif';
+      a.download = 'photobooth.gif';
       a.click();
       URL.revokeObjectURL(url);
     });
