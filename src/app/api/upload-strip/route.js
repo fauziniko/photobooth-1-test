@@ -33,8 +33,8 @@ export async function POST(req) {
     'Content-Type': 'image/png',
   });
 
-  // URL public (ubah sesuai config MinIO kamu)
-  const url = `${process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'}://${process.env.MINIO_ENDPOINT}/${BUCKET}/${filename}`;
+  // URL public (hanya domain MinIO + bucket + filename)
+  const url = `https://${process.env.MINIO_ENDPOINT}/${BUCKET}/${filename}`;
 
   return NextResponse.json({ url });
 }
