@@ -72,115 +72,103 @@ export default function Home() {
           </div>
         </>
       ) : (
-        // Responsive layout for desktop
         <div
+          className="strip-controls-wrapper"
           style={{
-            display: 'flex',
-            flexDirection: 'column',
             width: '100%',
-            alignItems: 'center',
+            maxWidth: 900,
+            margin: '0 auto',
           }}
         >
-          <div
-            className="strip-controls-wrapper"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              width: '100%',
-              maxWidth: 900,
-              gap: 32,
-            }}
-          >
-            {/* Flex row for desktop, column for mobile */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 32,
-              }}
-              className="strip-controls-flex"
-            >
-              <style>
-                {`
-                  @media (min-width: 900px) {
-                    .strip-controls-flex {
-                      flex-direction: row;
-                      align-items: flex-start;
-                      justify-content: center;
-                    }
-                    .strip-frame-col {
-                      flex: 1 1 0%;
-                      display: flex;
-                      justify-content: flex-end;
-                    }
-                    .strip-controls-col {
-                      flex: 1 1 0%;
-                      min-width: 280px;
-                      max-width: 340px;
-                      display: flex;
-                      flex-direction: column;
-                      gap: 24px;
-                      align-items: flex-start;
-                      margin-left: 40px;
-                    }
-                  }
-                  @media (max-width: 899px) {
-                    .strip-controls-col, .strip-frame-col {
-                      width: 100%;
-                      margin: 0;
-                      justify-content: center;
-                      align-items: center;
-                    }
-                  }
-                `}
-              </style>
-              {/* Frame strip di kiri */}
-              <div className="strip-frame-col">
-                <PhotoPreview
-                  photos={photos}
-                  filter={filter}
-                  frameColor={frameColor}
-                  bottomSpace={bottomSpace}
+          <style>
+            {`
+              @media (min-width: 900px) {
+                .strip-controls-flex {
+                  display: flex;
+                  flex-direction: row;
+                  align-items: flex-start;
+                  justify-content: center;
+                  gap: 32px;
+                }
+                .strip-frame-col {
+                  flex: 1 1 0%;
+                  display: flex;
+                  justify-content: flex-end;
+                }
+                .strip-controls-col {
+                  flex: 1 1 0%;
+                  min-width: 280px;
+                  max-width: 340px;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 24px;
+                  align-items: flex-start;
+                  margin-left: 40px;
+                }
+              }
+              @media (max-width: 899px) {
+                .strip-controls-flex {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 32px;
+                  align-items: center;
+                }
+                .strip-controls-col, .strip-frame-col {
+                  width: 100%;
+                  margin: 0;
+                  justify-content: center;
+                  align-items: center;
+                }
+              }
+            `}
+          </style>
+          <div className="strip-controls-flex">
+            {/* Frame strip di kiri */}
+            <div className="strip-frame-col">
+              <PhotoPreview
+                photos={photos}
+                filter={filter}
+                frameColor={frameColor}
+                bottomSpace={bottomSpace}
+              />
+            </div>
+            {/* Kontrol di kanan */}
+            <div className="strip-controls-col">
+              <div style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <label htmlFor="bottom-space" style={{ fontWeight: 'bold', color: '#111' }}>
+                  Space Bawah:
+                </label>
+                <input
+                  id="bottom-space"
+                  type="range"
+                  min={0}
+                  max={400}
+                  value={bottomSpace}
+                  onChange={e => setBottomSpace(Number(e.target.value))}
+                  style={{ width: 120 }}
                 />
+                <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
               </div>
-              {/* Kontrol di kanan */}
-              <div className="strip-controls-col">
-                <div style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <label htmlFor="bottom-space" style={{ fontWeight: 'bold', color: '#111' }}>
-                    Space Bawah:
-                  </label>
-                  <input
-                    id="bottom-space"
-                    type="range"
-                    min={0}
-                    max={400}
-                    value={bottomSpace}
-                    onChange={e => setBottomSpace(Number(e.target.value))}
-                    style={{ width: 120 }}
-                  />
-                  <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
-                </div>
-                <FilterSelector onSelect={setFilter} />
-                <FrameCustomizer onColorChange={setFrameColor} />
-                <button
-                  onClick={() => setPhotos([])}
-                  style={{
-                    marginTop: '20px',
-                    padding: '12px 24px',
-                    backgroundColor: '#ff1744',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
-                    transition: 'background 0.2s',
-                  }}
-                >
-                  Ambil Ulang
-                </button>
-              </div>
+              <FilterSelector onSelect={setFilter} />
+              <FrameCustomizer onColorChange={setFrameColor} />
+              <button
+                onClick={() => setPhotos([])}
+                style={{
+                  marginTop: '20px',
+                  padding: '12px 24px',
+                  backgroundColor: '#ff1744',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '24px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Ambil Ulang
+              </button>
             </div>
           </div>
         </div>
