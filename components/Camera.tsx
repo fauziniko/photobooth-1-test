@@ -14,6 +14,8 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
   const [count, setCount] = useState<number | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
+  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('environment');
+  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // Ambil daftar kamera
   useEffect(() => {
@@ -30,9 +32,14 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
   useEffect(() => {
     if (!selectedDeviceId) return;
     if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: selectedDeviceId } }
-      })
+      let constraints: MediaStreamConstraints;
+      if (isMobile) {
+        constraints = { video: { facingMode: cameraMode } };
+      } else {
+        constraints = { video: { deviceId: { exact: selectedDeviceId } } };
+      }
+
+      navigator.mediaDevices.getUserMedia(constraints)
         .then(stream => {
           if (videoRef.current) videoRef.current.srcObject = stream;
         })
@@ -40,7 +47,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
         });
     }
-  }, [selectedDeviceId]);
+  }, [selectedDeviceId, cameraMode]);
 
   const handleDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedDeviceId(e.target.value);
@@ -96,27 +103,44 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative' }}>
       <div style={{ marginBottom: 12 }}>
         <label style={{ fontWeight: 'bold', color: '#111', marginRight: 8 }}>Pilih Kamera:</label>
-        <select
-          value={selectedDeviceId}
-          onChange={handleDeviceChange}
-          style={{
-            padding: 6,
-            borderRadius: 6,
-            color: '#111',           // warna teks dropdown
-            background: '#fff',      // agar kontras di pink
-            border: '1px solid #aaa'
-          }}
-        >
-          {devices.map(device => (
-            <option
-              value={device.deviceId}
-              key={device.deviceId}
-              style={{ color: '#111', background: '#fff' }} // warna teks dan background option
-            >
-              {device.label || `Kamera ${device.deviceId.slice(-4)}`}
-            </option>
-          ))}
-        </select>
+        {isMobile ? (
+          <select
+            value={cameraMode}
+            onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
+            style={{
+              padding: 6,
+              borderRadius: 6,
+              color: '#111',
+              background: '#fff',
+              border: '1px solid #aaa'
+            }}
+          >
+            <option value="environment">Kamera Belakang</option>
+            <option value="user">Kamera Depan</option>
+          </select>
+        ) : (
+          <select
+            value={selectedDeviceId}
+            onChange={handleDeviceChange}
+            style={{
+              padding: 6,
+              borderRadius: 6,
+              color: '#111',
+              background: '#fff',
+              border: '1px solid #aaa'
+            }}
+          >
+            {devices.map(device => (
+              <option
+                value={device.deviceId}
+                key={device.deviceId}
+                style={{ color: '#111', background: '#fff' }}
+              >
+                {device.label || `Kamera ${device.deviceId.slice(-4)}`}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <div style={{ position: 'relative' }}>
         <video 
