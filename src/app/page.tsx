@@ -77,6 +77,7 @@ export default function Home() {
       quality: 10,
       width: stripNode.clientWidth,
       height: stripNode.clientHeight,
+      workerScript: '/gif.worker.js', // pastikan file ini ada di public/
     });
 
     for (let i = 0; i < photos.length; i++) {
