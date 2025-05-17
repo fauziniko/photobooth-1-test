@@ -17,8 +17,7 @@ export default function Home() {
   const [bottomSpace, setBottomSpace] = useState(85); // default 85
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
-  const [frameBorderRadius, setFrameBorderRadius] = useState(24);
-  const [photoBorderRadius, setPhotoBorderRadius] = useState(24);
+  const [borderRadius, setBorderRadius] = useState(24); // default 24px
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -236,8 +235,7 @@ export default function Home() {
                 filter={filter}
                 frameColor={frameColor}
                 bottomSpace={bottomSpace}
-                frameBorderRadius={frameBorderRadius}
-                photoBorderRadius={photoBorderRadius}
+                borderRadius={borderRadius} // <-- tambahkan prop ini
               />
             </div>
             {/* Kontrol di kanan */}
@@ -258,34 +256,19 @@ export default function Home() {
                 <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
               </div>
               <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label htmlFor="frame-border-radius" style={{ fontWeight: 'bold', color: '#111' }}>
-                  Frame Border Radius:
+                <label htmlFor="border-radius" style={{ fontWeight: 'bold', color: '#111' }}>
+                  Border Radius:
                 </label>
                 <input
-                  id="frame-border-radius"
+                  id="border-radius"
                   type="range"
                   min={0}
                   max={100}
-                  value={frameBorderRadius}
-                  onChange={e => setFrameBorderRadius(Number(e.target.value))}
+                  value={borderRadius}
+                  onChange={e => setBorderRadius(Number(e.target.value))}
                   style={{ width: 120 }}
                 />
-                <span style={{ color: '#111', minWidth: 40 }}>{frameBorderRadius}px</span>
-              </div>
-              <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label htmlFor="photo-border-radius" style={{ fontWeight: 'bold', color: '#111' }}>
-                  Foto Border Radius:
-                </label>
-                <input
-                  id="photo-border-radius"
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={photoBorderRadius}
-                  onChange={e => setPhotoBorderRadius(Number(e.target.value))}
-                  style={{ width: 120 }}
-                />
-                <span style={{ color: '#111', minWidth: 40 }}>{photoBorderRadius}px</span>
+                <span style={{ color: '#111', minWidth: 40 }}>{borderRadius}px</span>
               </div>
               <FilterSelector onSelect={setFilter} />
               <FrameCustomizer onColorChange={setFrameColor} />
