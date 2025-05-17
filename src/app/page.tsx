@@ -53,6 +53,14 @@ export default function Home() {
       <h1>Photo Booth</h1>
       {photos.length < layout ? (
         <>
+          {/* Kamera di atas */}
+          <Camera
+            onCapture={handleCapture}
+            countdown={countdown}
+            photosToTake={layout}
+            onStartCapture={handleStartCapture}
+          />
+          {/* LayoutSelector dan Countdown di bawah kamera */}
           <LayoutSelector onSelect={handleLayoutChange} />
           <label style={{ color: '#111', fontWeight: 'bold' }}>
             Countdown:
@@ -73,12 +81,6 @@ export default function Home() {
               <option value={5}>5s</option>
             </select>
           </label>
-          <Camera
-            onCapture={handleCapture}
-            countdown={countdown}
-            photosToTake={layout}
-            onStartCapture={handleStartCapture}
-          />
           <div style={{ marginTop: 16, color: '#888' }}>
             {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
           </div>
