@@ -56,7 +56,7 @@ export default function Home() {
     });
     const { url } = await res.json();
 
-    setQrData(`${window.location.origin}${url}`);
+    setQrData(url);
     setShowQR(true);
   };
 
