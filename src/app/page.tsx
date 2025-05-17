@@ -128,7 +128,17 @@ export default function Home() {
         gap: 24,
       }}
     >
-      <h1>Photo Booth</h1>
+      <h1
+        style={{
+          color: '#111',
+          fontSize: 48,
+          fontWeight: 'bold',
+          marginBottom: 16,
+          letterSpacing: 2,
+        }}
+      >
+        Photo Booth
+      </h1>
       {photos.length < layout ? (
         <>
           {/* Kamera di atas */}
@@ -345,7 +355,7 @@ export default function Home() {
                 }}
                 onClick={e => e.stopPropagation()}
               >
-                <h2 style={{ margin: 0 }}>Scan QR untuk Download</h2>
+                <h2 style={{ margin: 0, color: '#111' }}>Scan QR untuk Download</h2>
                 <QRCodeCanvas value={qrData} size={220} />
                 <button
                   onClick={handleCloseQR}
