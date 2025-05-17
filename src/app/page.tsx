@@ -6,6 +6,7 @@ import FilterSelector from '../../components/FilterSelector';
 import FrameCustomizer from '../../components/FrameCustomizer';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -14,6 +15,8 @@ export default function Home() {
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
   const [bottomSpace, setBottomSpace] = useState(85); // default 85
+  const [showQR, setShowQR] = useState(false);
+  const [qrData, setQrData] = useState<string | null>(null);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -37,6 +40,21 @@ export default function Home() {
       link.href = canvas.toDataURL('image/png');
       link.click();
     });
+  };
+
+  const handleShowQR = () => {
+    const node = document.getElementById('strip');
+    if (!node) return;
+    html2canvas(node).then(canvas => {
+      const dataUrl = canvas.toDataURL('image/png');
+      setQrData(dataUrl);
+      setShowQR(true);
+    });
+  };
+
+  const handleCloseQR = () => {
+    setShowQR(false);
+    setQrData(null);
   };
 
   return (
@@ -202,9 +220,75 @@ export default function Home() {
                 >
                   Download Strip
                 </button>
+                <button
+                  onClick={handleShowQR}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#FFD600',
+                    color: '#222',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  QR Code
+                </button>
               </div>
             </div>
           </div>
+          {/* Popup QR Code */}
+          {showQR && qrData && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000
+              }}
+              onClick={handleCloseQR}
+            >
+              <div
+                style={{
+                  background: '#fff',
+                  padding: 32,
+                  borderRadius: 16,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 16,
+                  minWidth: 320
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                <h2 style={{ margin: 0 }}>Scan QR untuk Download</h2>
+                <QRCodeCanvas value={qrData} size={220} />
+                <button
+                  onClick={handleCloseQR}
+                  style={{
+                    marginTop: 16,
+                    padding: '8px 24px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: '#ff1744',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    fontSize: 16,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </main>
