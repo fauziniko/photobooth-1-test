@@ -319,6 +319,23 @@ export default function Home() {
                 />
                 <span style={{ color: '#111', minWidth: 40 }}>{photoBorderRadius}px</span>
               </div>
+
+              {/* Sticker selector dipindah ke sini */}
+              <div style={{ margin: '16px 0', background: '#f6e6f0', borderRadius: 16, padding: 20, maxWidth: 480 }}>
+                <div style={{ fontWeight: 'bold', marginBottom: 12, color: '#a03a7a' }}>Stickers</div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  {STICKERS.map(sticker => (
+                    <img
+                      key={sticker.src}
+                      src={sticker.src}
+                      alt={sticker.label}
+                      style={{ width: 48, height: 48, cursor: 'pointer', borderRadius: 8, border: '2px solid #eee', background: '#fff' }}
+                      onClick={() => handleAddSticker(sticker.src)}
+                    />
+                  ))}
+                </div>
+              </div>
+
               <FilterSelector onSelect={setFilter} />
               <FrameCustomizer onColorChange={setFrameColor} />
               <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
@@ -442,21 +459,6 @@ export default function Home() {
               </div>
             </div>
           )}
-          {/* Sticker selector */}
-          <div style={{ margin: '16px 0', background: '#f6e6f0', borderRadius: 16, padding: 20, maxWidth: 480 }}>
-            <div style={{ fontWeight: 'bold', marginBottom: 12, color: '#a03a7a' }}>Stickers</div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              {STICKERS.map(sticker => (
-                <img
-                  key={sticker.src}
-                  src={sticker.src}
-                  alt={sticker.label}
-                  style={{ width: 48, height: 48, cursor: 'pointer', borderRadius: 8, border: '2px solid #eee', background: '#fff' }}
-                  onClick={() => handleAddSticker(sticker.src)}
-                />
-              ))}
-            </div>
-          </div>
         </div>
       )}
     </main>
