@@ -5,11 +5,13 @@ interface Props {
   onCapture: (dataUrl: string) => void;
   countdown: number;
   photosToTake: number;
+  onStartCapture?: () => void; // Tambahan
 }
 
-export default function Camera({ onCapture, countdown, photosToTake }: Props) {
+export default function Camera({ onCapture, countdown, photosToTake, onStartCapture }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [count, setCount] = useState<number | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
@@ -24,9 +26,14 @@ export default function Camera({ onCapture, countdown, photosToTake }: Props) {
   }, []);
 
   const takePhotos = async () => {
+    if (isCapturing) return;
+    setIsCapturing(true);
+    if (onStartCapture) onStartCapture();
+
     const video = videoRef.current;
     if (!video || video.readyState < 2) {
       alert('Video belum siap. Mohon tunggu beberapa detik lalu coba lagi.');
+      setIsCapturing(false);
       return;
     }
     for (let i = 0; i < photosToTake; i++) {
@@ -43,7 +50,10 @@ export default function Camera({ onCapture, countdown, photosToTake }: Props) {
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       onCapture(canvas.toDataURL('image/png'));
+      // Tunggu sebentar sebelum lanjut ke pose berikutnya
+      await new Promise(res => setTimeout(res, 500));
     }
+    setIsCapturing(false);
   };
 
   return (
@@ -70,6 +80,7 @@ export default function Camera({ onCapture, countdown, photosToTake }: Props) {
       </div>
       <button 
         onClick={takePhotos} 
+        disabled={isCapturing}
         style={{
           padding: '12px 24px',
           fontSize: '16px',
@@ -78,12 +89,12 @@ export default function Camera({ onCapture, countdown, photosToTake }: Props) {
           color: 'white',
           border: 'none',
           borderRadius: '24px',
-          cursor: 'pointer',
+          cursor: isCapturing ? 'not-allowed' : 'pointer',
           boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
           transition: 'all 0.3s ease'
         }}
       >
-        Start Capture ({photosToTake} photos)
+        {isCapturing ? 'Mengambil Foto...' : `Start Capture (${photosToTake} photos)`}
       </button>
     </div>
   );

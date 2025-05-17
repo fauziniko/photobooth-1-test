@@ -13,6 +13,17 @@ export default function Home() {
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
 
+  // Reset photos setiap kali layout berubah
+  const handleLayoutChange = (n: number) => {
+    setLayout(n);
+    setPhotos([]);
+  };
+
+  // Reset photos sebelum mulai capture baru
+  const handleStartCapture = () => {
+    setPhotos([]);
+  };
+
   const handleCapture = (photo: string) => {
     setPhotos(prev => [...prev, photo]);
   };
@@ -20,9 +31,9 @@ export default function Home() {
   return (
     <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
       <h1>Photo Booth</h1>
-      {!photos.length ? (
+      {photos.length < layout ? (
         <>
-          <LayoutSelector onSelect={setLayout} />
+          <LayoutSelector onSelect={handleLayoutChange} />
           <label>
             Countdown:
             <select value={countdown} onChange={e => setCountdown(Number(e.target.value))} style={{ marginLeft: 8 }}>
@@ -31,7 +42,15 @@ export default function Home() {
               <option value={5}>5s</option>
             </select>
           </label>
-          <Camera onCapture={handleCapture} countdown={countdown} photosToTake={layout} />
+          <Camera
+            onCapture={handleCapture}
+            countdown={countdown}
+            photosToTake={layout}
+            onStartCapture={handleStartCapture}
+          />
+          <div style={{ marginTop: 16, color: '#888' }}>
+            {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
+          </div>
         </>
       ) : (
         <>
