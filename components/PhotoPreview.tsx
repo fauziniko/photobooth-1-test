@@ -52,6 +52,23 @@ export default function PhotoPreview({ photos, filter, frameColor }: Props) {
             }}
           />
         ))}
+        {/* Space kosong di bawah foto terakhir */}
+        {!isGrid && (
+          <div
+            style={{
+              width: 200,
+              height: 266, // kira-kira rasio 4:3, samakan dengan tinggi foto
+              background: 'transparent'
+            }}
+          />
+        )}
+        {/* Untuk grid, space bisa dibuat 2 kolom */}
+        {isGrid && (
+          <>
+            <div style={{ width: 200, height: 150, background: 'transparent' }} />
+            <div style={{ width: 200, height: 150, background: 'transparent' }} />
+          </>
+        )}
       </div>
       <button
         onClick={downloadStrip}
