@@ -17,38 +17,44 @@ export default function PhotoPreview({ photos, filter, frameColor }: Props) {
     });
   };
 
+  // Jika 6 pose, gunakan grid 2 kolom × 3 baris
+  const isGrid = photos.length === 6;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
-      <div 
-        id="strip" 
-        style={{ 
-          backgroundColor: frameColor, 
-          padding: 20, 
+      <div
+        id="strip"
+        style={{
+          backgroundColor: frameColor,
+          padding: 20,
           borderRadius: 12,
-          display: 'flex',
-          flexDirection: 'column', // vertikal
+          display: isGrid ? 'grid' : 'flex',
+          flexDirection: isGrid ? undefined : 'column',
+          gridTemplateColumns: isGrid ? 'repeat(2, 1fr)' : undefined,
+          gridTemplateRows: isGrid ? 'repeat(3, 1fr)' : undefined,
           alignItems: 'center',
           gap: 10,
           boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-          maxWidth: '90vw'
+          maxWidth: isGrid ? 420 : '90vw',
         }}
       >
         {photos.map((src, i) => (
-          <img 
-            key={i} 
-            src={src} 
-            alt={`photo-${i}`} 
-            style={{ 
-              filter, 
-              width: 200, 
+          <img
+            key={i}
+            src={src}
+            alt={`photo-${i}`}
+            style={{
+              filter,
+              width: 200,
               borderRadius: 8,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }} 
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              objectFit: 'cover'
+            }}
           />
         ))}
       </div>
-      <button 
-        onClick={downloadStrip} 
+      <button
+        onClick={downloadStrip}
         style={{
           padding: '12px 24px',
           backgroundColor: '#4CAF50',

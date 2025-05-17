@@ -57,7 +57,25 @@ export default function Home() {
           <FilterSelector onSelect={setFilter} />
           <FrameCustomizer onColorChange={setFrameColor} />
           <PhotoPreview photos={photos} filter={filter} frameColor={frameColor} />
-          <button onClick={() => setPhotos([])}>Ambil Ulang</button>
+          <button
+            onClick={() => setPhotos([])}
+            style={{
+              marginTop: '20px',
+              padding: '14px 32px',
+              backgroundColor: '#ff1744', // merah terang
+              color: '#fff',
+              border: 'none',
+              borderRadius: '28px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(255,23,68,0.15)',
+              transition: 'background 0.2s'
+            }}
+          >
+            Ambil Ulang
+          </button>
         </>
       )}
     </main>
