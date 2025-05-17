@@ -12,19 +12,8 @@ export default function LayoutSelector({ onSelect }: Props) {
             className="layout-selector-btn"
             key={layout}
             onClick={() => onSelect(layout)}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: '#BBDEFB', // biru muda
-              color: '#222', // font gelap
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontWeight: 'bold',
-              minWidth: '80px'
-            }}
           >
-            {layout} Foto
+            {layout} Pose
           </button>
         ))}
       </div>
