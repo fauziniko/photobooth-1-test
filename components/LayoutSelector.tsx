@@ -7,10 +7,11 @@ export default function LayoutSelector({ onSelect }: Props) {
     <div style={{ marginBottom: '20px' }}>
       <h3 style={{ marginBottom: '12px', color: '#333' }}>Pilih Layout</h3>
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-        {[2, 3, 4, 6].map(n => (
-          <button 
-            key={n} 
-            onClick={() => onSelect(n)} 
+        {[2, 3, 4, 6].map(layout => (
+          <button
+            className="layout-selector-btn"
+            key={layout}
+            onClick={() => onSelect(layout)}
             style={{
               padding: '10px 16px',
               backgroundColor: '#BBDEFB', // biru muda
@@ -23,7 +24,7 @@ export default function LayoutSelector({ onSelect }: Props) {
               minWidth: '80px'
             }}
           >
-            {n} Pose
+            {layout} Foto
           </button>
         ))}
       </div>

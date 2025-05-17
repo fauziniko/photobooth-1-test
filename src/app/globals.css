@@ -50,3 +50,23 @@ body {
     gap: 16px !important;
   }
 }
+
+/* Tambahkan di globals.css atau style global Anda */
+.layout-selector-btn {
+  background: transparent;
+  border: 2px solid #111;
+  color: #111;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.layout-selector-btn:hover,
+.layout-selector-btn:focus {
+  background: #c2185b; /* pink tua */
+  color: #fff;
+  border-color: #c2185b;
+}
