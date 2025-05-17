@@ -5,7 +5,6 @@ import LayoutSelector from '../../components/LayoutSelector';
 import FilterSelector from '../../components/FilterSelector';
 import FrameCustomizer from '../../components/FrameCustomizer';
 import PhotoPreview from '../../components/PhotoPreview';
-import html2canvas from 'html2canvas'; // pastikan sudah install
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -13,7 +12,7 @@ export default function Home() {
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
-  const [bottomSpace, setBottomSpace] = useState(85); // ubah dari 200 ke 85
+  const [bottomSpace, setBottomSpace] = useState(200);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -26,17 +25,6 @@ export default function Home() {
 
   const handleCapture = (photo: string) => {
     setPhotos(prev => [...prev, photo]);
-  };
-
-  const handleDownloadStrip = () => {
-    const node = document.getElementById('strip');
-    if (!node) return;
-    html2canvas(node).then(canvas => {
-      const link = document.createElement('a');
-      link.download = 'photostrip.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
   };
 
   return (
@@ -163,42 +151,24 @@ export default function Home() {
               </div>
               <FilterSelector onSelect={setFilter} />
               <FrameCustomizer onColorChange={setFrameColor} />
-              <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                <button
-                  onClick={() => setPhotos([])}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#ff1744',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
-                    transition: 'background 0.2s',
-                  }}
-                >
-                  Ambil Ulang
-                </button>
-                <button
-                  onClick={handleDownloadStrip}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Download Strip
-                </button>
-              </div>
+              <button
+                onClick={() => setPhotos([])}
+                style={{
+                  marginTop: '20px',
+                  padding: '12px 24px',
+                  backgroundColor: '#ff1744',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '24px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Ambil Ulang
+              </button>
             </div>
           </div>
         </div>
