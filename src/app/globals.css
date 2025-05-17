@@ -20,7 +20,7 @@
 }
 
 body {
-  background: #ffe0ef; /* warna pink muda */
+  background: transparent !important;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
