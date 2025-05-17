@@ -7,7 +7,7 @@ import FrameCustomizer from '../../components/FrameCustomizer';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
-import GIF from 'gif.js.browser';
+import GIF from 'gif.js';
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -98,7 +98,7 @@ export default function Home() {
       gif.addFrame(canvas, { delay: 800 });
     }
 
-    gif.on('finished', function(blob) {
+    gif.on('finished', function(blob: Blob) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
