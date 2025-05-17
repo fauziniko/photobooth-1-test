@@ -4,9 +4,10 @@ interface Props {
   photos: string[];
   filter: string;
   frameColor: string;
+  bottomSpace?: number;
 }
 
-export default function PhotoPreview({ photos, filter, frameColor }: Props) {
+export default function PhotoPreview({ photos, filter, frameColor, bottomSpace = 85 }: Props) {
   const downloadStrip = () => {
     const node = document.getElementById('strip')!;
     html2canvas(node).then(canvas => {
@@ -26,8 +27,8 @@ export default function PhotoPreview({ photos, filter, frameColor }: Props) {
           padding: 20, 
           borderRadius: 12,
           display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          alignItems: 'center',
           gap: 10,
           boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
           maxWidth: '90vw'
@@ -46,6 +47,13 @@ export default function PhotoPreview({ photos, filter, frameColor }: Props) {
             }} 
           />
         ))}
+        <div
+          style={{
+            width: 200,
+            height: bottomSpace,
+            background: 'transparent'
+          }}
+        />
       </div>
       <button 
         onClick={downloadStrip} 
