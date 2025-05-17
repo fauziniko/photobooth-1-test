@@ -4,12 +4,14 @@ import { useRef, useEffect, useState } from 'react';
 interface Props {
   onCapture: (dataUrl: string) => void;
   photosToTake: number;
+  countdown: number; // tambahkan ini
   onStartCapture?: () => void;
 }
 
-export default function Camera({ onCapture, photosToTake, onStartCapture }: Props) {
+export default function Camera({ onCapture, photosToTake, countdown, onStartCapture }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
@@ -27,6 +29,13 @@ export default function Camera({ onCapture, photosToTake, onStartCapture }: Prop
     if (isCapturing) return;
     setIsCapturing(true);
     if (onStartCapture) onStartCapture();
+
+    // Countdown logic
+    for (let i = countdown; i > 0; i--) {
+      setCount(i);
+      await new Promise(res => setTimeout(res, 1000));
+    }
+    setCount(null);
 
     const video = videoRef.current;
     if (!video || video.readyState < 2) {
@@ -82,6 +91,22 @@ export default function Camera({ onCapture, photosToTake, onStartCapture }: Prop
             aspectRatio: '4/3',
           }} 
         />
+        {count !== null && (
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 64,
+            color: '#fff',
+            background: 'rgba(0,0,0,0.4)',
+            fontWeight: 'bold',
+            zIndex: 2
+          }}>
+            {count}
+          </div>
+        )}
       </div>
       <button 
         onClick={takePhotos} 
