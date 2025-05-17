@@ -2,10 +2,11 @@ interface Props {
   photos: string[];
   filter: string;
   frameColor: string;
-  bottomSpace?: number;
+  bottomSpace: number;
+  borderRadius: number; // tambahkan prop ini
 }
 
-export default function PhotoPreview({ photos, filter, frameColor, bottomSpace = 85 }: Props) {
+export default function PhotoPreview({ photos, filter, frameColor, bottomSpace, borderRadius }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
       <div 
@@ -13,7 +14,7 @@ export default function PhotoPreview({ photos, filter, frameColor, bottomSpace =
         style={{ 
           backgroundColor: frameColor, 
           padding: 20, 
-          borderRadius: 12,
+          borderRadius: borderRadius, // gunakan di frame
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -32,7 +33,7 @@ export default function PhotoPreview({ photos, filter, frameColor, bottomSpace =
               width: 240, // landscape, bisa sesuaikan
               height: 180,
               objectFit: 'cover',
-              borderRadius: 8,
+              borderRadius: borderRadius, // gunakan di gambar juga
             }} 
           />
         ))}

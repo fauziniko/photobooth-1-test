@@ -17,6 +17,7 @@ export default function Home() {
   const [bottomSpace, setBottomSpace] = useState(85); // default 85
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
+  const [borderRadius, setBorderRadius] = useState(24); // default 24px
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -234,6 +235,7 @@ export default function Home() {
                 filter={filter}
                 frameColor={frameColor}
                 bottomSpace={bottomSpace}
+                borderRadius={borderRadius} // <-- tambahkan prop ini
               />
             </div>
             {/* Kontrol di kanan */}
@@ -252,6 +254,21 @@ export default function Home() {
                   style={{ width: 120 }}
                 />
                 <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
+              </div>
+              <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <label htmlFor="border-radius" style={{ fontWeight: 'bold', color: '#111' }}>
+                  Border Radius:
+                </label>
+                <input
+                  id="border-radius"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={borderRadius}
+                  onChange={e => setBorderRadius(Number(e.target.value))}
+                  style={{ width: 120 }}
+                />
+                <span style={{ color: '#111', minWidth: 40 }}>{borderRadius}px</span>
               </div>
               <FilterSelector onSelect={setFilter} />
               <FrameCustomizer onColorChange={setFrameColor} />
