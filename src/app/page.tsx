@@ -7,6 +7,7 @@ import FrameCustomizer from '../../components/FrameCustomizer';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
+import GIF from 'gif.js.browser';
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -63,6 +64,50 @@ export default function Home() {
   const handleCloseQR = () => {
     setShowQR(false);
     setQrData(null);
+  };
+
+  const handleDownloadGIF = async () => {
+    const stripNode = document.getElementById('strip');
+    if (!stripNode || photos.length === 0) return;
+
+    const gif = new GIF({
+      workers: 2,
+      quality: 10,
+      width: stripNode.clientWidth,
+      height: stripNode.clientHeight,
+    });
+
+    // Render setiap foto ke canvas, lalu tambahkan ke GIF
+    for (let i = 0; i < photos.length; i++) {
+      const img = new window.Image();
+      img.src = photos[i];
+      await new Promise(resolve => { img.onload = resolve; });
+
+      // Buat canvas sementara
+      const canvas = document.createElement('canvas');
+      canvas.width = stripNode.clientWidth;
+      canvas.height = stripNode.clientHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) continue;
+
+      // Render frame preview (menggunakan PhotoPreview lebih baik, tapi ini versi sederhana)
+      ctx.fillStyle = frameColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height - bottomSpace);
+
+      gif.addFrame(canvas, { delay: 800 });
+    }
+
+    gif.on('finished', function(blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'photostrip.gif';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    gif.render();
   };
 
   return (
@@ -244,6 +289,23 @@ export default function Home() {
                   }}
                 >
                   QR Code
+                </button>
+                <button
+                  onClick={handleDownloadGIF}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#00B8D9',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Download GIF
                 </button>
               </div>
             </div>
