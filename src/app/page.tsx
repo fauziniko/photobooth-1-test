@@ -13,7 +13,7 @@ export default function Home() {
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
-  const [bottomSpace, setBottomSpace] = useState(200);
+  const [bottomSpace, setBottomSpace] = useState(85); // ubah dari 200 ke 85
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);

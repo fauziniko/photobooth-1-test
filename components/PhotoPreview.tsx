@@ -7,7 +7,7 @@ interface Props {
   bottomSpace?: number; // tinggi space kosong dalam px (opsional)
 }
 
-export default function PhotoPreview({ photos, filter, frameColor, bottomSpace = 200 }: Props) {
+export default function PhotoPreview({ photos, filter, frameColor, bottomSpace = 85 }: Props) {
   const downloadStrip = () => {
     const node = document.getElementById('strip')!;
     html2canvas(node).then(canvas => {
@@ -47,7 +47,6 @@ export default function PhotoPreview({ photos, filter, frameColor, bottomSpace =
             }} 
           />
         ))}
-        {/* Space kosong di bawah strip, bisa diatur tingginya */}
         <div
           style={{
             width: 200,
@@ -56,23 +55,6 @@ export default function PhotoPreview({ photos, filter, frameColor, bottomSpace =
           }}
         />
       </div>
-      <button 
-        onClick={downloadStrip} 
-        style={{
-          padding: '12px 24px',
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          border: 'none',
-          borderRadius: '24px',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-          transition: 'all 0.3s ease'
-        }}
-      >
-        Download Strip
-      </button>
     </div>
   );
 }
