@@ -36,7 +36,18 @@ export default function Home() {
           <LayoutSelector onSelect={handleLayoutChange} />
           <label>
             Countdown:
-            <select value={countdown} onChange={e => setCountdown(Number(e.target.value))} style={{ marginLeft: 8 }}>
+            <select
+              value={countdown}
+              onChange={e => setCountdown(Number(e.target.value))}
+              style={{
+                marginLeft: 8,
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                color: '#111', // font warna hitam
+                background: '#fff'
+              }}
+            >
               <option value={1}>1s</option>
               <option value={3}>3s</option>
               <option value={5}>5s</option>
