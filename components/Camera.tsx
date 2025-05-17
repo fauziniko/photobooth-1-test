@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 interface Props {
   onCapture: (dataUrl: string) => void;
   photosToTake: number;
-  countdown: number; // tambahkan ini
+  countdown: number;
   onStartCapture?: () => void;
 }
 
@@ -30,45 +30,44 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
     setIsCapturing(true);
     if (onStartCapture) onStartCapture();
 
-    // Countdown logic
-    for (let i = countdown; i > 0; i--) {
-      setCount(i);
-      await new Promise(res => setTimeout(res, 1000));
+    for (let shot = 0; shot < photosToTake; shot++) {
+      // Countdown sebelum setiap foto
+      for (let i = countdown; i > 0; i--) {
+        setCount(i);
+        await new Promise(res => setTimeout(res, 1000));
+      }
+      setCount(null);
+
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) {
+        alert('Video belum siap. Mohon tunggu beberapa detik lalu coba lagi.');
+        setIsCapturing(false);
+        return;
+      }
+
+      // Ambil gambar landscape, crop tengah
+      const targetRatio = 4 / 3;
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      let sx = 0, sy = 0, sw = vw, sh = vh;
+      if (vw / vh > targetRatio) {
+        sw = vh * targetRatio;
+        sx = (vw - sw) / 2;
+      } else if (vw / vh < targetRatio) {
+        sh = vw / targetRatio;
+        sy = (vh - sh) / 2;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+      onCapture(canvas.toDataURL('image/png'));
+      // Delay antar foto
+      await new Promise(res => setTimeout(res, 500));
     }
-    setCount(null);
-
-    const video = videoRef.current;
-    if (!video || video.readyState < 2) {
-      alert('Video belum siap. Mohon tunggu beberapa detik lalu coba lagi.');
-      setIsCapturing(false);
-      return;
-    }
-
-    // Target rasio landscape 4:3
-    const targetRatio = 4 / 3;
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-    let sx = 0, sy = 0, sw = vw, sh = vh;
-
-    // Crop tengah jika rasio video tidak 4:3
-    if (vw / vh > targetRatio) {
-      // Video terlalu lebar, crop kiri-kanan
-      sw = vh * targetRatio;
-      sx = (vw - sw) / 2;
-    } else if (vw / vh < targetRatio) {
-      // Video terlalu tinggi, crop atas-bawah
-      sh = vw / targetRatio;
-      sy = (vh - sh) / 2;
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 640; // landscape
-    canvas.height = 480;
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-    onCapture(canvas.toDataURL('image/png'));
-    await new Promise(res => setTimeout(res, 500));
     setIsCapturing(false);
   };
 
