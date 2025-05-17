@@ -60,9 +60,8 @@ export default function Home() {
             photosToTake={layout}
             onStartCapture={handleStartCapture}
           />
-          {/* LayoutSelector dan Countdown di bawah kamera, di atas tombol Start Capture */}
+          {/* Countdown di atas, lalu Pilih Layout */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
-            <LayoutSelector onSelect={handleLayoutChange} />
             <label style={{ color: '#111', fontWeight: 'bold' }}>
               Countdown:
               <select
@@ -82,6 +81,7 @@ export default function Home() {
                 <option value={5}>5s</option>
               </select>
             </label>
+            <LayoutSelector onSelect={handleLayoutChange} />
           </div>
           <div style={{ marginTop: 16, color: '#888' }}>
             {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
