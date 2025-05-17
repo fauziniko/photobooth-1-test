@@ -12,31 +12,39 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [count, setCount] = useState<number | null>(null);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
 
+  // Ambil daftar kamera
   useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        setDevices(videoDevices);
+        if (videoDevices.length > 0) setSelectedDeviceId(videoDevices[0].deviceId);
+      });
+    }
+  }, []);
+
+  // Stream kamera sesuai pilihan
+  useEffect(() => {
+    if (!selectedDeviceId) return;
     if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      // Coba prefer kamera belakang, fallback ke kamera depan jika gagal
       navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } }
+        video: { deviceId: { exact: selectedDeviceId } }
       })
         .then(stream => {
           if (videoRef.current) videoRef.current.srcObject = stream;
         })
-        .catch(() => {
-          // Fallback ke kamera depan jika gagal
-          navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user' }
-          })
-            .then(stream => {
-              if (videoRef.current) videoRef.current.srcObject = stream;
-            })
-            .catch(err => {
-              console.error('getUserMedia error', err);
-              alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
-            });
+        .catch(err => {
+          alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
         });
     }
-  }, []);
+  }, [selectedDeviceId]);
+
+  const handleDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedDeviceId(e.target.value);
+  };
 
   const takePhotos = async () => {
     if (isCapturing) return;
@@ -86,6 +94,30 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative' }}>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ fontWeight: 'bold', color: '#111', marginRight: 8 }}>Pilih Kamera:</label>
+        <select
+          value={selectedDeviceId}
+          onChange={handleDeviceChange}
+          style={{
+            padding: 6,
+            borderRadius: 6,
+            color: '#111',           // warna teks dropdown
+            background: '#fff',      // agar kontras di pink
+            border: '1px solid #aaa'
+          }}
+        >
+          {devices.map(device => (
+            <option
+              value={device.deviceId}
+              key={device.deviceId}
+              style={{ color: '#111', background: '#fff' }} // warna teks dan background option
+            >
+              {device.label || `Kamera ${device.deviceId.slice(-4)}`}
+            </option>
+          ))}
+        </select>
+      </div>
       <div style={{ position: 'relative' }}>
         <video 
           ref={videoRef} 
@@ -127,7 +159,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           padding: '12px 24px',
           fontSize: '16px',
           fontWeight: 'bold',
-          backgroundColor: '#fa75aa', // ubah di sini
+          backgroundColor: '#fa75aa',
           color: 'white',
           border: 'none',
           borderRadius: '24px',
