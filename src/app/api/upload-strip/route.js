@@ -13,6 +13,6 @@ export async function POST(req) {
   const base64Data = image.replace(/^data:image\/png;base64,/, '');
   await writeFile(filePath, base64Data, 'base64');
 
-  // Return public URL
+  // Return public URl baru
   return Response.json({ url: `/tmp/${filename}` });
 }
