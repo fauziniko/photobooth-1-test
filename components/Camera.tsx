@@ -42,9 +42,32 @@ export default function Camera({ onCapture, countdown, photosToTake }: Props) {
   };
 
   return (
-    <div>
-      <video ref={videoRef} autoPlay playsInline width="640" height="480" />
-      <button onClick={takePhotos}>Start Capture ({photosToTake} photos)</button>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      <video 
+        ref={videoRef} 
+        autoPlay 
+        playsInline 
+        width="640" 
+        height="480" 
+        style={{ borderRadius: '8px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }} 
+      />
+      <button 
+        onClick={takePhotos} 
+        style={{
+          padding: '12px 24px',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          backgroundColor: '#4285F4',
+          color: 'white',
+          border: 'none',
+          borderRadius: '24px',
+          cursor: 'pointer',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        Start Capture ({photosToTake} photos)
+      </button>
     </div>
   );
 }

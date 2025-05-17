@@ -1,15 +1,31 @@
 interface Props {
-    onSelect: (layout: number) => void;
-  }
-  
-  export default function LayoutSelector({ onSelect }: Props) {
-    return (
-      <div>
-        <h3>Pilih Layout</h3>
+  onSelect: (layout: number) => void;
+}
+
+export default function LayoutSelector({ onSelect }: Props) {
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <h3 style={{ marginBottom: '12px', color: '#333' }}>Pilih Layout</h3>
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
         {[2, 3, 4, 6].map(n => (
-          <button key={n} onClick={() => onSelect(n)}>{n} Pose</button>
+          <button 
+            key={n} 
+            onClick={() => onSelect(n)} 
+            style={{
+              padding: '10px 16px',
+              backgroundColor: '#e0e0e0',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              fontWeight: 'bold',
+              minWidth: '80px'
+            }}
+          >
+            {n} Pose
+          </button>
         ))}
       </div>
-    );
-  }
-  
+    </div>
+  );
+}
