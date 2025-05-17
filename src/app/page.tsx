@@ -144,7 +144,6 @@ export default function Home() {
           {/* Kamera di atas */}
           <Camera
             onCapture={handleCapture}
-            countdown={countdown}
             photosToTake={layout}
             onStartCapture={handleStartCapture}
           />
