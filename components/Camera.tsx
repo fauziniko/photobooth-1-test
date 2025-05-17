@@ -15,13 +15,25 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: true })
+      // Coba prefer kamera belakang, fallback ke kamera depan jika gagal
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }
+      })
         .then(stream => {
           if (videoRef.current) videoRef.current.srcObject = stream;
         })
-        .catch(err => {
-          console.error('getUserMedia error', err);
-          alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
+        .catch(() => {
+          // Fallback ke kamera depan jika gagal
+          navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' }
+          })
+            .then(stream => {
+              if (videoRef.current) videoRef.current.srcObject = stream;
+            })
+            .catch(err => {
+              console.error('getUserMedia error', err);
+              alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
+            });
         });
     }
   }, []);
