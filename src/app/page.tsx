@@ -26,7 +26,7 @@ export default function Home() {
   const [qrData, setQrData] = useState<string | null>(null);
   const [frameBorderRadius, setFrameBorderRadius] = useState(24);
   const [photoBorderRadius, setPhotoBorderRadius] = useState(24);
-  const [stickers, setStickers] = useState<{src: string, x: number, y: number}[]>([]);
+  const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number}[]>([]);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -129,12 +129,23 @@ export default function Home() {
 
   // Fungsi untuk menambah stiker ke posisi default (tengah frame)
   const handleAddSticker = (src: string) => {
-    setStickers(prev => [...prev, { src, x: 100, y: 100 }]);
+    setStickers(prev => [...prev, { src, x: 100, y: 100, size: 48 }]);
   };
 
   // Fungsi untuk mengubah posisi stiker (drag & drop)
   const handleMoveSticker = (idx: number, x: number, y: number) => {
     setStickers(prev => prev.map((s, i) => i === idx ? { ...s, x, y } : s));
+  };
+
+  // Fungsi untuk mengubah ukuran stiker
+  const handleResizeSticker = (idx: number, delta: number) => {
+    setStickers(prev =>
+      prev.map((s, i) =>
+        i === idx
+          ? { ...s, size: Math.max(24, Math.min(200, s.size + delta)) }
+          : s
+      )
+    );
   };
 
   return (
@@ -258,6 +269,7 @@ export default function Home() {
                 photoBorderRadius={photoBorderRadius}
                 stickers={stickers}
                 onMoveSticker={handleMoveSticker}
+                onResizeSticker={handleResizeSticker} // <-- tambahkan baris ini
               />
             </div>
             {/* Kontrol di kanan */}

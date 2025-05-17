@@ -4,6 +4,7 @@ interface Sticker {
   src: string;
   x: number;
   y: number;
+  size: number;
 }
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   photoBorderRadius: number;
   stickers?: Sticker[];
   onMoveSticker?: (idx: number, x: number, y: number) => void;
+  onResizeSticker?: (idx: number, delta: number) => void;
 }
 
 export default function PhotoPreview({
@@ -26,8 +28,8 @@ export default function PhotoPreview({
   photoBorderRadius,
   stickers = [],
   onMoveSticker,
+  onResizeSticker,
 }: Props) {
-  // Drag logic
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   const handleMouseDown = (idx: number) => () => {
@@ -38,8 +40,8 @@ export default function PhotoPreview({
     if (dragIdx !== null && onMoveSticker) {
       const rect = (e.target as HTMLElement).closest('#strip')?.getBoundingClientRect();
       if (!rect) return;
-      const x = e.clientX - rect.left - 24; // 24 = half sticker size
-      const y = e.clientY - rect.top - 24;
+      const x = e.clientX - rect.left - (stickers[dragIdx]?.size ?? 48) / 2;
+      const y = e.clientY - rect.top - (stickers[dragIdx]?.size ?? 48) / 2;
       onMoveSticker(dragIdx, x, y);
     }
   };
@@ -84,23 +86,75 @@ export default function PhotoPreview({
         ))}
         {/* Render stickers di atas foto */}
         {stickers.map((sticker, idx) => (
-          <img
-            key={idx}
-            src={sticker.src}
-            alt=""
-            style={{
-              position: 'absolute',
-              left: sticker.x,
-              top: sticker.y,
-              width: 48,
-              height: 48,
-              cursor: 'move',
-              zIndex: 10,
-              userSelect: 'none',
-            }}
-            onMouseDown={handleMouseDown(idx)}
-            draggable={false}
-          />
+          <React.Fragment key={idx}>
+            {/* Tombol resize */}
+            <div
+              style={{
+                position: 'absolute',
+                left: sticker.x + sticker.size - 12,
+                top: sticker.y - 24,
+                zIndex: 20,
+                display: 'flex',
+                gap: 4,
+              }}
+            >
+              <button
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  border: '1px solid #aaa',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  padding: 0,
+                  lineHeight: 1,
+                  fontSize: 16,
+                }}
+                onClick={e => {
+                  e.stopPropagation();
+                  onResizeSticker?.(idx, 8);
+                }}
+                aria-label="Perbesar"
+              >+</button>
+              <button
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  border: '1px solid #aaa',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  padding: 0,
+                  lineHeight: 1,
+                  fontSize: 16,
+                }}
+                onClick={e => {
+                  e.stopPropagation();
+                  onResizeSticker?.(idx, -8);
+                }}
+                aria-label="Perkecil"
+              >−</button>
+            </div>
+            <img
+              src={sticker.src}
+              alt=""
+              style={{
+                position: 'absolute',
+                left: sticker.x,
+                top: sticker.y,
+                width: sticker.size,
+                height: sticker.size,
+                cursor: 'move',
+                zIndex: 10,
+                userSelect: 'none',
+                transition: 'width 0.1s, height 0.1s',
+              }}
+              onMouseDown={handleMouseDown(idx)}
+              draggable={false}
+            />
+          </React.Fragment>
         ))}
         <div
           style={{
