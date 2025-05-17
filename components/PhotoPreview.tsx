@@ -8,16 +8,6 @@ interface Props {
 }
 
 export default function PhotoPreview({ photos, filter, frameColor, bottomSpace = 85 }: Props) {
-  const downloadStrip = () => {
-    const node = document.getElementById('strip')!;
-    html2canvas(node).then(canvas => {
-      const link = document.createElement('a');
-      link.download = 'photostrip.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
       <div 
