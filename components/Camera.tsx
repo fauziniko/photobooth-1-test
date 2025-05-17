@@ -30,23 +30,24 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
 
   // Stream kamera sesuai pilihan
   useEffect(() => {
-    if (!selectedDeviceId) return;
-    if (typeof window !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      let constraints: MediaStreamConstraints;
-      if (isMobile) {
-        constraints = { video: { facingMode: cameraMode } };
-      } else {
-        constraints = { video: { deviceId: { exact: selectedDeviceId } } };
-      }
+    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
 
-      navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-          if (videoRef.current) videoRef.current.srcObject = stream;
-        })
-        .catch(err => {
-          alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
-        });
+    let constraints: MediaStreamConstraints;
+    if (isMobile) {
+      constraints = { video: { facingMode: cameraMode } };
+    } else if (selectedDeviceId) {
+      constraints = { video: { deviceId: { exact: selectedDeviceId } } };
+    } else {
+      constraints = { video: true };
     }
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(stream => {
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      })
+      .catch(err => {
+        alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
+      });
   }, [selectedDeviceId, cameraMode]);
 
   const handleDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
