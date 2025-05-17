@@ -61,16 +61,15 @@ export default function Home() {
             onClick={() => setPhotos([])}
             style={{
               marginTop: '20px',
-              padding: '14px 32px',
-              backgroundColor: '#ff1744', // merah terang
+              padding: '12px 24px',
+              backgroundColor: '#ff1744',
               color: '#fff',
               border: 'none',
-              borderRadius: '28px',
-              fontSize: '18px',
+              borderRadius: '24px',
+              fontSize: '16px',
               fontWeight: 'bold',
-              letterSpacing: '1px',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(255,23,68,0.15)',
+              boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
               transition: 'background 0.2s'
             }}
           >
