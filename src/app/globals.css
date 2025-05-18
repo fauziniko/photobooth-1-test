@@ -71,6 +71,8 @@ body {
   border-color: #fa75aa;
 }
 
-.hide-resize-handle .resize-handle {
+.hide-resize-handle .resize-handle,
+.hide-resize-handle .sticker-handle-group,
+.hide-resize-handle .sticker-handle {
   display: none !important;
 }

@@ -5,6 +5,7 @@ interface Sticker {
   x: number;
   y: number;
   size: number;
+  rotate?: number;
 }
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   stickers?: Sticker[];
   onMoveSticker?: (idx: number, x: number, y: number) => void;
   onResizeSticker?: (idx: number, newSize: number) => void;
+  onRotateSticker?: (idx: number, delta: number) => void;
+  onDeleteSticker?: (idx: number) => void;
 }
 
 export default function PhotoPreview({
@@ -29,6 +32,8 @@ export default function PhotoPreview({
   stickers = [],
   onMoveSticker,
   onResizeSticker,
+  onRotateSticker,
+  onDeleteSticker,
 }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [resizeIdx, setResizeIdx] = useState<number | null>(null);
@@ -41,8 +46,8 @@ export default function PhotoPreview({
 
   // Untuk menghapus stiker
   const handleDeleteSticker = (idx: number) => {
-    if (!onResizeSticker) return;
-    onResizeSticker(idx, 0);
+    if (!onDeleteSticker) return;
+    onDeleteSticker(idx);
   };
 
   // Mouse resize
@@ -219,33 +224,107 @@ export default function PhotoPreview({
         {/* Render stickers di atas foto */}
         {stickers.map((sticker, idx) => (
           <React.Fragment key={idx}>
-            {/* Resize handle pojok kanan bawah */}
+            {/* --- ICON GROUP --- */}
             <div
-              className="resize-handle"
+              className="sticker-handle-group"
               style={{
                 position: 'absolute',
                 left: sticker.x + sticker.size - 12,
                 top: sticker.y + sticker.size - 12,
-                width: 24,
-                height: 24,
-                zIndex: 30,
-                cursor: 'nwse-resize',
-                background: 'rgba(255,255,255,0.7)',
-                borderRadius: '50%',
-                border: '1.5px solid #d72688',
+                zIndex: 31,
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                touchAction: 'none',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                flexDirection: 'row',
+                gap: 2,
+                pointerEvents: 'auto',
               }}
-              onMouseDown={handleResizeMouseDown(idx)}
-              onTouchStart={handleResizeTouchStart(idx)}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16">
-                <polyline points="4,12 12,12 12,4" fill="none" stroke="#d72688" strokeWidth="2"/>
-              </svg>
+              {/* ROTATE */}
+              <button
+                className="sticker-handle sticker-rotate"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  border: '1.5px solid #888',
+                  background: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 2,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  padding: 0,
+                }}
+                title="Putar"
+                tabIndex={-1}
+                onClick={e => {
+                  e.stopPropagation();
+                  onRotateSticker?.(idx, 15); // putar 15 derajat
+                }}
+              >
+                {/* icon rotate */}
+                <svg width="14" height="14" viewBox="0 0 20 20">
+                  <path d="M10 4V1L6 5l4 4V6c2.76 0 5 2.24 5 5s-2.24 5-5 5-5-2.24-5-5" fill="none" stroke="#d72688" strokeWidth="2"/>
+                </svg>
+              </button>
+              {/* DELETE */}
+              <button
+                className="sticker-handle sticker-delete"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  border: '1.5px solid #888',
+                  background: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 2,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  padding: 0,
+                }}
+                title="Hapus"
+                tabIndex={-1}
+                onClick={e => {
+                  e.stopPropagation();
+                  onDeleteSticker?.(idx);
+                }}
+              >
+                {/* icon delete */}
+                <svg width="14" height="14" viewBox="0 0 20 20">
+                  <line x1="5" y1="5" x2="15" y2="15" stroke="#d72688" strokeWidth="2"/>
+                  <line x1="15" y1="5" x2="5" y2="15" stroke="#d72688" strokeWidth="2"/>
+                </svg>
+              </button>
+              {/* RESIZE */}
+              <div
+                className="resize-handle sticker-handle"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  border: '1.5px solid #d72688',
+                  background: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'nwse-resize',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  padding: 0,
+                  touchAction: 'none',
+                }}
+                onMouseDown={handleResizeMouseDown(idx)}
+                onTouchStart={handleResizeTouchStart(idx)}
+                title="Resize"
+                tabIndex={-1}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16">
+                  <polyline points="4,12 12,12 12,4" fill="none" stroke="#d72688" strokeWidth="2"/>
+                </svg>
+              </div>
             </div>
+            {/* --- STICKER IMAGE --- */}
             <img
               src={sticker.src}
               alt=""
@@ -258,9 +337,10 @@ export default function PhotoPreview({
                 cursor: dragIdx === idx ? 'grabbing' : 'move',
                 zIndex: 10,
                 userSelect: 'none',
-                transition: 'width 0.1s, height 0.1s',
+                transition: 'width 0.1s, height 0.1s, transform 0.2s',
                 touchAction: 'none',
                 pointerEvents: resizeIdx === idx ? 'none' : 'auto',
+                transform: `rotate(${sticker.rotate ?? 0}deg)`,
               }}
               onMouseDown={handleMouseDown(idx)}
               onTouchStart={handleTouchStart(idx)}
