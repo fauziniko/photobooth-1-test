@@ -37,11 +37,11 @@ export default function PhotoPreview({
 
   // Untuk long press
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
+  const movedDuringResize = useRef(false);
 
   // Untuk menghapus stiker
   const handleDeleteSticker = (idx: number) => {
     if (!onResizeSticker) return;
-    // Kirim ukuran 0 sebagai sinyal hapus (atau gunakan callback khusus jika ada)
     onResizeSticker(idx, 0);
   };
 
@@ -54,11 +54,13 @@ export default function PhotoPreview({
       startY: e.clientY,
       startSize: stickers[idx]?.size ?? 48,
     });
-    // Long press untuk hapus (desktop)
+    movedDuringResize.current = false;
     longPressTimeout.current = setTimeout(() => {
-      handleDeleteSticker(idx);
-      setResizeIdx(null);
-      setResizeStart(null);
+      if (!movedDuringResize.current) {
+        handleDeleteSticker(idx);
+        setResizeIdx(null);
+        setResizeStart(null);
+      }
     }, 700);
   };
 
@@ -72,22 +74,26 @@ export default function PhotoPreview({
       startY: touch.clientY,
       startSize: stickers[idx]?.size ?? 48,
     });
-    // Long press untuk hapus (mobile)
+    movedDuringResize.current = false;
     longPressTimeout.current = setTimeout(() => {
-      handleDeleteSticker(idx);
-      setResizeIdx(null);
-      setResizeStart(null);
+      if (!movedDuringResize.current) {
+        handleDeleteSticker(idx);
+        setResizeIdx(null);
+        setResizeStart(null);
+      }
     }, 700);
   };
 
   // Mouse/touch move: resize
   const handleMouseMove = (e: React.MouseEvent) => {
     if (resizeIdx !== null && onResizeSticker && resizeStart) {
+      movedDuringResize.current = true;
       if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
       const dx = e.clientX - resizeStart.startX;
       const dy = e.clientY - resizeStart.startY;
+      // Gunakan jarak diagonal, bisa negatif untuk mengecilkan
       const delta = Math.max(dx, dy);
       let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
       const sticker = stickers[resizeIdx];
@@ -109,12 +115,14 @@ export default function PhotoPreview({
   };
   const handleTouchMove = (e: React.TouchEvent) => {
     if (resizeIdx !== null && onResizeSticker && resizeStart) {
+      movedDuringResize.current = true;
       if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
       const touch = e.touches[0];
       const dx = touch.clientX - resizeStart.startX;
       const dy = touch.clientY - resizeStart.startY;
+      // Gunakan jarak diagonal, bisa negatif untuk mengecilkan
       const delta = Math.max(dx, dy);
       let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
       const sticker = stickers[resizeIdx];

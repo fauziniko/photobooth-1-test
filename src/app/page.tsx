@@ -138,13 +138,11 @@ export default function Home() {
   };
 
   // Fungsi untuk mengubah ukuran stiker
-  const handleResizeSticker = (idx: number, delta: number) => {
+  const handleResizeSticker = (idx: number, newSize: number) => {
     setStickers(prev =>
-      prev.map((s, i) =>
-        i === idx
-          ? { ...s, size: Math.max(24, Math.min(200, s.size + delta)) }
-          : s
-      )
+      newSize === 0
+        ? prev.filter((_, i) => i !== idx)
+        : prev.map((s, i) => i === idx ? { ...s, size: newSize } : s)
     );
   };
 
