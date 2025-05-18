@@ -43,8 +43,12 @@ export default function PhotoPreview({
     if (dragIdx !== null && onMoveSticker) {
       const rect = (e.target as HTMLElement).closest('#strip')?.getBoundingClientRect();
       if (!rect) return;
-      const x = e.clientX - rect.left - (stickers[dragIdx]?.size ?? 48) / 2;
-      const y = e.clientY - rect.top - (stickers[dragIdx]?.size ?? 48) / 2;
+      const size = stickers[dragIdx]?.size ?? 48;
+      let x = e.clientX - rect.left - size / 2;
+      let y = e.clientY - rect.top - size / 2;
+      // Batasi agar stiker tetap di dalam frame
+      x = Math.max(0, Math.min(x, rect.width - size));
+      y = Math.max(0, Math.min(y, rect.height - size));
       onMoveSticker(dragIdx, x, y);
     }
   };
@@ -67,8 +71,12 @@ export default function PhotoPreview({
       const rect = (e.target as HTMLElement).closest('#strip')?.getBoundingClientRect();
       if (!rect) return;
       const touch = e.touches[0];
-      const x = touch.clientX - rect.left - touchOffset.x;
-      const y = touch.clientY - rect.top - touchOffset.y;
+      const size = stickers[dragIdx]?.size ?? 48;
+      let x = touch.clientX - rect.left - touchOffset.x;
+      let y = touch.clientY - rect.top - touchOffset.y;
+      // Batasi agar stiker tetap di dalam frame
+      x = Math.max(0, Math.min(x, rect.width - size));
+      y = Math.max(0, Math.min(y, rect.height - size));
       onMoveSticker(dragIdx, x, y);
     }
   };
