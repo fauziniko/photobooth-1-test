@@ -245,15 +245,17 @@ export default function PhotoPreview({
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
-                  border: '1.5px solid #888',
+                  border: '2px solid #d72688',
                   background: '#fff',
+                  outline: '2px solid #fff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 2,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
                   padding: 0,
+                  zIndex: 1002,
                 }}
                 title="Putar"
                 tabIndex={-1}
@@ -274,15 +276,17 @@ export default function PhotoPreview({
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
-                  border: '1.5px solid #888',
+                  border: '2px solid #d72688',
                   background: '#fff',
+                  outline: '2px solid #fff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 2,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
                   padding: 0,
+                  zIndex: 1002,
                 }}
                 title="Hapus"
                 tabIndex={-1}

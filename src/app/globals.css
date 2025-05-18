@@ -49,6 +49,17 @@ body {
   .strip-controls-wrapper .strip-controls-flex {
     gap: 16px !important;
   }
+  .sticker-handle-group,
+  .sticker-handle {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+  .sticker-handle svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
 }
 
 /* Tambahkan di globals.css atau style global Anda */
@@ -75,4 +86,9 @@ body {
 .hide-resize-handle .sticker-handle-group,
 .hide-resize-handle .sticker-handle {
   display: none !important;
+}
+
+.sticker-handle-group,
+.sticker-handle {
+  z-index: 1002 !important;
 }
