@@ -120,8 +120,8 @@ export default function PhotoPreview({
       // Batasi agar stiker tidak keluar frame
       let x = e.clientX - rect.left - size / 2;
       let y = e.clientY - rect.top - size / 2;
-      x = Math.max(0, Math.min(x, rect.width - size));
-      y = Math.max(0, Math.min(y, rect.height - size));
+      x = Math.max(-framePadding, Math.min(x, rect.width - size + framePadding));
+      y = Math.max(-framePadding, Math.min(y, rect.height - size + framePadding));
       onMoveSticker(dragIdx, x, y);
     }
   };
@@ -157,13 +157,13 @@ export default function PhotoPreview({
       // Batasi agar stiker tidak keluar frame
       let x = touch.clientX - rect.left - touchOffset.x;
       let y = touch.clientY - rect.top - touchOffset.y;
-      x = Math.max(0, Math.min(x, rect.width - size));
-      y = Math.max(0, Math.min(y, rect.height - size));
+      x = Math.max(-framePadding, Math.min(x, rect.width - size + framePadding));
+      y = Math.max(-framePadding, Math.min(y, rect.height - size + framePadding));
       onMoveSticker(dragIdx, x, y);
     }
   };
 
-  // Mouse/touch up: reset
+  // Mouse/touch up: resetx
   const handleMouseUp = () => {
     if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
     setDragIdx(null);
@@ -195,6 +195,8 @@ export default function PhotoPreview({
       y: touch.clientY - rect.top - sticker.y,
     });
   };
+
+  const framePadding = 20; // padding pada #strip
 
   return (
     <div
