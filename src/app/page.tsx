@@ -24,8 +24,8 @@ export default function Home() {
   const [bottomSpace, setBottomSpace] = useState(85); // default 85
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
-  const [frameBorderRadius, setFrameBorderRadius] = useState(24);
-  const [photoBorderRadius, setPhotoBorderRadius] = useState(24);
+  const [frameBorderRadius, setFrameBorderRadius] = useState(0);    // dari 24 menjadi 0
+  const [photoBorderRadius, setPhotoBorderRadius] = useState(11);   // dari 24 menjadi 11
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
 
   const handleLayoutChange = (n: number) => {
