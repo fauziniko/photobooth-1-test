@@ -238,7 +238,7 @@ export default function PhotoPreview({
                 pointerEvents: 'auto',
               }}
             >
-              {/* ROTATE */}
+              {/* ROTATE LEFT */}
               <button
                 className="sticker-handle sticker-rotate"
                 style={{
@@ -257,15 +257,46 @@ export default function PhotoPreview({
                   padding: 0,
                   zIndex: 1002,
                 }}
-                title="Putar"
+                title="Putar Kiri"
                 tabIndex={-1}
                 onClick={e => {
                   e.stopPropagation();
-                  onRotateSticker?.(idx, 15); // putar 15 derajat
+                  onRotateSticker?.(idx, -15); // putar -15 derajat (kiri)
                 }}
               >
-                {/* icon rotate */}
-                <svg width="14" height="14" viewBox="0 0 20 20">
+                {/* icon rotate left */}
+                <svg width="100%" height="100%" viewBox="0 0 20 20">
+                  <path d="M10 4V1L6 5l4 4V6c2.76 0 5 2.24 5 5s-2.24 5-5 5-5-2.24-5-5" fill="none" stroke="#d72688" strokeWidth="2" transform="scale(-1,1) translate(-20,0)"/>
+                </svg>
+              </button>
+              {/* ROTATE RIGHT */}
+              <button
+                className="sticker-handle sticker-rotate"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  border: '2px solid #d72688',
+                  background: '#fff',
+                  outline: '2px solid #fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 2,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                  padding: 0,
+                  zIndex: 1002,
+                }}
+                title="Putar Kanan"
+                tabIndex={-1}
+                onClick={e => {
+                  e.stopPropagation();
+                  onRotateSticker?.(idx, 15); // putar +15 derajat (kanan)
+                }}
+              >
+                {/* icon rotate right */}
+                <svg width="100%" height="100%" viewBox="0 0 20 20">
                   <path d="M10 4V1L6 5l4 4V6c2.76 0 5 2.24 5 5s-2.24 5-5 5-5-2.24-5-5" fill="none" stroke="#d72688" strokeWidth="2"/>
                 </svg>
               </button>
