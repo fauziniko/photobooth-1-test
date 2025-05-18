@@ -91,6 +91,7 @@ export default function PhotoPreview({
 
   // Mouse/touch move: resize
   const handleMouseMove = (e: React.MouseEvent) => {
+    // Resize
     if (resizeIdx !== null && onResizeSticker && resizeStart) {
       movedDuringResize.current = true;
       if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
@@ -98,19 +99,25 @@ export default function PhotoPreview({
       if (!rect) return;
       const dx = e.clientX - resizeStart.startX;
       const dy = e.clientY - resizeStart.startY;
-      // Gunakan jarak diagonal, bisa negatif untuk mengecilkan
       const delta = Math.max(dx, dy);
       let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
       const sticker = stickers[resizeIdx];
       if (sticker) {
-        newSize = Math.min(newSize, rect.width - sticker.x, rect.height - sticker.y);
+        // Batasi agar stiker tidak keluar frame
+        newSize = Math.min(
+          newSize,
+          rect.width - sticker.x,
+          rect.height - sticker.y
+        );
       }
       onResizeSticker(resizeIdx, newSize);
     }
+    // Drag
     if (dragIdx !== null && onMoveSticker) {
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
       const size = stickers[dragIdx]?.size ?? 48;
+      // Batasi agar stiker tidak keluar frame
       let x = e.clientX - rect.left - size / 2;
       let y = e.clientY - rect.top - size / 2;
       x = Math.max(0, Math.min(x, rect.width - size));
@@ -119,6 +126,7 @@ export default function PhotoPreview({
     }
   };
   const handleTouchMove = (e: React.TouchEvent) => {
+    // Resize
     if (resizeIdx !== null && onResizeSticker && resizeStart) {
       movedDuringResize.current = true;
       if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
@@ -127,20 +135,26 @@ export default function PhotoPreview({
       const touch = e.touches[0];
       const dx = touch.clientX - resizeStart.startX;
       const dy = touch.clientY - resizeStart.startY;
-      // Gunakan jarak diagonal, bisa negatif untuk mengecilkan
       const delta = Math.max(dx, dy);
       let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
       const sticker = stickers[resizeIdx];
       if (sticker) {
-        newSize = Math.min(newSize, rect.width - sticker.x, rect.height - sticker.y);
+        // Batasi agar stiker tidak keluar frame
+        newSize = Math.min(
+          newSize,
+          rect.width - sticker.x,
+          rect.height - sticker.y
+        );
       }
       onResizeSticker(resizeIdx, newSize);
     }
+    // Drag
     if (dragIdx !== null && onMoveSticker && touchOffset) {
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
       const touch = e.touches[0];
       const size = stickers[dragIdx]?.size ?? 48;
+      // Batasi agar stiker tidak keluar frame
       let x = touch.clientX - rect.left - touchOffset.x;
       let y = touch.clientY - rect.top - touchOffset.y;
       x = Math.max(0, Math.min(x, rect.width - size));
