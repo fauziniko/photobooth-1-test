@@ -70,3 +70,7 @@ body {
   color: #fff;
   border-color: #fa75aa;
 }
+
+.hide-resize-handle .resize-handle {
+  display: none !important;
+}

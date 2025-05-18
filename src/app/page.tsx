@@ -44,7 +44,9 @@ export default function Home() {
   const handleDownloadStrip = () => {
     const node = document.getElementById('strip');
     if (!node) return;
+    node.classList.add('hide-resize-handle');
     html2canvas(node).then(canvas => {
+      node.classList.remove('hide-resize-handle');
       const link = document.createElement('a');
       link.download = 'photostrip.png';
       link.href = canvas.toDataURL('image/png');
@@ -55,7 +57,9 @@ export default function Home() {
   const handleShowQR = async () => {
     const node = document.getElementById('strip');
     if (!node) return;
+    node.classList.add('hide-resize-handle');
     const canvas = await html2canvas(node);
+    node.classList.remove('hide-resize-handle');
     const dataUrl = canvas.toDataURL('image/png');
 
     // Upload ke API
