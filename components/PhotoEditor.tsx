@@ -180,7 +180,7 @@ export default function PhotoEditor({
           </div>
         )}
       </div>
-      {/* Area preview foto */}
+      {/* Area preview baru foto */}
       <div style={{ background: '#fff', padding: 0 }}>{children}</div>
     </div>
   );
