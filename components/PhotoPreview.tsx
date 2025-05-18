@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 interface Sticker {
   src: string;
@@ -35,12 +35,67 @@ export default function PhotoPreview({
   const [touchOffset, setTouchOffset] = useState<{ x: number; y: number } | null>(null);
   const [resizeStart, setResizeStart] = useState<{ startX: number; startY: number; startSize: number } | null>(null);
 
-  // Drag sticker (move)
-  const handleMouseDown = (idx: number) => (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
-    setDragIdx(idx);
+  // Untuk long press
+  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Untuk menghapus stiker
+  const handleDeleteSticker = (idx: number) => {
+    if (!onResizeSticker) return;
+    // Kirim ukuran 0 sebagai sinyal hapus (atau gunakan callback khusus jika ada)
+    onResizeSticker(idx, 0);
   };
+
+  // Mouse resize
+  const handleResizeMouseDown = (idx: number) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setResizeIdx(idx);
+    setResizeStart({
+      startX: e.clientX,
+      startY: e.clientY,
+      startSize: stickers[idx]?.size ?? 48,
+    });
+    // Long press untuk hapus (desktop)
+    longPressTimeout.current = setTimeout(() => {
+      handleDeleteSticker(idx);
+      setResizeIdx(null);
+      setResizeStart(null);
+    }, 700);
+  };
+
+  // Touch resize
+  const handleResizeTouchStart = (idx: number) => (e: React.TouchEvent) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    setResizeIdx(idx);
+    setResizeStart({
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startSize: stickers[idx]?.size ?? 48,
+    });
+    // Long press untuk hapus (mobile)
+    longPressTimeout.current = setTimeout(() => {
+      handleDeleteSticker(idx);
+      setResizeIdx(null);
+      setResizeStart(null);
+    }, 700);
+  };
+
+  // Mouse/touch move: resize
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (resizeIdx !== null && onResizeSticker && resizeStart) {
+      if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
+      const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
+      if (!rect) return;
+      const dx = e.clientX - resizeStart.startX;
+      const dy = e.clientY - resizeStart.startY;
+      const delta = Math.max(dx, dy);
+      let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
+      const sticker = stickers[resizeIdx];
+      if (sticker) {
+        newSize = Math.min(newSize, rect.width - sticker.x, rect.height - sticker.y);
+      }
+      onResizeSticker(resizeIdx, newSize);
+    }
     if (dragIdx !== null && onMoveSticker) {
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
@@ -51,41 +106,23 @@ export default function PhotoPreview({
       y = Math.max(0, Math.min(y, rect.height - size));
       onMoveSticker(dragIdx, x, y);
     }
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (resizeIdx !== null && onResizeSticker && resizeStart) {
+      if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
-      const dx = e.clientX - resizeStart.startX;
-      const dy = e.clientY - resizeStart.startY;
+      const touch = e.touches[0];
+      const dx = touch.clientX - resizeStart.startX;
+      const dy = touch.clientY - resizeStart.startY;
       const delta = Math.max(dx, dy);
       let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
-      // Batasi agar tidak keluar frame
       const sticker = stickers[resizeIdx];
       if (sticker) {
         newSize = Math.min(newSize, rect.width - sticker.x, rect.height - sticker.y);
       }
       onResizeSticker(resizeIdx, newSize);
     }
-  };
-  const handleMouseUp = () => {
-    setDragIdx(null);
-    setResizeIdx(null);
-    setResizeStart(null);
-  };
-
-  // Touch (mobile)
-  const handleTouchStart = (idx: number) => (e: React.TouchEvent) => {
-    if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
-    setDragIdx(idx);
-    const rect = (e.target as HTMLElement).closest('#strip')?.getBoundingClientRect();
-    if (!rect) return;
-    const touch = e.touches[0];
-    const sticker = stickers[idx];
-    setTouchOffset({
-      x: touch.clientX - rect.left - sticker.x,
-      y: touch.clientY - rect.top - sticker.y,
-    });
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
     if (dragIdx !== null && onMoveSticker && touchOffset) {
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
@@ -97,47 +134,38 @@ export default function PhotoPreview({
       y = Math.max(0, Math.min(y, rect.height - size));
       onMoveSticker(dragIdx, x, y);
     }
-    if (resizeIdx !== null && onResizeSticker && resizeStart) {
-      const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
-      if (!rect) return;
-      const touch = e.touches[0];
-      const dx = touch.clientX - resizeStart.startX;
-      const dy = touch.clientY - resizeStart.startY;
-      const delta = Math.max(dx, dy);
-      let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
-      // Batasi agar tidak keluar frame
-      const sticker = stickers[resizeIdx];
-      if (sticker) {
-        newSize = Math.min(newSize, rect.width - sticker.x, rect.height - sticker.y);
-      }
-      onResizeSticker(resizeIdx, newSize);
-    }
+  };
+
+  // Mouse/touch up: reset
+  const handleMouseUp = () => {
+    if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
+    setDragIdx(null);
+    setResizeIdx(null);
+    setResizeStart(null);
   };
   const handleTouchEnd = () => {
+    if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
     setDragIdx(null);
     setTouchOffset(null);
     setResizeIdx(null);
     setResizeStart(null);
   };
 
-  // Resize handle events
-  const handleResizeMouseDown = (idx: number) => (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setResizeIdx(idx);
-    setResizeStart({
-      startX: e.clientX,
-      startY: e.clientY,
-      startSize: stickers[idx]?.size ?? 48,
-    });
+  // Drag sticker (move)
+  const handleMouseDown = (idx: number) => (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
+    setDragIdx(idx);
   };
-  const handleResizeTouchStart = (idx: number) => (e: React.TouchEvent) => {
-    e.stopPropagation();
+  const handleTouchStart = (idx: number) => (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
+    setDragIdx(idx);
+    const rect = (e.target as HTMLElement).closest('#strip')?.getBoundingClientRect();
+    if (!rect) return;
     const touch = e.touches[0];
-    setResizeIdx(idx);
-    setResizeStart({
-      startX: touch.clientX,
-      startY: touch.clientY,
-      startSize: stickers[idx]?.size ?? 48,
+    const sticker = stickers[idx];
+    setTouchOffset({
+      x: touch.clientX - rect.left - sticker.x,
+      y: touch.clientY - rect.top - sticker.y,
     });
   };
 
