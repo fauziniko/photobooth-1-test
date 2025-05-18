@@ -117,11 +117,11 @@ export default function PhotoPreview({
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
       const size = stickers[dragIdx]?.size ?? 48;
-      // Batasi agar stiker tidak keluar frame
       let x = e.clientX - rect.left - size / 2;
       let y = e.clientY - rect.top - size / 2;
-      x = Math.max(-framePadding, Math.min(x, rect.width - size + framePadding));
-      y = Math.max(-framePadding, Math.min(y, rect.height - size + framePadding));
+      // Batasi agar stiker tidak keluar frame (tidak boleh negatif, tidak boleh lebih dari sisi frame)
+      x = Math.max(0, Math.min(x, rect.width - size));
+      y = Math.max(0, Math.min(y, rect.height - size));
       onMoveSticker(dragIdx, x, y);
     }
   };
@@ -154,11 +154,11 @@ export default function PhotoPreview({
       if (!rect) return;
       const touch = e.touches[0];
       const size = stickers[dragIdx]?.size ?? 48;
-      // Batasi agar stiker tidak keluar frame
       let x = touch.clientX - rect.left - touchOffset.x;
       let y = touch.clientY - rect.top - touchOffset.y;
-      x = Math.max(-framePadding, Math.min(x, rect.width - size + framePadding));
-      y = Math.max(-framePadding, Math.min(y, rect.height - size + framePadding));
+      // Batasi agar stiker tidak keluar frame (tidak boleh negatif, tidak boleh lebih dari sisi frame)
+      x = Math.max(0, Math.min(x, rect.width - size));
+      y = Math.max(0, Math.min(y, rect.height - size));
       onMoveSticker(dragIdx, x, y);
     }
   };
@@ -195,8 +195,6 @@ export default function PhotoPreview({
       y: touch.clientY - rect.top - sticker.y,
     });
   };
-
-  const framePadding = 20; // padding pada #strip
 
   return (
     <div
