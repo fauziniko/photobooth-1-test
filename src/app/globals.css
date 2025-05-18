@@ -57,8 +57,11 @@ body {
     min-height: 32px !important;
   }
   .sticker-handle svg {
-    width: 20px !important;
-    height: 20px !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    display: block;
   }
 }
 
@@ -91,4 +94,35 @@ body {
 .sticker-handle-group,
 .sticker-handle {
   z-index: 1002 !important;
+}
+
+svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.sticker-handle.sticker-rotate {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #d72688;
+  background: #fff;
+  outline: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 2px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  padding: 0;
+  z-index: 1002;
+}
+
+.sticker-handle.sticker-rotate svg {
+  width: 100%;
+  height: 100%;
+}
+
+.sticker-handle.sticker-rotate:hover {
+  background: #f0f0f0;
 }
