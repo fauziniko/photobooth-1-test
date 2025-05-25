@@ -229,9 +229,6 @@ export default function Home() {
             width: '100%',
             maxWidth: 1100,
             margin: '0 auto',
-            display: 'flex',
-            gap: 32,
-            alignItems: 'flex-start',
           }}
         >
           <div style={{ flex: 2, minWidth: 0 }}>
