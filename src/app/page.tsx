@@ -223,14 +223,7 @@ export default function Home() {
           </div>
         </>
       ) : (
-        <div
-          className="strip-controls-wrapper"
-          style={{
-            width: '100%',
-            maxWidth: 1100,
-            margin: '0 auto',
-          }}
-        >
+        <div className="strip-controls-wrapper">
           <div style={{ flex: 2, minWidth: 0 }}>
             {/* Frame Preview dan tombol */}
             <PhotoPreview
@@ -247,13 +240,6 @@ export default function Home() {
               onDeleteSticker={handleDeleteSticker}
               gap={photoGap} // <-- pastikan baris ini ada!
             />
-            {/* Tombol-tombol di bawah preview */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 24, flexWrap: 'wrap' }}>
-              <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
-              <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
-              <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
-              <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
-            </div>
           </div>
           <div
             className="photo-editor-panel"
@@ -293,6 +279,13 @@ export default function Home() {
               photoBorderRadius={photoBorderRadius}
               onChangePhotoBorderRadius={setPhotoBorderRadius}
             />
+            {/* Tombol-tombol di bawah editor */}
+            <div style={{ display: 'flex', gap: 12, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
+              <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
+              <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
+              <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
+            </div>
           </div>
           {/* Popup QR Code tetap di luar baru*/}
           {showQR && qrData && (
