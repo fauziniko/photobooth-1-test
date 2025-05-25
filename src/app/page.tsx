@@ -256,20 +256,6 @@ export default function Home() {
               <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
               <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
             </div>
-            {/* Slider untuk frameBorderRadius */}
-            <div style={{ marginTop: 16 }}>
-              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
-                Frame Border Radius
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={48}
-                value={frameBorderRadius}
-                onChange={e => setFrameBorderRadius(Number(e.target.value))}
-                style={{ width: '100%', maxWidth: 400 }}
-              />
-            </div>
           </div>
           {/* Photo Editor */}
           <div
@@ -304,7 +290,23 @@ export default function Home() {
                 { name: 'blue', label: 'Biru', color: '#7ecbff' },
               ]}
             >
-              {/* Kosongkan jika tidak ingin menampilkan apapun */}
+              {/* Ini akan tampil di bawah "Pengaturan Ukuran Frame" di tab Adjust */}
+              <div style={{ marginTop: 24 }}>
+                <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
+                  Frame Border Radius
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={48}
+                  value={frameBorderRadius}
+                  onChange={e => setFrameBorderRadius(Number(e.target.value))}
+                  style={{ width: '100%', maxWidth: 400 }}
+                />
+                <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
+                  {frameBorderRadius}px
+                </div>
+              </div>
             </PhotoEditor>
           </div>
           {/* Popup QR Code tetap di luar */}
