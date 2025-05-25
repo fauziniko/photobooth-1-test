@@ -164,6 +164,16 @@ export default function Home() {
     setStickers(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const handleResetDefault = () => {
+    setBottomSpace(85);
+    setFrameBorderRadius(0);
+    setPhotoGap(8);
+    setPhotoBorderRadius(11);
+    setFilter('none');
+    setFrameColor('white');
+    setStickers([]);
+  };
+
   return (
     <main
       style={{
@@ -278,6 +288,7 @@ export default function Home() {
               onChangePhotoGap={setPhotoGap}
               photoBorderRadius={photoBorderRadius}
               onChangePhotoBorderRadius={setPhotoBorderRadius}
+              onResetDefault={handleResetDefault} // <-- tambahkan baris ini
             />
             {/* Tombol-tombol di bawah editor */}
             <div className="photo-editor-actions" style={{ marginTop: 24 }}>

@@ -24,6 +24,7 @@ export default function PhotoEditor({
   onChangePhotoGap,
   photoBorderRadius,
   onChangePhotoBorderRadius,
+  onResetDefault,
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -41,6 +42,7 @@ export default function PhotoEditor({
   onChangePhotoGap: (v: number) => void;
   photoBorderRadius: number;
   onChangePhotoBorderRadius: (v: number) => void;
+  onResetDefault: () => void;
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
 
@@ -91,6 +93,23 @@ export default function PhotoEditor({
       <div style={{ padding: 28, background: '#fff' }}>
         {activeTab === 'adjust' && (
           <>
+            <button
+              onClick={onResetDefault}
+              style={{
+                marginBottom: 18,
+                padding: '10px 24px',
+                background: '#fa75aa',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 16,
+                fontWeight: 'bold',
+                fontSize: 15,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px #fa75aa22',
+              }}
+            >
+              Default
+            </button>
             <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
               Pengaturan Ukuran Frame
             </label>
