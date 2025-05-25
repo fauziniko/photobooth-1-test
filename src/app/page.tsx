@@ -174,6 +174,21 @@ export default function Home() {
     setStickers([]);
   };
 
+  const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const target = event.target as FileReader | null;
+      if (target && typeof target.result === 'string') {
+        setPhotos(prev => [...prev, target.result as string]);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   return (
     <main
       style={{
@@ -205,6 +220,32 @@ export default function Home() {
             countdown={countdown}
             onStartCapture={handleStartCapture}
           />
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+            <label
+              htmlFor="upload-image"
+              style={{
+                display: 'inline-block',
+                padding: '10px 24px',
+                background: '#fa75aa',
+                color: '#fff',
+                borderRadius: 16,
+                fontWeight: 'bold',
+                fontSize: 15,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px #fa75aa22',
+              }}
+            >
+              Upload Image
+              <input
+                id="upload-image"
+                type="file"
+                accept="image/*"
+                onChange={handleUploadImage}
+                style={{ display: 'none' }}
+              />
+            </label>
+            {/* Tombol Start Capture sudah ada di komponen Camera */}
+          </div>
           {/* Countdown di atas, lalu Pilih Layout */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
             <label style={{ color: '#111', fontWeight: 'bold' }}>
