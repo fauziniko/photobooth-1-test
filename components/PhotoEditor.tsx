@@ -20,6 +20,8 @@ export default function PhotoEditor({
   availableFrames,
   frameBorderRadius,
   onChangeFrameBorderRadius,
+  photoGap,
+  onChangePhotoGap,
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -33,6 +35,8 @@ export default function PhotoEditor({
   availableFrames: { name: string; label: string; color: string }[];
   frameBorderRadius: number;
   onChangeFrameBorderRadius: (v: number) => void;
+  photoGap: number;
+  onChangePhotoGap: (v: number) => void;
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
 
@@ -116,11 +120,33 @@ export default function PhotoEditor({
                 style={{
                   width: '100%',
                   maxWidth: 400,
-                  accentColor: '#fa75aa', // tambahkan ini agar slider berwarna pink
+                  accentColor: '#fa75aa',
                 }}
               />
               <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
                 {frameBorderRadius}px
+              </div>
+            </div>
+
+            {/* Jarak Antar Foto */}
+            <div style={{ marginTop: 24 }}>
+              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
+                Jarak Antar Foto
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={48}
+                value={photoGap}
+                onChange={e => onChangePhotoGap(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  maxWidth: 400,
+                  accentColor: '#fa75aa',
+                }}
+              />
+              <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
+                {photoGap}px
               </div>
             </div>
           </>

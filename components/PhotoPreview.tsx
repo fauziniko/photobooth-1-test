@@ -20,6 +20,7 @@ interface Props {
   onResizeSticker?: (idx: number, newSize: number) => void;
   onRotateSticker?: (idx: number, delta: number) => void;
   onDeleteSticker?: (idx: number) => void;
+  gap?: number;
 }
 
 export default function PhotoPreview({
@@ -34,6 +35,7 @@ export default function PhotoPreview({
   onResizeSticker,
   onRotateSticker,
   onDeleteSticker,
+  gap = 8,
 }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [resizeIdx, setResizeIdx] = useState<number | null>(null);
@@ -198,7 +200,13 @@ export default function PhotoPreview({
 
   return (
     <div
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: gap, // gunakan gap di sini
+        alignItems: 'center',
+        width: '100%',
+      }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}

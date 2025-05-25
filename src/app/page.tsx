@@ -26,6 +26,7 @@ export default function Home() {
   const [frameBorderRadius, setFrameBorderRadius] = useState(0);
   const [photoBorderRadius] = useState(11);
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
+  const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -244,6 +245,7 @@ export default function Home() {
               frameBorderRadius={frameBorderRadius}
               photoBorderRadius={photoBorderRadius}
               stickers={stickers}
+              gap={photoGap}
               onMoveSticker={handleMoveSticker}
               onResizeSticker={handleResizeSticker}
               onRotateSticker={handleRotateSticker}
@@ -291,6 +293,8 @@ export default function Home() {
               ]}
               frameBorderRadius={frameBorderRadius}
               onChangeFrameBorderRadius={setFrameBorderRadius}
+              photoGap={photoGap}
+              onChangePhotoGap={setPhotoGap}
             />
           </div>
           {/* Popup QR Code tetap di luar */}
