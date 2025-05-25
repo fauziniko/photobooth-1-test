@@ -245,11 +245,11 @@ export default function Home() {
               frameBorderRadius={frameBorderRadius}
               photoBorderRadius={photoBorderRadius}
               stickers={stickers}
-              gap={photoGap}
               onMoveSticker={handleMoveSticker}
               onResizeSticker={handleResizeSticker}
               onRotateSticker={handleRotateSticker}
               onDeleteSticker={handleDeleteSticker}
+              gap={photoGap} // <-- pastikan baris ini ada!
             />
             {/* Tombol-tombol di bawah preview */}
             <div style={{ display: 'flex', gap: 12, marginTop: 24, flexWrap: 'wrap' }}>

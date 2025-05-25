@@ -223,7 +223,7 @@ export default function PhotoPreview({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 10,
+          gap: gap, // <-- ini sudah benar
           boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
           maxWidth: '90vw',
           position: 'relative',
