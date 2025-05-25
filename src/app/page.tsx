@@ -230,13 +230,13 @@ export default function Home() {
             maxWidth: 1100,
             margin: '0 auto',
             display: 'flex',
-            flexDirection: 'row',
+            flexDirection: 'row', // default desktop: horizontal
             gap: 32,
             alignItems: 'flex-start',
           }}
         >
-          {/* Frame Preview */}
           <div style={{ flex: 2, minWidth: 0 }}>
+            {/* Frame Preview dan tombol */}
             <PhotoPreview
               photos={photos}
               filter={filter}
@@ -259,8 +259,8 @@ export default function Home() {
               <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
             </div>
           </div>
-          {/* Photo Editor */}
           <div
+            className="photo-editor-panel"
             style={{
               flex: 1,
               minWidth: 0,
@@ -268,7 +268,6 @@ export default function Home() {
               position: 'sticky',
               top: 32,
             }}
-            className="photo-editor-panel"
           >
             <PhotoEditor
               onChangeSlider={setBottomSpace}

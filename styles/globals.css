@@ -13,3 +13,15 @@ body {
     border-radius: 4px;
   }
   
+  @media (max-width: 800px) {
+    .strip-controls-wrapper {
+      flex-direction: column !important;
+      gap: 0 !important;
+    }
+    .photo-editor-panel {
+      max-width: 100% !important;
+      width: 100% !important;
+      position: static !important;
+      margin-top: 24px;
+    }
+  }
