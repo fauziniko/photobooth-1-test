@@ -2,11 +2,10 @@
 import { useState } from 'react';
 import Camera from '../../components/Camera';
 import LayoutSelector from '../../components/LayoutSelector';
-import FilterSelector from '../../components/FilterSelector';
-import FrameCustomizer from '../../components/FrameCustomizer';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
+import PhotoEditor from '../../components/PhotoEditor';
 
 const STICKERS = [
   { src: '/stickers/ballon.png', label: 'Ballon' },
@@ -24,8 +23,8 @@ export default function Home() {
   const [bottomSpace, setBottomSpace] = useState(85); // default 85
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
-  const [frameBorderRadius, setFrameBorderRadius] = useState(0);    // dari 24 menjadi 0
-  const [photoBorderRadius, setPhotoBorderRadius] = useState(11);   // dari 24 menjadi 11
+  const [frameBorderRadius, setFrameBorderRadius] = useState(0);
+  const [photoBorderRadius] = useState(11);
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
 
   const handleLayoutChange = (n: number) => {
@@ -231,51 +230,31 @@ export default function Home() {
             margin: '0 auto',
           }}
         >
-          <style>
-            {`
-              @media (min-width: 900px) {
-                .strip-controls-flex {
-                  display: flex;
-                  flex-direction: row;
-                  align-items: flex-start;
-                  justify-content: center;
-                  gap: 32px;
-                }
-                .strip-frame-col {
-                  flex: 1 1 0%;
-                  display: flex;
-                  justify-content: flex-end;
-                }
-                .strip-controls-col {
-                  flex: 1 1 0%;
-                  min-width: 280px;
-                  max-width: 340px;
-                  display: flex;
-                  flex-direction: column;
-                  gap: 24px;
-                  align-items: flex-start;
-                  margin-left: 40px;
-                }
-              }
-              @media (max-width: 899px) {
-                .strip-controls-flex {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 32px;
-                  align-items: center;
-                }
-                .strip-controls-col, .strip-frame-col {
-                  width: 100%;
-                  margin: 0;
-                  justify-content: center;
-                  align-items: center;
-                }
-              }
-            `}
-          </style>
           <div className="strip-controls-flex">
-            {/* Frame strip di kiri */}
-            <div className="strip-frame-col">
+            <PhotoEditor
+              onChangeSlider={setBottomSpace}
+              sliderValue={bottomSpace}
+              onAddSticker={handleAddSticker}
+              onSelectFilter={setFilter}
+              selectedFilter={filter}
+              onSelectFrame={setFrameColor}
+              selectedFrame={frameColor}
+              availableStickers={STICKERS}
+              availableFilters={[
+                { name: 'none', label: 'Normal', color: '#fff' },
+                { name: 'grayscale(1)', label: 'BW', color: '#bbb' },
+                { name: 'sepia(1)', label: 'Sepia', color: '#e2c799' },
+                { name: 'contrast(1.5)', label: 'Kontras', color: '#f7e6ff' },
+                // Tambahkan filter lain jika perlu
+              ]}
+              availableFrames={[
+                { name: 'white', label: 'Putih', color: '#fff' },
+                { name: 'pink', label: 'Pink', color: '#fa75aa' },
+                { name: 'yellow', label: 'Kuning', color: '#ffe066' },
+                { name: 'blue', label: 'Biru', color: '#7ecbff' },
+                // Tambahkan warna lain jika perlu
+              ]}
+            >
               <PhotoPreview
                 photos={photos}
                 filter={filter}
@@ -289,145 +268,24 @@ export default function Home() {
                 onRotateSticker={handleRotateSticker}
                 onDeleteSticker={handleDeleteSticker}
               />
-            </div>
-            {/* Kontrol di kanan */}
-            <div className="strip-controls-col">
-              <div style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label htmlFor="bottom-space" style={{ fontWeight: 'bold', color: '#111' }}>
-                  Space Bawah:
-                </label>
-                <input
-                  id="bottom-space"
-                  type="range"
-                  min={0}
-                  max={400}
-                  value={bottomSpace}
-                  onChange={e => setBottomSpace(Number(e.target.value))}
-                  style={{ width: 120 }}
-                />
-                <span style={{ color: '#111', minWidth: 40 }}>{bottomSpace}px</span>
+              {/* Tombol-tombol di bawah preview */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
+                <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
+                <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
+                <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
               </div>
-              <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label htmlFor="frame-border-radius" style={{ fontWeight: 'bold', color: '#111' }}>
-                  Frame Border Radius:
-                </label>
-                <input
-                  id="frame-border-radius"
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={frameBorderRadius}
-                  onChange={e => setFrameBorderRadius(Number(e.target.value))}
-                  style={{ width: 120 }}
-                />
-                <span style={{ color: '#111', minWidth: 40 }}>{frameBorderRadius}px</span>
-              </div>
-              <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label htmlFor="photo-border-radius" style={{ fontWeight: 'bold', color: '#111' }}>
-                  Foto Border Radius:
-                </label>
-                <input
-                  id="photo-border-radius"
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={photoBorderRadius}
-                  onChange={e => setPhotoBorderRadius(Number(e.target.value))}
-                  style={{ width: 120 }}
-                />
-                <span style={{ color: '#111', minWidth: 40 }}>{photoBorderRadius}px</span>
-              </div>
-
-              {/* Sticker selector dipindah ke sini */}
-              <div style={{ margin: '16px 0', background: '#f6e6f0', borderRadius: 16, padding: 20, maxWidth: 480 }}>
-                <div style={{ fontWeight: 'bold', marginBottom: 12, color: '#a03a7a' }}>Stickers</div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  {STICKERS.map(sticker => (
-                    <img
-                      key={sticker.src}
-                      src={sticker.src}
-                      alt={sticker.label}
-                      style={{ width: 48, height: 48, cursor: 'pointer', borderRadius: 8, border: '2px solid #eee', background: '#fff' }}
-                      onClick={() => handleAddSticker(sticker.src)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <FilterSelector onSelect={setFilter} />
-              <FrameCustomizer onColorChange={setFrameColor} />
-              <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                <button
-                  onClick={() => setPhotos([])}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#ff1744',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(255,23,68,0.15)',
-                    transition: 'background 0.2s',
-                  }}
-                >
-                  Ambil Ulang
-                </button>
-                <button
-                  onClick={handleDownloadStrip}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Download Strip
-                </button>
-                <button
-                  onClick={handleShowQR}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#FFD600',
-                    color: '#222',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  QR Code
-                </button>
-                <button
-                  onClick={handleDownloadGIF}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#00B8D9',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Download GIF
-                </button>
-              </div>
-            </div>
+            </PhotoEditor>
           </div>
+          {/* Tambahkan slider untuk mengubah frameBorderRadius */}
+          <input
+            type="range"
+            min={0}
+            max={48}
+            value={frameBorderRadius}
+            onChange={e => setFrameBorderRadius(Number(e.target.value))}
+            style={{ width: '100%', maxWidth: 400, marginTop: 16 }}
+          />
           {/* Popup QR Code */}
           {showQR && qrData && (
             <div
