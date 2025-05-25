@@ -272,6 +272,12 @@ export default function Home() {
           <div style={{ marginTop: 16, color: '#888' }}>
             {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
           </div>
+          <Camera
+            onCapture={handleCapture}
+            photosToTake={layout}
+            countdown={countdown}
+            onStartCapture={handleStartCapture}
+          />
         </>
       ) : (
         <div className="strip-controls-wrapper">
