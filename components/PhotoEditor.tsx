@@ -4,7 +4,7 @@ const TABS = [
   { key: 'adjust', label: 'Pengaturan' },
   { key: 'sticker', label: 'Sticker' },
   { key: 'filter', label: 'Filter' },
-  { key: 'frame', label: 'Frame' },
+  { key: 'frame', label: 'Warna' }, // Ubah label menjadi "Warna"
 ];
 
 export default function PhotoEditor({
@@ -215,7 +215,12 @@ export default function PhotoEditor({
                   style={{
                     padding: '10px 18px',
                     background: filter.color,
-                    color: selectedFilter === filter.name ? '#fff' : '#d72688',
+                    color:
+                      filter.name === 'none'
+                        ? '#111' // warna hitam untuk Normal
+                        : selectedFilter === filter.name
+                        ? '#fff'
+                        : '#d72688',
                     border: selectedFilter === filter.name ? '2px solid #fa75aa' : '2px solid #fa75aa33',
                     borderRadius: 8,
                     fontWeight: 'bold',
