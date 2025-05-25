@@ -245,13 +245,29 @@ export default function PhotoEditor({
               <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
                 Upload Stiker PNG
               </label>
-              <input
-                type="file"
-                accept="image/png"
-                onChange={handleUploadSticker}
-                disabled={uploading}
-                style={{ marginBottom: 8 }}
-              />
+              <label
+                htmlFor="upload-sticker"
+                style={{
+                  display: 'inline-block',
+                  padding: '8px 18px',
+                  background: '#fa75aa',
+                  color: '#fff',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
+                Pilih File
+                <input
+                  id="upload-sticker"
+                  type="file"
+                  accept="image/png"
+                  onChange={handleUploadSticker}
+                  disabled={uploading}
+                  style={{ display: 'none' }}
+                />
+              </label>
               {uploading && <div style={{ color: '#fa75aa', fontSize: 13 }}>Uploading...</div>}
             </div>
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Pilih Sticker</div>
