@@ -230,7 +230,6 @@ export default function Home() {
             maxWidth: 1100,
             margin: '0 auto',
             display: 'flex',
-            flexDirection: 'row', // default desktop: horizontal
             gap: 32,
             alignItems: 'flex-start',
           }}
