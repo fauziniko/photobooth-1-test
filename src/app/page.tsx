@@ -246,7 +246,7 @@ export default function Home() {
             style={{
               flex: 1,
               minWidth: 0,
-              maxWidth: 700, // Lebih lebar, misal 700px
+              maxWidth: 900, // Lebih lebar, misal 700px
               position: 'sticky',
               top: 32,
             }}
