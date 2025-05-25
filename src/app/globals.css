@@ -163,3 +163,11 @@ svg {
     align-items: stretch;
   }
 }
+
+.photo-editor-panel {
+  flex: 1;
+  min-width: 0;
+  max-width: 700px; /* Lebih lebar, misal 700px */
+  position: sticky;
+  top: 32px;
+}
