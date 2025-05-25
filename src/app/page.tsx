@@ -213,6 +213,18 @@ export default function Home() {
       </h1>
       {photos.length < layout ? (
         <>
+          {/* Pindahkan ke sini */}
+          {photos.length > 0 && (
+            <div style={{
+              marginBottom: 18,
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: '#111',
+              letterSpacing: 1,
+            }}>
+              {`Foto diambil: ${photos.length} / ${layout}`}
+            </div>
+          )}
           {/* Kamera di atas */}
           <Camera
             onCapture={handleCapture}
