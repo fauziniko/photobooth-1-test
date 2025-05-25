@@ -297,7 +297,7 @@ export default function Home() {
               onChangePhotoBorderRadius={setPhotoBorderRadius}
             />
           </div>
-          {/* Popup QR Code tetap di luar */}
+          {/* Popup QR Code tetap di luar baru*/}
           {showQR && qrData && (
             <div
               style={{
