@@ -60,8 +60,9 @@ export default function PhotoEditor({
       <div
         style={{
           display: 'flex',
-          borderBottom: '1.5px solid #fa75aa22',
-          background: '#ffe4f0',
+          gap: 8,
+          borderBottom: '1.5px solid #fa75aa',
+          marginBottom: 18,
         }}
       >
         {TABS.map(tab => (
@@ -69,10 +70,8 @@ export default function PhotoEditor({
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             style={{
-              flex: 1,
-              padding: '16px 0',
               background: activeTab === tab.key ? '#fae0ef' : 'transparent',
-              color: '#d72688',
+              color: activeTab === tab.key && tab.key === 'frame' ? '#fa75aa' : '#d72688',
               fontWeight: activeTab === tab.key ? 'bold' : 500,
               border: 'none',
               borderBottom: activeTab === tab.key ? '3px solid #fa75aa' : '3px solid transparent',
