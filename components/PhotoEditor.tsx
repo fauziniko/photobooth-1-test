@@ -20,7 +20,6 @@ export default function PhotoEditor({
   availableFrames,
   frameBorderRadius,
   onChangeFrameBorderRadius,
-  children,
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -34,7 +33,6 @@ export default function PhotoEditor({
   availableFrames: { name: string; label: string; color: string }[];
   frameBorderRadius: number;
   onChangeFrameBorderRadius: (v: number) => void;
-  children?: React.ReactNode;
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
 
@@ -121,8 +119,6 @@ export default function PhotoEditor({
                 {frameBorderRadius}px
               </div>
             </div>
-
-            {children}
           </>
         )}
 
@@ -205,7 +201,7 @@ export default function PhotoEditor({
         )}
       </div>
       {/* Area preview baru foto */}
-      <div style={{ background: '#fff', padding: 0 }}>{children}</div>
+      {/* <div style={{ background: '#fff', padding: 0 }}>{children}</div> */}
     </div>
   );
 }

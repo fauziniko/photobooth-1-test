@@ -291,25 +291,7 @@ export default function Home() {
               ]}
               frameBorderRadius={frameBorderRadius}
               onChangeFrameBorderRadius={setFrameBorderRadius}
-            >
-              {/* Ini akan tampil di bawah "Pengaturan Ukuran Frame" di tab Adjust */}
-              <div style={{ marginTop: 24 }}>
-                <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
-                  Frame Border Radius
-                </label>
-                <input
-                  type="range"
-                  min={0}
-                  max={48}
-                  value={frameBorderRadius}
-                  onChange={e => setFrameBorderRadius(Number(e.target.value))}
-                  style={{ width: '100%', maxWidth: 400 }}
-                />
-                <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
-                  {frameBorderRadius}px
-                </div>
-              </div>
-            </PhotoEditor>
+            />
           </div>
           {/* Popup QR Code tetap di luar */}
           {showQR && qrData && (
