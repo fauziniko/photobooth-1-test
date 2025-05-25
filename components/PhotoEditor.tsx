@@ -8,7 +8,6 @@ const TABS = [
 ];
 
 export default function PhotoEditor({
-  children,
   onChangeSlider,
   sliderValue,
   onAddSticker,
@@ -19,8 +18,10 @@ export default function PhotoEditor({
   availableStickers,
   availableFilters,
   availableFrames,
+  frameBorderRadius,
+  onChangeFrameBorderRadius,
+  children,
 }: {
-  children?: React.ReactNode;
   onChangeSlider: (v: number) => void;
   sliderValue: number;
   onAddSticker: (src: string) => void;
@@ -31,6 +32,9 @@ export default function PhotoEditor({
   availableStickers: { src: string; label: string }[];
   availableFilters: { name: string; label: string; color: string }[];
   availableFrames: { name: string; label: string; color: string }[];
+  frameBorderRadius: number;
+  onChangeFrameBorderRadius: (v: number) => void;
+  children?: React.ReactNode;
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
 
@@ -80,7 +84,7 @@ export default function PhotoEditor({
       {/* Tab Content */}
       <div style={{ padding: 28, background: '#fff' }}>
         {activeTab === 'adjust' && (
-          <div>
+          <>
             <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
               Pengaturan Ukuran Frame
             </label>
@@ -99,7 +103,27 @@ export default function PhotoEditor({
             <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
               {sliderValue}px
             </div>
-          </div>
+
+            {/* Frame Border Radius */}
+            <div style={{ marginTop: 24 }}>
+              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
+                Frame Border Radius
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={48}
+                value={frameBorderRadius}
+                onChange={e => onChangeFrameBorderRadius(Number(e.target.value))}
+                style={{ width: '100%', maxWidth: 400 }}
+              />
+              <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
+                {frameBorderRadius}px
+              </div>
+            </div>
+
+            {children}
+          </>
         )}
 
         {activeTab === 'sticker' && (

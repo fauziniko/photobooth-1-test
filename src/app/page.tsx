@@ -289,6 +289,8 @@ export default function Home() {
                 { name: 'yellow', label: 'Kuning', color: '#ffe066' },
                 { name: 'blue', label: 'Biru', color: '#7ecbff' },
               ]}
+              frameBorderRadius={frameBorderRadius}
+              onChangeFrameBorderRadius={setFrameBorderRadius}
             >
               {/* Ini akan tampil di bawah "Pengaturan Ukuran Frame" di tab Adjust */}
               <div style={{ marginTop: 24 }}>
