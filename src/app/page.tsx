@@ -24,7 +24,7 @@ export default function Home() {
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
   const [frameBorderRadius, setFrameBorderRadius] = useState(0);
-  const [photoBorderRadius] = useState(11);
+  const [photoBorderRadius, setPhotoBorderRadius] = useState(11); // default 11
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
   const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
 
@@ -295,6 +295,8 @@ export default function Home() {
               onChangeFrameBorderRadius={setFrameBorderRadius}
               photoGap={photoGap}
               onChangePhotoGap={setPhotoGap}
+              photoBorderRadius={photoBorderRadius}
+              onChangePhotoBorderRadius={setPhotoBorderRadius}
             />
           </div>
           {/* Popup QR Code tetap di luar */}

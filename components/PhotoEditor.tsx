@@ -22,6 +22,8 @@ export default function PhotoEditor({
   onChangeFrameBorderRadius,
   photoGap,
   onChangePhotoGap,
+  photoBorderRadius,
+  onChangePhotoBorderRadius,
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -37,6 +39,8 @@ export default function PhotoEditor({
   onChangeFrameBorderRadius: (v: number) => void;
   photoGap: number;
   onChangePhotoGap: (v: number) => void;
+  photoBorderRadius: number;
+  onChangePhotoBorderRadius: (v: number) => void;
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
 
@@ -147,6 +151,28 @@ export default function PhotoEditor({
               />
               <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
                 {photoGap}px
+              </div>
+            </div>
+
+            {/* Border Radius Foto */}
+            <div style={{ marginTop: 24 }}>
+              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
+                Border Radius Foto
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={48}
+                value={photoBorderRadius}
+                onChange={e => onChangePhotoBorderRadius(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  maxWidth: 400,
+                  accentColor: '#fa75aa', // warna sama dengan slider lain
+                }}
+              />
+              <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
+                {photoBorderRadius}px
               </div>
             </div>
           </>

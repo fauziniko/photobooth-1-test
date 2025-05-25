@@ -239,7 +239,7 @@ export default function PhotoPreview({
               width: 240,
               height: 180,
               objectFit: 'cover',
-              borderRadius: photoBorderRadius,
+              borderRadius: photoBorderRadius, // <-- sudah benar
             }}
           />
         ))}
