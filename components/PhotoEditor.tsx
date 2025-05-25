@@ -76,15 +76,20 @@ export default function PhotoEditor({
   };
 
   // Gabungkan stiker default dan user
-  const [userStickers, setUserStickers] = useState<{ src: string; label: string }[]>([]);
+  const [minioStickers, setMinioStickers] = useState<{ src: string; label: string }[]>([]);
   React.useEffect(() => {
-    const update = () => {
-      const localStickers = JSON.parse(localStorage.getItem('userStickers') || '[]');
-      setUserStickers(localStickers);
-    };
-    update();
-    window.addEventListener('userStickersUpdated', update);
-    return () => window.removeEventListener('userStickersUpdated', update);
+    fetch('/api/list-sticker')
+      .then(res => res.json())
+      .then(data => {
+        if (data.stickers) {
+          setMinioStickers(
+            data.stickers.map((src: string) => ({
+              src,
+              label: src.split('/').pop() || 'sticker',
+            }))
+          );
+        }
+      });
   }, []);
 
   return (
@@ -272,7 +277,7 @@ export default function PhotoEditor({
             </div>
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Pilih Sticker</div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {[...userStickers, ...availableStickers].map(sticker => (
+              {[...minioStickers, ...availableStickers].map(sticker => (
                 <img
                   key={sticker.src}
                   src={sticker.src}
