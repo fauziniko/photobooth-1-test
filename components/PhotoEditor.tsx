@@ -113,7 +113,11 @@ export default function PhotoEditor({
                 max={48}
                 value={frameBorderRadius}
                 onChange={e => onChangeFrameBorderRadius(Number(e.target.value))}
-                style={{ width: '100%', maxWidth: 400 }}
+                style={{
+                  width: '100%',
+                  maxWidth: 400,
+                  accentColor: '#fa75aa', // tambahkan ini agar slider berwarna pink
+                }}
               />
               <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
                 {frameBorderRadius}px
