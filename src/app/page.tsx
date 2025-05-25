@@ -226,11 +226,62 @@ export default function Home() {
           className="strip-controls-wrapper"
           style={{
             width: '100%',
-            maxWidth: 900,
+            maxWidth: 1100,
             margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 32,
+            alignItems: 'flex-start',
           }}
         >
-          <div className="strip-controls-flex">
+          {/* Frame Preview */}
+          <div style={{ flex: 2, minWidth: 0 }}>
+            <PhotoPreview
+              photos={photos}
+              filter={filter}
+              frameColor={frameColor}
+              bottomSpace={bottomSpace}
+              frameBorderRadius={frameBorderRadius}
+              photoBorderRadius={photoBorderRadius}
+              stickers={stickers}
+              onMoveSticker={handleMoveSticker}
+              onResizeSticker={handleResizeSticker}
+              onRotateSticker={handleRotateSticker}
+              onDeleteSticker={handleDeleteSticker}
+            />
+            {/* Tombol-tombol di bawah preview */}
+            <div style={{ display: 'flex', gap: 12, marginTop: 24, flexWrap: 'wrap' }}>
+              <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
+              <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
+              <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
+              <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
+            </div>
+            {/* Slider untuk frameBorderRadius */}
+            <div style={{ marginTop: 16 }}>
+              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
+                Frame Border Radius
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={48}
+                value={frameBorderRadius}
+                onChange={e => setFrameBorderRadius(Number(e.target.value))}
+                style={{ width: '100%', maxWidth: 400 }}
+              />
+            </div>
+          </div>
+          {/* Photo Editor */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              maxWidth: 420,
+              position: 'sticky',
+              top: 32,
+            }}
+            className="photo-editor-panel"
+          >
             <PhotoEditor
               onChangeSlider={setBottomSpace}
               sliderValue={bottomSpace}
@@ -245,48 +296,18 @@ export default function Home() {
                 { name: 'grayscale(1)', label: 'BW', color: '#bbb' },
                 { name: 'sepia(1)', label: 'Sepia', color: '#e2c799' },
                 { name: 'contrast(1.5)', label: 'Kontras', color: '#f7e6ff' },
-                // Tambahkan filter lain jika perlu
               ]}
               availableFrames={[
                 { name: 'white', label: 'Putih', color: '#fff' },
                 { name: 'pink', label: 'Pink', color: '#fa75aa' },
                 { name: 'yellow', label: 'Kuning', color: '#ffe066' },
                 { name: 'blue', label: 'Biru', color: '#7ecbff' },
-                // Tambahkan warna lain jika perlu
               ]}
             >
-              <PhotoPreview
-                photos={photos}
-                filter={filter}
-                frameColor={frameColor}
-                bottomSpace={bottomSpace}
-                frameBorderRadius={frameBorderRadius}
-                photoBorderRadius={photoBorderRadius}
-                stickers={stickers}
-                onMoveSticker={handleMoveSticker}
-                onResizeSticker={handleResizeSticker}
-                onRotateSticker={handleRotateSticker}
-                onDeleteSticker={handleDeleteSticker}
-              />
-              {/* Tombol-tombol di bawah preview */}
-              <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
-                <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
-                <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
-                <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
-              </div>
+              {/* Kosongkan jika tidak ingin menampilkan apapun */}
             </PhotoEditor>
           </div>
-          {/* Tambahkan slider untuk mengubah frameBorderRadius */}
-          <input
-            type="range"
-            min={0}
-            max={48}
-            value={frameBorderRadius}
-            onChange={e => setFrameBorderRadius(Number(e.target.value))}
-            style={{ width: '100%', maxWidth: 400, marginTop: 16 }}
-          />
-          {/* Popup QR Code */}
+          {/* Popup QR Code tetap di luar */}
           {showQR && qrData && (
             <div
               style={{

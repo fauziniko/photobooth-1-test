@@ -20,7 +20,7 @@ export default function PhotoEditor({
   availableFilters,
   availableFrames,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onChangeSlider: (v: number) => void;
   sliderValue: number;
   onAddSticker: (src: string) => void;
