@@ -45,6 +45,47 @@ export default function PhotoEditor({
   onResetDefault: () => void;
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
+  const [uploading, setUploading] = useState(false);
+
+  // Untuk menambah stiker ke list
+  const handleUploadSticker = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/upload-sticker', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    setUploading(false);
+    if (data.url) {
+      // Tambahkan stiker baru ke list
+      if (typeof window !== 'undefined') {
+        const localStickers = JSON.parse(localStorage.getItem('userStickers') || '[]');
+        localStickers.push({ src: data.url, label: data.name });
+        localStorage.setItem('userStickers', JSON.stringify(localStickers));
+        window.dispatchEvent(new Event('userStickersUpdated'));
+      }
+    } else {
+      alert('Gagal upload stiker');
+    }
+    e.target.value = '';
+  };
+
+  // Gabungkan stiker default dan user
+  const [userStickers, setUserStickers] = useState<{ src: string; label: string }[]>([]);
+  React.useEffect(() => {
+    const update = () => {
+      const localStickers = JSON.parse(localStorage.getItem('userStickers') || '[]');
+      setUserStickers(localStickers);
+    };
+    update();
+    window.addEventListener('userStickersUpdated', update);
+    return () => window.removeEventListener('userStickersUpdated', update);
+  }, []);
 
   return (
     <div
@@ -199,9 +240,23 @@ export default function PhotoEditor({
 
         {activeTab === 'sticker' && (
           <div>
+            {/* Upload Sticker */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
+                Upload Stiker PNG
+              </label>
+              <input
+                type="file"
+                accept="image/png"
+                onChange={handleUploadSticker}
+                disabled={uploading}
+                style={{ marginBottom: 8 }}
+              />
+              {uploading && <div style={{ color: '#fa75aa', fontSize: 13 }}>Uploading...</div>}
+            </div>
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Pilih Sticker</div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {availableStickers.map(sticker => (
+              {[...userStickers, ...availableStickers].map(sticker => (
                 <img
                   key={sticker.src}
                   src={sticker.src}
