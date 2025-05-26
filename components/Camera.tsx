@@ -158,7 +158,6 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
             maxWidth: 640,
             background: '#000',
             aspectRatio: '4/3',
-            transform: cameraMode === 'user' ? 'scaleX(-1)' : 'none',
           }} 
         />
         {count !== null && (
