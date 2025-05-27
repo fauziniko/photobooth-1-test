@@ -98,7 +98,7 @@ export default function PhotoEditor({
         background: '#fff',
         borderRadius: 24,
         boxShadow: '0 4px 24px rgba(250,117,170,0.08)',
-        maxWidth: 420,
+        maxWidth: 600, // Increased width from 420 to 600
         margin: '0 auto',
         padding: 0,
         overflow: 'hidden',
