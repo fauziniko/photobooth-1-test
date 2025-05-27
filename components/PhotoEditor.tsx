@@ -98,7 +98,7 @@ export default function PhotoEditor({
         background: '#fff',
         borderRadius: 24,
         boxShadow: '0 4px 24px rgba(250,117,170,0.08)',
-        maxWidth: 600, // Increased width from 420 to 600
+        maxWidth: 420,
         margin: '0 auto',
         padding: 0,
         overflow: 'hidden',
@@ -302,17 +302,23 @@ export default function PhotoEditor({
         {activeTab === 'filter' && (
           <div>
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Pilih Filter</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', 
+      gap: 10 
+    }}>
               {availableFilters.map(filter => (
                 <button
                   key={filter.name}
                   onClick={() => onSelectFilter(filter.name)}
                   style={{
-                    padding: '10px 18px',
+                    padding: '10px 5px',
+                    width: '100%',
+                    textAlign: 'center',
                     background: filter.color,
                     color:
                       filter.name === 'none'
-                        ? '#111' // warna hitam untuk Normal
+                        ? '#111'
                         : selectedFilter === filter.name
                         ? '#fff'
                         : '#d72688',
