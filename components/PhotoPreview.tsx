@@ -23,6 +23,7 @@ interface Props {
   gap?: number;
   frameTemplates: { name: string; src: string }[];
   selectedFrameTemplate: string;
+  onRetake?: (idx: number) => void;
 }
 
 export default function PhotoPreview({
@@ -40,6 +41,7 @@ export default function PhotoPreview({
   gap = 8,
   frameTemplates,
   selectedFrameTemplate,
+  onRetake,
 }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [resizeIdx, setResizeIdx] = useState<number | null>(null);
@@ -265,22 +267,50 @@ export default function PhotoPreview({
           }}
         >
           {photos.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`photo-${i}`}
-              style={{
-                filter,
-                width: 240,
-                height: 180,
-                objectFit: 'cover',
-                borderRadius: photoBorderRadius,
-                display: 'block',
-                margin: '0 auto',
-                zIndex: 1,
-                position: 'relative',
-              }}
-            />
+            <div key={i} style={{ position: 'relative', width: 240, height: 180, margin: '0 auto' }}>
+              <img
+                src={src}
+                alt={`photo-${i}`}
+                style={{
+                  filter,
+                  width: 240,
+                  height: 180,
+                  objectFit: 'cover',
+                  borderRadius: photoBorderRadius,
+                  display: 'block',
+                  zIndex: 1,
+                  position: 'relative',
+                }}
+              />
+              {onRetake && (
+                <button
+                  onClick={() => onRetake(i)}
+                  style={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 6,
+                    background: '#fff',
+                    border: '1.5px solid #fa75aa',
+                    borderRadius: '50%',
+                    width: 22,
+                    height: 22,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 4px #fa75aa22',
+                    zIndex: 2,
+                    padding: 0,
+                  }}
+                  title="Retake Photo"
+                >
+                  {/* Icon retake (refresh/rotate arrow) */}
+                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+                    <path d="M16.5 7.5A6.5 6.5 0 1 0 17 10M16.5 7.5V4M16.5 7.5H13.5" stroke="#d72688" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
           ))}
         </div>
 

@@ -35,6 +35,7 @@ export default function Home() {
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
   const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
   const [selectedFrameTemplate, setSelectedFrameTemplate] = useState('none');
+  const [retakeIdx, setRetakeIdx] = useState<number | null>(null);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -197,6 +198,15 @@ export default function Home() {
     e.target.value = '';
   };
 
+  const handleRetake = (idx: number) => {
+    setRetakeIdx(idx);
+  };
+
+  const handleRetakeCapture = (photo: string) => {
+    setPhotos(prev => prev.map((p, i) => i === retakeIdx ? photo : p));
+    setRetakeIdx(null);
+  };
+
   return (
     <>
       <main
@@ -220,7 +230,20 @@ export default function Home() {
         >
           Photo Booth
         </h1>
-        {photos.length < layout ? (
+        {retakeIdx !== null ? (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+            <h2 style={{ color: '#d72688', fontWeight: 'bold' }}>Retake Photo #{retakeIdx + 1}</h2>
+            <Camera
+              onCapture={handleRetakeCapture}
+              photosToTake={1}
+              countdown={countdown}
+              onStartCapture={() => {}}
+            />
+            <button onClick={() => setRetakeIdx(null)} style={{ marginTop: 16, padding: '10px 24px', borderRadius: 8, border: 'none', background: '#ff1744', color: '#fff', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        ) : photos.length < layout ? (
           <>
             {/* Pindahkan ke sini */}
             {photos.length > 0 && (
@@ -308,8 +331,9 @@ export default function Home() {
                 onRotateSticker={handleRotateSticker}
                 onDeleteSticker={handleDeleteSticker}
                 gap={photoGap}
-                frameTemplates={FRAME_TEMPLATES} // <-- tambahkan ini
-                selectedFrameTemplate={selectedFrameTemplate} // <-- dan ini
+                frameTemplates={FRAME_TEMPLATES}
+                selectedFrameTemplate={selectedFrameTemplate}
+                onRetake={handleRetake} // <-- tambahkan baris ini
               />
             </div>
             <div
