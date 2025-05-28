@@ -479,9 +479,12 @@ export default function Home() {
             fontWeight: 500,
           }}
         >
-          &copy; 2024 Photobooth App v1.0<br />
-          <span style={{ fontSize: 12, color: '#b95b8e' }}>
+          <span style={{ fontSize: 14, color: '#b95b8e' }}>
             A digital photobooth app to capture, edit, and share photo strips with filters, stickers, and colorful frames.
+          </span>
+          <br />
+          <span style={{ fontSize: 16, color: '#d72688', fontWeight: 500 }}>
+            &copy; 2024 Photobooth App v1.0
           </span>
         </div>
       </footer>
