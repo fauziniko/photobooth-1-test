@@ -25,6 +25,9 @@ export default function PhotoEditor({
   photoBorderRadius,
   onChangePhotoBorderRadius,
   onResetDefault,
+  frameTemplates,
+  selectedFrameTemplate,
+  onSelectFrameTemplate,
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -43,6 +46,9 @@ export default function PhotoEditor({
   photoBorderRadius: number;
   onChangePhotoBorderRadius: (v: number) => void;
   onResetDefault: () => void;
+  frameTemplates: { name: string; label: string; src?: string }[];
+  selectedFrameTemplate: string;
+  onSelectFrameTemplate: (template: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
   const [uploading, setUploading] = useState(false);
@@ -344,7 +350,7 @@ export default function PhotoEditor({
         {activeTab === 'frame' && (
           <div>
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Color</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
               {availableFrames.map(frame => (
                 <button
                   key={frame.name}
@@ -361,6 +367,35 @@ export default function PhotoEditor({
                   aria-label={frame.label}
                   title={frame.label}
                 />
+              ))}
+            </div>
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Template</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {frameTemplates.map(template => (
+                <button
+                  key={template.name}
+                  onClick={() => onSelectFrameTemplate(template.name)}
+                  style={{
+                    border: selectedFrameTemplate === template.name ? '3px solid #fa75aa' : '2px solid #fa75aa33',
+                    borderRadius: 12,
+                    padding: 0,
+                    background: '#fff',
+                    cursor: 'pointer',
+                    width: 60,
+                    height: 60,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                  }}
+                  title={template.label}
+                >
+                  {template.src ? (
+                    <img src={template.src} alt={template.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <span style={{ color: '#d72688', fontSize: 12 }}>{template.label}</span>
+                  )}
+                </button>
               ))}
             </div>
           </div>

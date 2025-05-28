@@ -14,6 +14,13 @@ const STICKERS = [
   // Tambahkan stiker lain sesuai kebutuhan
 ];
 
+const FRAME_TEMPLATES = [
+  { name: 'none', label: 'No Template', src: '' },
+  { name: 'classic', label: 'Classic', src: '/frames/baru.png' },
+  { name: 'modern', label: 'Modern', src: '/frames/kedua.png' },
+  // Tambahkan template lain sesuai kebutuhan
+];
+
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [countdown, setCountdown] = useState(3);
@@ -27,6 +34,7 @@ export default function Home() {
   const [photoBorderRadius, setPhotoBorderRadius] = useState(11); // default 11
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
   const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
+  const [selectedFrameTemplate, setSelectedFrameTemplate] = useState('none');
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
@@ -299,7 +307,9 @@ export default function Home() {
                 onResizeSticker={handleResizeSticker}
                 onRotateSticker={handleRotateSticker}
                 onDeleteSticker={handleDeleteSticker}
-                gap={photoGap} // <-- pastikan baris ini ada!
+                gap={photoGap}
+                frameTemplates={FRAME_TEMPLATES} // <-- tambahkan ini
+                selectedFrameTemplate={selectedFrameTemplate} // <-- dan ini
               />
             </div>
             <div
@@ -320,6 +330,9 @@ export default function Home() {
                 selectedFilter={filter}
                 onSelectFrame={setFrameColor}
                 selectedFrame={frameColor}
+                frameTemplates={FRAME_TEMPLATES}
+                selectedFrameTemplate={selectedFrameTemplate}
+                onSelectFrameTemplate={setSelectedFrameTemplate}
                 availableStickers={STICKERS}
                 availableFilters={[
                   { name: 'none', label: 'Normal', color: '#fff' },

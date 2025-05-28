@@ -21,6 +21,8 @@ interface Props {
   onRotateSticker?: (idx: number, delta: number) => void;
   onDeleteSticker?: (idx: number) => void;
   gap?: number;
+  frameTemplates: { name: string; src: string }[];
+  selectedFrameTemplate: string;
 }
 
 export default function PhotoPreview({
@@ -36,6 +38,8 @@ export default function PhotoPreview({
   onRotateSticker,
   onDeleteSticker,
   gap = 8,
+  frameTemplates,
+  selectedFrameTemplate,
 }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [resizeIdx, setResizeIdx] = useState<number | null>(null);
@@ -223,27 +227,64 @@ export default function PhotoPreview({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: gap, // <-- ini sudah benar
+          gap: gap,
           boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
           maxWidth: '90vw',
           position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {photos.map((src, i) => (
+        {/* 1. Template frame di belakang */}
+        {selectedFrameTemplate !== 'none' && (
           <img
-            key={i}
-            src={src}
-            alt={`photo-${i}`}
+            src={frameTemplates.find(t => t.name === selectedFrameTemplate)?.src}
+            alt="Frame Template"
             style={{
-              filter,
-              width: 240,
-              height: 180,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
               objectFit: 'cover',
-              borderRadius: photoBorderRadius, // <-- sudah benar
+              zIndex: 0,
+              pointerEvents: 'none',
             }}
           />
-        ))}
-        {/* Render stickers di atas foto */}
+        )}
+
+        {/* 2. Foto-foto di atas template */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: gap, // gunakan gap di sini agar photoGap berfungsi
+            alignItems: 'center',
+          }}
+        >
+          {photos.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`photo-${i}`}
+              style={{
+                filter,
+                width: 240,
+                height: 180,
+                objectFit: 'cover',
+                borderRadius: photoBorderRadius,
+                display: 'block',
+                margin: '0 auto',
+                zIndex: 1,
+                position: 'relative',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* 3. Stiker di atas foto */}
         {stickers.map((sticker, idx) => (
           <React.Fragment key={idx}>
             {/* --- ICON GROUP --- */}
