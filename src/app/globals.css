@@ -171,3 +171,13 @@ svg {
   position: sticky;
   top: 32px;
 }
+
+.photo-editor-panel > div {
+  max-width: 900px !important;
+}
+
+@media (max-width: 700px) {
+  .photo-editor-panel > div {
+    max-width: 100% !important;
+  }
+}

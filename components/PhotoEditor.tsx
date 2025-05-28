@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
 const TABS = [
-  { key: 'adjust', label: 'Pengaturan' },
+  { key: 'adjust', label: 'Settings' },
   { key: 'sticker', label: 'Sticker' },
   { key: 'filter', label: 'Filter' },
-  { key: 'frame', label: 'Warna' }, // Ubah label menjadi "Warna"
+  { key: 'frame', label: 'Color' }, // Ubah label menjadi "Warna"
 ];
 
 export default function PhotoEditor({
@@ -98,10 +98,11 @@ export default function PhotoEditor({
         background: '#fff',
         borderRadius: 24,
         boxShadow: '0 4px 24px rgba(250,117,170,0.08)',
-        maxWidth: 420,
+        maxWidth: 800, // Ubah ke 800 atau 900
         margin: '0 auto',
         padding: 0,
         overflow: 'hidden',
+        width: '100%',
       }}
     >
       {/* Tab Menu */}
@@ -110,6 +111,8 @@ export default function PhotoEditor({
           display: 'flex',
           borderBottom: '1.5px solid #fa75aa22',
           background: '#ffe4f0',
+          padding: '12px 12px', // padding atas-bawah 12px, kiri-kanan 24px
+          justifyContent: 'center',
         }}
       >
         {TABS.map(tab => (
@@ -118,7 +121,7 @@ export default function PhotoEditor({
             onClick={() => setActiveTab(tab.key)}
             style={{
               flex: 1,
-              padding: '16px 0',
+              padding: '12px 12px', // padding atas-bawah 12px, kiri-kanan 16px
               background: activeTab === tab.key ? '#fae0ef' : 'transparent',
               color: '#d72688',
               fontWeight: activeTab === tab.key ? 'bold' : 500,
@@ -128,6 +131,7 @@ export default function PhotoEditor({
               cursor: 'pointer',
               transition: 'all 0.2s',
               outline: 'none',
+              textAlign: 'center',
             }}
           >
             {tab.label}
