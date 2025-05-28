@@ -4,7 +4,7 @@ const TABS = [
   { key: 'adjust', label: 'Settings' },
   { key: 'sticker', label: 'Sticker' },
   { key: 'filter', label: 'Filter' },
-  { key: 'frame', label: 'Color' }, // Ubah label menjadi "Warna"
+  { key: 'frame', label: 'Color' },
 ];
 
 export default function PhotoEditor({
@@ -70,7 +70,7 @@ export default function PhotoEditor({
         window.dispatchEvent(new Event('userStickersUpdated'));
       }
     } else {
-      alert('Gagal upload stiker');
+      alert('Failed to upload sticker');
     }
     e.target.value = '';
   };
@@ -158,10 +158,10 @@ export default function PhotoEditor({
                 boxShadow: '0 2px 8px #fa75aa22',
               }}
             >
-              Default
+              Reset to Default
             </button>
             <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
-              Pengaturan Ukuran Frame
+              Frame Bottom Size
             </label>
             <input
               type="range"
@@ -201,10 +201,10 @@ export default function PhotoEditor({
               </div>
             </div>
 
-            {/* Jarak Antar Foto */}
+            {/* Photo Gap */}
             <div style={{ marginTop: 24 }}>
               <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
-                Jarak Antar Foto
+                Photo Gap
               </label>
               <input
                 type="range"
@@ -223,10 +223,10 @@ export default function PhotoEditor({
               </div>
             </div>
 
-            {/* Border Radius Foto */}
+            {/* Photo Border Radius */}
             <div style={{ marginTop: 24 }}>
               <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
-                Border Radius Foto
+                Photo Border Radius
               </label>
               <input
                 type="range"
@@ -237,7 +237,7 @@ export default function PhotoEditor({
                 style={{
                   width: '100%',
                   maxWidth: 400,
-                  accentColor: '#fa75aa', // warna sama dengan slider lain
+                  accentColor: '#fa75aa',
                 }}
               />
               <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
@@ -252,7 +252,7 @@ export default function PhotoEditor({
             {/* Upload Sticker */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
-                Upload Stiker PNG
+                Upload PNG Sticker
               </label>
               <label
                 htmlFor="upload-sticker"
@@ -267,7 +267,7 @@ export default function PhotoEditor({
                   marginBottom: 8,
                 }}
               >
-                Pilih File
+                Choose File
                 <input
                   id="upload-sticker"
                   type="file"
@@ -279,7 +279,7 @@ export default function PhotoEditor({
               </label>
               {uploading && <div style={{ color: '#fa75aa', fontSize: 13 }}>Uploading...</div>}
             </div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Pilih Sticker</div>
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Sticker</div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {[...minioStickers, ...availableStickers].map(sticker => (
                 <img
@@ -305,7 +305,7 @@ export default function PhotoEditor({
 
         {activeTab === 'filter' && (
           <div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Pilih Filter</div>
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Filter</div>
             <div style={{ 
       display: 'grid', 
       gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', 
@@ -343,7 +343,7 @@ export default function PhotoEditor({
 
         {activeTab === 'frame' && (
           <div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Pilih Warna Frame</div>
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Color</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {availableFrames.map(frame => (
                 <button

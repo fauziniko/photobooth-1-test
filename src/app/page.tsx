@@ -223,7 +223,7 @@ export default function Home() {
                 color: '#111',
                 letterSpacing: 1,
               }}>
-                {`Foto diambil: ${photos.length} / ${layout}`}
+                {`Photos taken: ${photos.length} / ${layout}`}
               </div>
             )}
             {/* Kamera di atas */}
@@ -282,9 +282,6 @@ export default function Home() {
               </label>
               <LayoutSelector onSelect={handleLayoutChange} />
             </div>
-            <div style={{ marginTop: 16, color: '#888' }}>
-              {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
-            </div>
           </>
         ) : (
           <div className="strip-controls-wrapper">
@@ -328,13 +325,13 @@ export default function Home() {
                   { name: 'none', label: 'Normal', color: '#fff' },
                   { name: 'grayscale(1)', label: 'BW', color: '#bbb' },
                   { name: 'sepia(1)', label: 'Sepia', color: '#e2c799' },
-                  { name: 'contrast(1.5)', label: 'Kontras', color: '#f7e6ff' },
+                  { name: 'contrast(1.5)', label: 'Contrast', color: '#f7e6ff' },
                 ]}
                 availableFrames={[
-                  { name: 'white', label: 'Putih', color: '#fff' },
+                  { name: 'white', label: 'White', color: '#fff' },
                   { name: 'pink', label: 'Pink', color: '#fa75aa' },
-                  { name: 'yellow', label: 'Kuning', color: '#ffe066' },
-                  { name: 'blue', label: 'Biru', color: '#7ecbff' },
+                  { name: 'yellow', label: 'Yellow', color: '#ffe066' },
+                  { name: 'blue', label: 'Blue', color: '#7ecbff' },
                 ]}
                 frameBorderRadius={frameBorderRadius}
                 onChangeFrameBorderRadius={setFrameBorderRadius}
@@ -346,10 +343,18 @@ export default function Home() {
               />
               {/* Tombol-tombol di bawah editor */}
               <div className="photo-editor-actions" style={{ marginTop: 24 }}>
-                <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
-                <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
-                <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
-                <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
+                <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  Retake
+                </button>
+                <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  Download Strip
+                </button>
+                <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  QR Code
+                </button>
+                <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  Download GIF
+                </button>
               </div>
             </div>
             {/* Popup QR Code tetap di luar baru*/}
@@ -380,7 +385,7 @@ export default function Home() {
                   }}
                   onClick={e => e.stopPropagation()}
                 >
-                  <h2 style={{ margin: 0, color: '#111' }}>Scan QR untuk Download</h2>
+                  <h2 style={{ margin: 0, color: '#111' }}>Scan QR to Download</h2>
                   <QRCodeCanvas value={qrData} size={220} />
                   <button
                     onClick={handleCloseQR}
@@ -396,7 +401,7 @@ export default function Home() {
                       cursor: 'pointer'
                     }}
                   >
-                    Tutup
+                    Close 
                   </button>
                 </div>
               </div>
@@ -418,9 +423,8 @@ export default function Home() {
           style={{
             background: '#fff',
             boxShadow: '0 2px 12px #fa75aa22',
-            padding: '10px 0',
+            padding: '14px 32px',
             minWidth: 280,
-            maxWidth: '100vw',
             width: '100%',
             textAlign: 'center',
             fontSize: 13,
@@ -428,9 +432,9 @@ export default function Home() {
             fontWeight: 500,
           }}
         >
-          &copy; 2025 Photobooth App v1.0&nbsp;|&nbsp;
+          &copy; 2024 Photobooth App v1.0<br />
           <span style={{ fontSize: 12, color: '#b95b8e' }}>
-            Aplikasi photobooth digital untuk mengambil, mengedit, dan membagikan strip foto dengan filter, stiker, dan frame warna-warni.
+            A digital photobooth app to capture, edit, and share photo strips with filters, stickers, and colorful frames.
           </span>
         </div>
       </footer>

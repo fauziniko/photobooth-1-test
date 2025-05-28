@@ -46,7 +46,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
         if (videoRef.current) videoRef.current.srcObject = stream;
       })
       .catch(err => {
-        alert('Tidak bisa mengakses kamera: ' + err.name + ' - ' + err.message);
+        alert('Cannot access camera: ' + err.name + ' - ' + err.message);
       });
   }, [selectedDeviceId, cameraMode]);
 
@@ -69,7 +69,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
 
       const video = videoRef.current;
       if (!video || video.readyState < 2) {
-        alert('Video belum siap. Mohon tunggu beberapa detik lalu coba lagi.');
+        alert('Video not ready. Please wait a few seconds and try again.');
         setIsCapturing(false);
         return;
       }
@@ -103,7 +103,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative' }}>
       <div style={{ marginBottom: 12 }}>
-        <label style={{ fontWeight: 'bold', color: '#111', marginRight: 8 }}>Pilih Kamera:</label>
+        <label style={{ fontWeight: 'bold', color: '#111', marginRight: 8 }}>Select Camera:</label>
         {isMobile ? (
           <select
             value={cameraMode}
@@ -116,8 +116,8 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
               border: '1px solid #aaa'
             }}
           >
-            <option value="environment">Kamera Belakang</option>
-            <option value="user">Kamera Depan</option>
+            <option value="environment">Back Camera</option>
+            <option value="user">Front Camera</option>
           </select>
         ) : (
           <select

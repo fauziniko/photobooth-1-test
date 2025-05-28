@@ -16,7 +16,7 @@ export default function FrameCustomizer({ onColorChange }: Props) {
   
   return (
     <div style={{ marginBottom: '20px' }}>
-      <h3 style={{ marginBottom: '12px', color: '#333' }}>Pilih Warna Frame</h3>
+      <h3 style={{ marginBottom: '12px', color: '#333' }}>Select Frame Color</h3>
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {colors.map(color => (
           <button 
@@ -34,7 +34,7 @@ export default function FrameCustomizer({ onColorChange }: Props) {
               overflow: 'hidden'
             }}
             title={color.label}
-            aria-label={`Warna ${color.label}`}
+            aria-label={`Color ${color.label}`}
           />
         ))}
       </div>
