@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Camera from '../../components/Camera';
 import LayoutSelector from '../../components/LayoutSelector';
 import PhotoPreview from '../../components/PhotoPreview';
@@ -12,13 +12,6 @@ const STICKERS = [
   { src: '/stickers/topi.png', label: 'Topi' },
   { src: '/stickers/flamingo.png', label: 'flamingo' },
   // Tambahkan stiker lain sesuai kebutuhan
-];
-
-const FRAME_TEMPLATES = [
-  { name: 'none', label: 'No Template', src: '' },
-  { name: 'classic', label: 'Classic', src: '/frames/baru.png' },
-  { name: 'modern', label: 'Modern', src: '/frames/kedua.png' },
-  // Tambahkan template lain sesuai kebutuhan
 ];
 
 export default function Home() {
@@ -36,6 +29,33 @@ export default function Home() {
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
   const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
   const [selectedFrameTemplate, setSelectedFrameTemplate] = useState('none');
+  const [minioFrameTemplates, setMinioFrameTemplates] = useState<{ name: string; label: string; src: string }[]>([]);
+
+  useEffect(() => {
+    const fetchTemplates = () => {
+      fetch('/api/upload-frame-template', { method: 'GET' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.templates) {
+            setMinioFrameTemplates(
+              data.templates.map((src: string) => {
+                const name = src.split('/').pop() || 'template';
+                return { name, label: name, src };
+              })
+            );
+          }
+        });
+    };
+    fetchTemplates();
+    window.addEventListener('frameTemplatesUpdated', fetchTemplates);
+    return () => window.removeEventListener('frameTemplatesUpdated', fetchTemplates);
+  }, []);
+
+  // Hanya gunakan template dari MinIO
+  const allFrameTemplates = [
+    { name: 'none', label: 'No Template', src: '' },
+    ...minioFrameTemplates,
+  ];
 
   // Ubah handleLayoutChange agar kamera muncul lagi saat layout diganti
   const handleLayoutChange = (n: number) => {
@@ -342,8 +362,8 @@ export default function Home() {
                 onRotateSticker={handleRotateSticker}
                 onDeleteSticker={handleDeleteSticker}
                 gap={photoGap}
-                frameTemplates={FRAME_TEMPLATES} // <-- tambahkan ini
-                selectedFrameTemplate={selectedFrameTemplate} // <-- dan ini
+                frameTemplates={allFrameTemplates}
+                selectedFrameTemplate={selectedFrameTemplate}
               />
             </div>
             <div
@@ -364,7 +384,7 @@ export default function Home() {
                 selectedFilter={filter}
                 onSelectFrame={setFrameColor}
                 selectedFrame={frameColor}
-                frameTemplates={FRAME_TEMPLATES}
+                frameTemplates={allFrameTemplates}
                 selectedFrameTemplate={selectedFrameTemplate}
                 onSelectFrameTemplate={setSelectedFrameTemplate}
                 availableStickers={STICKERS}
@@ -484,7 +504,7 @@ export default function Home() {
           </span>
           <br />
           <span style={{ fontSize: 16, color: '#d72688', fontWeight: 500 }}>
-            &copy; 2024 Photobooth App v1.0
+            &copy; 2025 Photobooth App v1.5
           </span>
         </div>
       </footer>

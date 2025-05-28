@@ -39,3 +39,10 @@ body {
       align-items: stretch;
     }
   }
+  
+  .retake-btn:hover {
+    background: #fa75aa;
+    color: #fff;
+    border-color: #fa75aa;
+    transition: background 0.2s, color 0.2s, border 0.2s;
+  }

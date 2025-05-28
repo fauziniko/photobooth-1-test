@@ -52,6 +52,7 @@ export default function PhotoEditor({
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
   const [uploading, setUploading] = useState(false);
+  const [uploadingFrameTemplate, setUploadingFrameTemplate] = useState(false);
 
   // Untuk menambah stiker ke list
   const handleUploadSticker = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +98,29 @@ export default function PhotoEditor({
         }
       });
   }, []);
+
+  // Tambahkan handler upload frame template di atas return
+  const handleUploadFrameTemplate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFrameTemplate(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/upload-frame-template', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    setUploadingFrameTemplate(false);
+    if (data.url) {
+      // Simpan ke localStorage atau trigger reload list template
+      window.dispatchEvent(new Event('frameTemplatesUpdated'));
+    } else {
+      alert('Failed to upload frame template');
+    }
+    e.target.value = '';
+  };
 
   return (
     <div
@@ -350,7 +374,7 @@ export default function PhotoEditor({
         {activeTab === 'frame' && (
           <div>
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Color</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24, justifyContent: 'center' }}>
               {availableFrames.map(frame => (
                 <button
                   key={frame.name}
@@ -369,8 +393,40 @@ export default function PhotoEditor({
                 />
               ))}
             </div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Template</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+
+            {/* Upload Frame Template */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
+              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8 }}>
+                Upload PNG Frame Template
+              </label>
+              <label
+                htmlFor="upload-frame-template"
+                style={{
+                  display: 'inline-block',
+                  padding: '8px 18px',
+                  background: '#fa75aa',
+                  color: '#fff',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
+                Choose File
+                <input
+                  id="upload-frame-template"
+                  type="file"
+                  accept="image/png"
+                  onChange={handleUploadFrameTemplate}
+                  disabled={uploadingFrameTemplate}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              {uploadingFrameTemplate && <div style={{ color: '#fa75aa', fontSize: 13 }}>Uploading...</div>}
+            </div>
+
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12, textAlign: 'center' }}>Choose Frame Template</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
               {frameTemplates.map(template => (
                 <button
                   key={template.name}
