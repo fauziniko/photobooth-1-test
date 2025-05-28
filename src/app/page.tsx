@@ -23,6 +23,7 @@ const FRAME_TEMPLATES = [
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
+  const [showCamera, setShowCamera] = useState(true); // <-- Tambahkan baris ini
   const [countdown, setCountdown] = useState(3);
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
@@ -35,15 +36,17 @@ export default function Home() {
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
   const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
   const [selectedFrameTemplate, setSelectedFrameTemplate] = useState('none');
-  const [retakeIdx, setRetakeIdx] = useState<number | null>(null);
 
+  // Ubah handleLayoutChange agar kamera muncul lagi saat layout diganti
   const handleLayoutChange = (n: number) => {
     setLayout(n);
     setPhotos([]);
+    setShowCamera(true); // <-- Tambahkan ini
   };
 
   const handleStartCapture = () => {
     setPhotos([]);
+    setShowCamera(true); // <-- Tambahkan ini
   };
 
   const handleCapture = (photo: string) => {
@@ -185,26 +188,24 @@ export default function Home() {
 
   const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const target = event.target as FileReader | null;
-      if (target && typeof target.result === 'string') {
-        setPhotos(prev => [...prev, target.result as string]);
-      }
-    };
-    reader.readAsDataURL(file);
+    if (!files) return;
+    const fileArr = Array.from(files);
+    const readers = fileArr.map(file => {
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+    Promise.all(readers).then(imgs => {
+      setPhotos(prev => {
+        const newPhotos = [...prev, ...imgs].slice(0, layout);
+        setShowCamera(false); // <-- Ini sekarang sudah benar
+        return newPhotos;
+      });
+    });
     e.target.value = '';
-  };
-
-  const handleRetake = (idx: number) => {
-    setRetakeIdx(idx);
-  };
-
-  const handleRetakeCapture = (photo: string) => {
-    setPhotos(prev => prev.map((p, i) => i === retakeIdx ? photo : p));
-    setRetakeIdx(null);
   };
 
   return (
@@ -230,40 +231,50 @@ export default function Home() {
         >
           Photo Booth
         </h1>
-        {retakeIdx !== null ? (
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
-            <h2 style={{ color: '#d72688', fontWeight: 'bold' }}>Retake Photo #{retakeIdx + 1}</h2>
-            <Camera
-              onCapture={handleRetakeCapture}
-              photosToTake={1}
-              countdown={countdown}
-              onStartCapture={() => {}}
-            />
-            <button onClick={() => setRetakeIdx(null)} style={{ marginTop: 16, padding: '10px 24px', borderRadius: 8, border: 'none', background: '#ff1744', color: '#fff', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>
-              Cancel
-            </button>
-          </div>
-        ) : photos.length < layout ? (
+        {photos.length < layout ? (
           <>
-            {/* Pindahkan ke sini */}
             {photos.length > 0 && (
-              <div style={{
-                marginBottom: 18,
-                fontSize: 24,
-                fontWeight: 'bold',
-                color: '#111',
-                letterSpacing: 1,
-              }}>
+              <div style={{ marginBottom: 18, fontSize: 24, fontWeight: 'bold', color: '#111', letterSpacing: 1 }}>
                 {`Photos taken: ${photos.length} / ${layout}`}
               </div>
             )}
-            {/* Kamera di atas */}
-            <Camera
-              onCapture={handleCapture}
-              photosToTake={layout}
-              countdown={countdown}
-              onStartCapture={handleStartCapture}
-            />
+            {/* Tampilkan foto hasil upload/capture secara vertikal */}
+            {(!showCamera && photos.length > 0) && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  alignItems: 'center',
+                  marginBottom: 18,
+                }}
+              >
+                {photos.map((src, idx) => (
+                  <img
+                    key={idx}
+                    src={src}
+                    alt={`uploaded-${idx}`}
+                    style={{
+                      width: 240,
+                      height: 180,
+                      objectFit: 'cover',
+                      borderRadius: 12,
+                      boxShadow: '0 2px 8px #fa75aa22',
+                      background: '#fff',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            {/* Tampilkan kamera hanya jika showCamera true */}
+            {showCamera && (
+              <Camera
+                onCapture={handleCapture}
+                photosToTake={layout}
+                countdown={countdown}
+                onStartCapture={handleStartCapture}
+              />
+            )}
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
               <label
                 htmlFor="upload-image"
@@ -331,9 +342,8 @@ export default function Home() {
                 onRotateSticker={handleRotateSticker}
                 onDeleteSticker={handleDeleteSticker}
                 gap={photoGap}
-                frameTemplates={FRAME_TEMPLATES}
-                selectedFrameTemplate={selectedFrameTemplate}
-                onRetake={handleRetake} // <-- tambahkan baris ini
+                frameTemplates={FRAME_TEMPLATES} // <-- tambahkan ini
+                selectedFrameTemplate={selectedFrameTemplate} // <-- dan ini
               />
             </div>
             <div
