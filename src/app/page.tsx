@@ -190,218 +190,250 @@ export default function Home() {
   };
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 24,
-      }}
-    >
-      <h1
+    <>
+      <main
         style={{
-          color: '#111',
-          fontSize: 48,
-          fontWeight: 'bold',
-          marginBottom: 16,
-          letterSpacing: 2,
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 24,
         }}
       >
-        Photo Booth
-      </h1>
-      {photos.length < layout ? (
-        <>
-          {/* Pindahkan ke sini */}
-          {photos.length > 0 && (
-            <div style={{
-              marginBottom: 18,
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: '#111',
-              letterSpacing: 1,
-            }}>
-              {`Foto diambil: ${photos.length} / ${layout}`}
-            </div>
-          )}
-          {/* Kamera di atas */}
-          <Camera
-            onCapture={handleCapture}
-            photosToTake={layout}
-            countdown={countdown}
-            onStartCapture={handleStartCapture}
-          />
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
-            <label
-              htmlFor="upload-image"
-              style={{
-                display: 'inline-block',
-                padding: '10px 24px',
-                background: '#fa75aa',
-                color: '#fff',
-                borderRadius: 16,
+        <h1
+          style={{
+            color: '#111',
+            fontSize: 48,
+            fontWeight: 'bold',
+            marginBottom: 16,
+            letterSpacing: 2,
+          }}
+        >
+          Photo Booth
+        </h1>
+        {photos.length < layout ? (
+          <>
+            {/* Pindahkan ke sini */}
+            {photos.length > 0 && (
+              <div style={{
+                marginBottom: 18,
+                fontSize: 24,
                 fontWeight: 'bold',
-                fontSize: 15,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px #fa75aa22',
-              }}
-            >
-              Upload Image
-              <input
-                id="upload-image"
-                type="file"
-                accept="image/*"
-                onChange={handleUploadImage}
-                style={{ display: 'none' }}
-              />
-            </label>
-            {/* Tombol Start Capture sudah ada di komponen Camera */}
-          </div>
-          {/* Countdown di atas, lalu Pilih Layout */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
-            <label style={{ color: '#111', fontWeight: 'bold' }}>
-              Countdown:
-              <select
-                value={countdown}
-                onChange={e => setCountdown(Number(e.target.value))}
-                style={{
-                  marginLeft: 8,
-                  padding: '8px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  color: '#111',
-                  background: '#fff',
-                }}
-              >
-                <option value={1}>1s</option>
-                <option value={3}>3s</option>
-                <option value={5}>5s</option>
-              </select>
-            </label>
-            <LayoutSelector onSelect={handleLayoutChange} />
-          </div>
-          <div style={{ marginTop: 16, color: '#888' }}>
-            {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
-          </div>
-        </>
-      ) : (
-        <div className="strip-controls-wrapper">
-          <div style={{ flex: 2, minWidth: 0 }}>
-            {/* Frame Preview dan tombol */}
-            <PhotoPreview
-              photos={photos}
-              filter={filter}
-              frameColor={frameColor}
-              bottomSpace={bottomSpace}
-              frameBorderRadius={frameBorderRadius}
-              photoBorderRadius={photoBorderRadius}
-              stickers={stickers}
-              onMoveSticker={handleMoveSticker}
-              onResizeSticker={handleResizeSticker}
-              onRotateSticker={handleRotateSticker}
-              onDeleteSticker={handleDeleteSticker}
-              gap={photoGap} // <-- pastikan baris ini ada!
+                color: '#111',
+                letterSpacing: 1,
+              }}>
+                {`Foto diambil: ${photos.length} / ${layout}`}
+              </div>
+            )}
+            {/* Kamera di atas */}
+            <Camera
+              onCapture={handleCapture}
+              photosToTake={layout}
+              countdown={countdown}
+              onStartCapture={handleStartCapture}
             />
-          </div>
-          <div
-            className="photo-editor-panel"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              maxWidth: 900, // Lebih lebar, misal 700px
-              position: 'sticky',
-              top: 32,
-            }}
-          >
-            <PhotoEditor
-              onChangeSlider={setBottomSpace}
-              sliderValue={bottomSpace}
-              onAddSticker={handleAddSticker}
-              onSelectFilter={setFilter}
-              selectedFilter={filter}
-              onSelectFrame={setFrameColor}
-              selectedFrame={frameColor}
-              availableStickers={STICKERS}
-              availableFilters={[
-                { name: 'none', label: 'Normal', color: '#fff' },
-                { name: 'grayscale(1)', label: 'BW', color: '#bbb' },
-                { name: 'sepia(1)', label: 'Sepia', color: '#e2c799' },
-                { name: 'contrast(1.5)', label: 'Kontras', color: '#f7e6ff' },
-              ]}
-              availableFrames={[
-                { name: 'white', label: 'Putih', color: '#fff' },
-                { name: 'pink', label: 'Pink', color: '#fa75aa' },
-                { name: 'yellow', label: 'Kuning', color: '#ffe066' },
-                { name: 'blue', label: 'Biru', color: '#7ecbff' },
-              ]}
-              frameBorderRadius={frameBorderRadius}
-              onChangeFrameBorderRadius={setFrameBorderRadius}
-              photoGap={photoGap}
-              onChangePhotoGap={setPhotoGap}
-              photoBorderRadius={photoBorderRadius}
-              onChangePhotoBorderRadius={setPhotoBorderRadius}
-              onResetDefault={handleResetDefault} // <-- tambahkan baris ini
-            />
-            {/* Tombol-tombol di bawah editor */}
-            <div className="photo-editor-actions" style={{ marginTop: 24 }}>
-              <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
-              <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
-              <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
-              <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
-            </div>
-          </div>
-          {/* Popup QR Code tetap di luar baru*/}
-          {showQR && qrData && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0, left: 0, right: 0, bottom: 0,
-                background: 'rgba(0,0,0,0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1000
-              }}
-              onClick={handleCloseQR}
-            >
-              <div
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+              <label
+                htmlFor="upload-image"
                 style={{
-                  background: '#fff',
-                  padding: 32,
+                  display: 'inline-block',
+                  padding: '10px 24px',
+                  background: '#fa75aa',
+                  color: '#fff',
                   borderRadius: 16,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 16,
-                  minWidth: 320
+                  fontWeight: 'bold',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px #fa75aa22',
                 }}
-                onClick={e => e.stopPropagation()}
               >
-                <h2 style={{ margin: 0, color: '#111' }}>Scan QR untuk Download</h2>
-                <QRCodeCanvas value={qrData} size={220} />
-                <button
-                  onClick={handleCloseQR}
+                Upload Image
+                <input
+                  id="upload-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadImage}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              {/* Tombol Start Capture sudah ada di komponen Camera */}
+            </div>
+            {/* Countdown di atas, lalu Pilih Layout */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
+              <label style={{ color: '#111', fontWeight: 'bold' }}>
+                Countdown:
+                <select
+                  value={countdown}
+                  onChange={e => setCountdown(Number(e.target.value))}
                   style={{
-                    marginTop: 16,
-                    padding: '8px 24px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: '#ff1744',
-                    color: '#fff',
-                    fontWeight: 'bold',
-                    fontSize: 16,
-                    cursor: 'pointer'
+                    marginLeft: 8,
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #ccc',
+                    color: '#111',
+                    background: '#fff',
                   }}
                 >
-                  Tutup
-                </button>
+                  <option value={1}>1s</option>
+                  <option value={3}>3s</option>
+                  <option value={5}>5s</option>
+                </select>
+              </label>
+              <LayoutSelector onSelect={handleLayoutChange} />
+            </div>
+            <div style={{ marginTop: 16, color: '#888' }}>
+              {photos.length > 0 && `Foto diambil: ${photos.length} / ${layout}`}
+            </div>
+          </>
+        ) : (
+          <div className="strip-controls-wrapper">
+            <div style={{ flex: 2, minWidth: 0 }}>
+              {/* Frame Preview dan tombol */}
+              <PhotoPreview
+                photos={photos}
+                filter={filter}
+                frameColor={frameColor}
+                bottomSpace={bottomSpace}
+                frameBorderRadius={frameBorderRadius}
+                photoBorderRadius={photoBorderRadius}
+                stickers={stickers}
+                onMoveSticker={handleMoveSticker}
+                onResizeSticker={handleResizeSticker}
+                onRotateSticker={handleRotateSticker}
+                onDeleteSticker={handleDeleteSticker}
+                gap={photoGap} // <-- pastikan baris ini ada!
+              />
+            </div>
+            <div
+              className="photo-editor-panel"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                maxWidth: 900, // Lebih lebar, misal 700px
+                position: 'sticky',
+                top: 32,
+              }}
+            >
+              <PhotoEditor
+                onChangeSlider={setBottomSpace}
+                sliderValue={bottomSpace}
+                onAddSticker={handleAddSticker}
+                onSelectFilter={setFilter}
+                selectedFilter={filter}
+                onSelectFrame={setFrameColor}
+                selectedFrame={frameColor}
+                availableStickers={STICKERS}
+                availableFilters={[
+                  { name: 'none', label: 'Normal', color: '#fff' },
+                  { name: 'grayscale(1)', label: 'BW', color: '#bbb' },
+                  { name: 'sepia(1)', label: 'Sepia', color: '#e2c799' },
+                  { name: 'contrast(1.5)', label: 'Kontras', color: '#f7e6ff' },
+                ]}
+                availableFrames={[
+                  { name: 'white', label: 'Putih', color: '#fff' },
+                  { name: 'pink', label: 'Pink', color: '#fa75aa' },
+                  { name: 'yellow', label: 'Kuning', color: '#ffe066' },
+                  { name: 'blue', label: 'Biru', color: '#7ecbff' },
+                ]}
+                frameBorderRadius={frameBorderRadius}
+                onChangeFrameBorderRadius={setFrameBorderRadius}
+                photoGap={photoGap}
+                onChangePhotoGap={setPhotoGap}
+                photoBorderRadius={photoBorderRadius}
+                onChangePhotoBorderRadius={setPhotoBorderRadius}
+                onResetDefault={handleResetDefault} // <-- tambahkan baris ini
+              />
+              {/* Tombol-tombol di bawah editor */}
+              <div className="photo-editor-actions" style={{ marginTop: 24 }}>
+                <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
+                <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
+                <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
+                <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
               </div>
             </div>
-          )}
+            {/* Popup QR Code tetap di luar baru*/}
+            {showQR && qrData && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1000
+                }}
+                onClick={handleCloseQR}
+              >
+                <div
+                  style={{
+                    background: '#fff',
+                    padding: 32,
+                    borderRadius: 16,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 16,
+                    minWidth: 320
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <h2 style={{ margin: 0, color: '#111' }}>Scan QR untuk Download</h2>
+                  <QRCodeCanvas value={qrData} size={220} />
+                  <button
+                    onClick={handleCloseQR}
+                    style={{
+                      marginTop: 16,
+                      padding: '8px 24px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: '#ff1744',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      fontSize: 16,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+      {/* Footer */}
+      <footer
+        style={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          background: 'transparent',
+          marginTop: 48,
+        }}
+      >
+        <div
+          style={{
+            background: '#fff',
+            boxShadow: '0 2px 12px #fa75aa22',
+            padding: '10px 0',
+            minWidth: 280,
+            maxWidth: '100vw',
+            width: '100%',
+            textAlign: 'center',
+            fontSize: 13,
+            color: '#d72688',
+            fontWeight: 500,
+          }}
+        >
+          &copy; 2025 Photobooth App v1.0&nbsp;|&nbsp;
+          <span style={{ fontSize: 12, color: '#b95b8e' }}>
+            Aplikasi photobooth digital untuk mengambil, mengedit, dan membagikan strip foto dengan filter, stiker, dan frame warna-warni.
+          </span>
         </div>
-      )}
-    </main>
+      </footer>
+    </>
   );
 }
