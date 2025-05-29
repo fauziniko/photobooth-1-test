@@ -157,7 +157,7 @@ export default function PhotoEditor({
               fontWeight: activeTab === tab.key ? 'bold' : 500,
               border: 'none',
               borderBottom: activeTab === tab.key ? '3px solid #fa75aa' : '3px solid transparent',
-              fontSize: 17,
+              fontSize: 14,
               cursor: 'pointer',
               transition: 'all 0.2s',
               outline: 'none',
