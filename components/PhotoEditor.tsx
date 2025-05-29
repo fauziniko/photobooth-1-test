@@ -15,7 +15,6 @@ export default function PhotoEditor({
   selectedFilter,
   onSelectFrame,
   selectedFrame,
-  availableStickers,
   availableFilters,
   availableFrames,
   frameBorderRadius,
@@ -36,7 +35,6 @@ export default function PhotoEditor({
   selectedFilter: string;
   onSelectFrame: (frame: string) => void;
   selectedFrame: string;
-  availableStickers: { src: string; label: string }[];
   availableFilters: { name: string; label: string; color: string }[];
   availableFrames: { name: string; label: string; color: string }[];
   frameBorderRadius: number;
@@ -69,13 +67,8 @@ export default function PhotoEditor({
     const data = await res.json();
     setUploading(false);
     if (data.url) {
-      // Tambahkan stiker baru ke list
-      if (typeof window !== 'undefined') {
-        const localStickers = JSON.parse(localStorage.getItem('userStickers') || '[]');
-        localStickers.push({ src: data.url, label: data.name });
-        localStorage.setItem('userStickers', JSON.stringify(localStickers));
-        window.dispatchEvent(new Event('userStickersUpdated'));
-      }
+      // Hapus logic localStorage dan event userStickersUpdated
+      // window.dispatchEvent(new Event('userStickersUpdated'));
     } else {
       alert('Failed to upload sticker');
     }
@@ -311,7 +304,7 @@ export default function PhotoEditor({
             </div>
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Sticker</div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {[...minioStickers, ...availableStickers].map(sticker => (
+              {minioStickers.map(sticker => (
                 <img
                   key={sticker.src}
                   src={sticker.src}

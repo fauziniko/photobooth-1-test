@@ -387,7 +387,6 @@ export default function Home() {
                 frameTemplates={allFrameTemplates}
                 selectedFrameTemplate={selectedFrameTemplate}
                 onSelectFrameTemplate={setSelectedFrameTemplate}
-                availableStickers={STICKERS}
                 availableFilters={[
                   { name: 'none', label: 'Normal', color: '#fff' },
                   { name: 'grayscale(1)', label: 'BW', color: '#bbb' },
