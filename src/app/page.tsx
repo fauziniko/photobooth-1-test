@@ -7,16 +7,10 @@ import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
 import PhotoEditor from '../../components/PhotoEditor';
 
-const STICKERS = [
-  { src: '/stickers/ballon.png', label: 'Ballon' },
-  { src: '/stickers/topi.png', label: 'Topi' },
-  { src: '/stickers/flamingo.png', label: 'flamingo' },
-  // Tambahkan stiker lain sesuai kebutuhan
-];
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
-  const [showCamera, setShowCamera] = useState(true); // <-- Tambahkan baris ini
+  const [showCamera, setShowCamera] = useState(true); 
   const [countdown, setCountdown] = useState(3);
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
@@ -114,7 +108,6 @@ export default function Home() {
   const handleDownloadGIF = async () => {
     if (photos.length === 0) return;
 
-    // Buat image pertama untuk ambil ukuran asli
     const firstImg = new window.Image();
     firstImg.src = photos[0];
     await new Promise(resolve => { firstImg.onload = resolve; });
@@ -163,7 +156,6 @@ export default function Home() {
     gif.render();
   };
 
-  // Fungsi untuk menambah stiker ke posisi default (tengah frame)
   const handleAddSticker = (src: string) => {
     setStickers(prev => [...prev, { src, x: 100, y: 100, size: 48, rotate: 0 }]);
   };
@@ -221,7 +213,7 @@ export default function Home() {
     Promise.all(readers).then(imgs => {
       setPhotos(prev => {
         const newPhotos = [...prev, ...imgs].slice(0, layout);
-        setShowCamera(false); // <-- Ini sekarang sudah benar
+        setShowCamera(false); 
         return newPhotos;
       });
     });
