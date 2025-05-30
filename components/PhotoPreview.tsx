@@ -21,7 +21,7 @@ interface Props {
   onRotateSticker?: (idx: number, delta: number) => void;
   onDeleteSticker?: (idx: number) => void;
   gap?: number;
-  frameTemplates: { name: string; src: string }[];
+  frameTemplates: { name: string; src: string; sticker?: string }[];
   selectedFrameTemplate: string;
   onRetake?: (idx: number) => void;
 }
@@ -204,12 +204,16 @@ export default function PhotoPreview({
     });
   };
 
+  // Cari sticker url dari template yang dipilih
+  const selectedTemplate = frameTemplates.find(t => t.name === selectedFrameTemplate);
+  const stickerUrl = selectedTemplate?.sticker;
+
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: gap, // gunakan gap di sini
+        gap: gap,
         alignItems: 'center',
         width: '100%',
       }}
@@ -236,10 +240,10 @@ export default function PhotoPreview({
           overflow: 'hidden',
         }}
       >
-        {/* 1. Template frame di belakang */}
+        {/* Frame template di belakang */}
         {selectedFrameTemplate !== 'none' && (
           <img
-            src={frameTemplates.find(t => t.name === selectedFrameTemplate)?.src}
+            src={selectedTemplate?.src}
             alt="Frame Template"
             style={{
               position: 'absolute',
@@ -254,7 +258,25 @@ export default function PhotoPreview({
           />
         )}
 
-        {/* 2. Foto-foto di atas template */}
+        {/* Sticker PNG di atas foto dan frame */}
+        {stickerUrl && (
+          <img
+            src={stickerUrl}
+            alt="Sticker"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              zIndex: 2,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+
+        {/* Foto-foto di atas frame dan sticker */}
         <div
           style={{
             position: 'relative',
@@ -262,7 +284,7 @@ export default function PhotoPreview({
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
-            gap: gap, // gunakan gap di sini agar photoGap berfungsi
+            gap: gap,
             alignItems: 'center',
           }}
         >
@@ -279,7 +301,6 @@ export default function PhotoPreview({
                   borderRadius: photoBorderRadius,
                   display: 'block',
                   zIndex: 1,
-                  position: 'relative',
                 }}
               />
               {onRetake && (
@@ -313,7 +334,6 @@ export default function PhotoPreview({
             </div>
           ))}
         </div>
-
         {/* 3. Stiker di atas foto */}
         {stickers.map((sticker, idx) => (
           <React.Fragment key={idx}>

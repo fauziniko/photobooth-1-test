@@ -15,6 +15,7 @@ export default function PhotoEditor({
   selectedFilter,
   onSelectFrame,
   selectedFrame,
+
   availableFilters,
   availableFrames,
   frameBorderRadius,
@@ -27,6 +28,7 @@ export default function PhotoEditor({
   frameTemplates,
   selectedFrameTemplate,
   onSelectFrameTemplate,
+  onShowUploadModal, // tambahkan prop ini
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -35,6 +37,7 @@ export default function PhotoEditor({
   selectedFilter: string;
   onSelectFrame: (frame: string) => void;
   selectedFrame: string;
+  availableStickers: { src: string; label: string }[];
   availableFilters: { name: string; label: string; color: string }[];
   availableFrames: { name: string; label: string; color: string }[];
   frameBorderRadius: number;
@@ -47,16 +50,24 @@ export default function PhotoEditor({
   frameTemplates: { name: string; label: string; src?: string }[];
   selectedFrameTemplate: string;
   onSelectFrameTemplate: (template: string) => void;
+  onShowUploadModal: () => void; // tambahkan tipe untuk prop ini
 }) {
   const [activeTab, setActiveTab] = useState('adjust');
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadingFrameTemplate, setUploadingFrameTemplate] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [frameFile, setFrameFile] = useState<File | null>(null);
+  const [stickerFile, setStickerFile] = useState<File | null>(null);
+  const [templateName, setTemplateName] = useState('');
 
   // Untuk menambah stiker ke list
   const handleUploadSticker = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadSuccess(false);
+    setUploadError('');
     const formData = new FormData();
     formData.append('file', file);
 
@@ -67,10 +78,16 @@ export default function PhotoEditor({
     const data = await res.json();
     setUploading(false);
     if (data.url) {
-      // Hapus logic localStorage dan event userStickersUpdated
-      // window.dispatchEvent(new Event('userStickersUpdated'));
+      setUploadSuccess(true);
+      // Tambahkan stiker baru ke list
+      if (typeof window !== 'undefined') {
+        const localStickers = JSON.parse(localStorage.getItem('userStickers') || '[]');
+        localStickers.push({ src: data.url, label: data.name });
+        localStorage.setItem('userStickers', JSON.stringify(localStickers));
+        window.dispatchEvent(new Event('userStickersUpdated'));
+      }
     } else {
-      alert('Failed to upload sticker');
+      setUploadError('Failed to upload sticker');
     }
     e.target.value = '';
   };
@@ -92,27 +109,145 @@ export default function PhotoEditor({
       });
   }, []);
 
-  // Tambahkan handler upload frame template di atas return
-  const handleUploadFrameTemplate = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingFrameTemplate(true);
+  const handleUploadTemplate = async () => {
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess(false);
+    if (!frameFile || !stickerFile) {
+      setUploadError('Both files are required');
+      setUploading(false);
+      return;
+    }
+    if (frameFile.type !== 'image/png' || stickerFile.type !== 'image/png') {
+      setUploadError('Only PNG files allowed');
+      setUploading(false);
+      return;
+    }
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('frame', frameFile);
+    formData.append('sticker', stickerFile);
+    formData.append('name', templateName || `template_${Date.now()}`);
 
     const res = await fetch('/api/upload-frame-template', {
       method: 'POST',
       body: formData,
     });
     const data = await res.json();
-    setUploadingFrameTemplate(false);
-    if (data.url) {
-      // Simpan ke localStorage atau trigger reload list template
+    if (data.frameUrl && data.stickerUrl) {
+      setUploadSuccess(true);
+      setFrameFile(null);
+      setStickerFile(null);
+      setTemplateName('');
+      // Trigger refresh template list (bisa pakai event atau refetch)
       window.dispatchEvent(new Event('frameTemplatesUpdated'));
     } else {
-      alert('Failed to upload frame template');
+      setUploadError(data.error || 'Upload failed');
     }
-    e.target.value = '';
+    setUploading(false);
+  };
+
+  // Modal Upload Template (letakkan di luar return utama)
+  const uploadModal = showUploadModal && (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 16, padding: 32, minWidth: 320, boxShadow: '0 4px 24px #fa75aa22', position: 'relative'
+      }}>
+        <h3 style={{ color: '#d72688', marginBottom: 16 }}>Upload Frame Template</h3>
+        <label style={{ fontWeight: 600, color: '#fa75aa' }}>Template Name</label>
+        <input
+          type="text"
+          value={templateName}
+          onChange={e => setTemplateName(e.target.value)}
+          placeholder="Template name"
+          style={{ width: '100%', marginBottom: 12, padding: 6, borderRadius: 6, border: '1px solid #fa75aa33' }}
+        />
+        <label style={{ fontWeight: 600, color: '#fa75aa' }}>Frame Template (PNG)</label>
+        <div style={{ marginBottom: 12 }}>
+          <label
+            style={{
+              display: 'inline-block',
+              padding: '8px 18px',
+              background: '#fa75aa',
+              color: '#fff',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 600,
+              marginRight: 12,
+            }}
+          >
+            Choose File
+            <input
+              type="file"
+              accept="image/png"
+              onChange={e => setFrameFile(e.target.files?.[0] || null)}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <span style={{ color: '#fa75aa', fontWeight: 500 }}>
+            {frameFile ? frameFile.name : 'No file chosen'}
+          </span>
+        </div>
+        <label style={{ fontWeight: 600, color: '#fa75aa' }}>Sticker (PNG)</label>
+        <div style={{ marginBottom: 12 }}>
+          <label
+            style={{
+              display: 'inline-block',
+              padding: '8px 18px',
+              background: '#fa75aa',
+              color: '#fff',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 600,
+              marginRight: 12,
+            }}
+          >
+            Choose File
+            <input
+              type="file"
+              accept="image/png"
+              onChange={e => setStickerFile(e.target.files?.[0] || null)}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <span style={{ color: '#fa75aa', fontWeight: 500 }}>
+            {stickerFile ? stickerFile.name : 'No file chosen'}
+          </span>
+        </div>
+        {uploadError && <div style={{ color: 'red', marginBottom: 8 }}>{uploadError}</div>}
+        {uploadSuccess && <div style={{ color: 'green', marginBottom: 8 }}>Upload Success!</div>}
+        <button
+          onClick={handleUploadTemplate}
+          disabled={uploading}
+          style={{ background: '#fa75aa', color: '#fff', borderRadius: 8, padding: '8px 18px', fontWeight: 600, border: 'none', marginRight: 8 }}
+        >
+          {uploading ? 'Uploading...' : 'Upload'}
+        </button>
+        <button
+          onClick={() => { setShowUploadModal(false); setUploadError(''); setUploadSuccess(false); }}
+          style={{ background: '#eee', color: '#333', borderRadius: 8, padding: '8px 18px', fontWeight: 600, border: 'none' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  const reloadStickers = () => {
+    fetch('/api/list-sticker')
+      .then(res => res.json())
+      .then(data => {
+        if (data.stickers) {
+          setMinioStickers(
+            data.stickers.map((src: string) => ({
+              src,
+              label: src.split('/').pop() || 'sticker',
+            }))
+          );
+        }
+      });
   };
 
   return (
@@ -121,20 +256,25 @@ export default function PhotoEditor({
         background: '#fff',
         borderRadius: 24,
         boxShadow: '0 4px 24px rgba(250,117,170,0.08)',
-        maxWidth: 800, // Ubah ke 800 atau 900
+        maxWidth: 800,
         margin: '0 auto',
         padding: 0,
         overflow: 'hidden',
         width: '100%',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
+      {/* Render modal di sini agar selalu di atas */}
+      {uploadModal}
+
       {/* Tab Menu */}
       <div
         style={{
           display: 'flex',
           borderBottom: '1.5px solid #fa75aa22',
           background: '#ffe4f0',
-          padding: '12px 12px', // padding atas-bawah 12px, kiri-kanan 24px
+          padding: '12px 12px',
           justifyContent: 'center',
         }}
       >
@@ -144,17 +284,12 @@ export default function PhotoEditor({
             onClick={() => setActiveTab(tab.key)}
             style={{
               flex: 1,
-              padding: '12px 12px', // padding atas-bawah 12px, kiri-kanan 16px
+              padding: '5px 5px',
               background: activeTab === tab.key ? '#fae0ef' : 'transparent',
               color: '#d72688',
-              fontWeight: activeTab === tab.key ? 'bold' : 500,
+              fontWeight: activeTab === tab.key ? 'bold' : 700,
               border: 'none',
-              borderBottom: activeTab === tab.key ? '3px solid #fa75aa' : '3px solid transparent',
-              fontSize: 14,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              outline: 'none',
-              textAlign: 'center',
+              fontSize: 15, // tambahkan baris ini untuk mengecilkan teks
             }}
           >
             {tab.label}
@@ -277,32 +412,52 @@ export default function PhotoEditor({
               <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
                 Upload PNG Sticker
               </label>
-              <label
-                htmlFor="upload-sticker"
+              <div style={{ marginBottom: 16 }}>
+                <label
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 18px',
+                    background: '#fa75aa',
+                    color: '#fff',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    marginRight: 12,
+                  }}
+                >
+                  Choose File
+                  <input
+                    id="upload-sticker"
+                    type="file"
+                    accept="image/png"
+                    onChange={handleUploadSticker}
+                    disabled={uploading}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {uploading && <span style={{ color: '#fa75aa', marginLeft: 8 }}>Uploading...</span>}
+                {uploadError && <span style={{ color: 'red', marginLeft: 8 }}>{uploadError}</span>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, color: '#d72688', marginRight: 12 }}>Choose Sticker</div>
+              <button
+                onClick={reloadStickers}
                 style={{
-                  display: 'inline-block',
-                  padding: '8px 18px',
                   background: '#fa75aa',
                   color: '#fff',
+                  border: 'none',
                   borderRadius: 8,
-                  cursor: 'pointer',
+                  padding: '4px 14px',
                   fontWeight: 600,
-                  marginBottom: 8,
+                  cursor: 'pointer',
+                  fontSize: 13,
                 }}
+                title="Reload sticker list"
               >
-                Choose File
-                <input
-                  id="upload-sticker"
-                  type="file"
-                  accept="image/png"
-                  onChange={handleUploadSticker}
-                  disabled={uploading}
-                  style={{ display: 'none' }}
-                />
-              </label>
-              {uploading && <div style={{ color: '#fa75aa', fontSize: 13 }}>Uploading...</div>}
+                Reload
+              </button>
             </div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Sticker</div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {minioStickers.map(sticker => (
                 <img
@@ -366,8 +521,25 @@ export default function PhotoEditor({
 
         {activeTab === 'frame' && (
           <div>
+            {/* Pindahkan tombol upload ke atas */}
+            <button
+              style={{
+                background: '#fa75aa',
+                color: '#fff',
+                borderRadius: 8,
+                padding: '8px 18px',
+                fontWeight: 600,
+                marginBottom: 16,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              onClick={() => onShowUploadModal()}
+            >
+              Upload PNG Frame Template
+            </button>
+
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Color</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
               {availableFrames.map(frame => (
                 <button
                   key={frame.name}
@@ -386,40 +558,8 @@ export default function PhotoEditor({
                 />
               ))}
             </div>
-
-            {/* Upload Frame Template */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
-              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8 }}>
-                Upload PNG Frame Template
-              </label>
-              <label
-                htmlFor="upload-frame-template"
-                style={{
-                  display: 'inline-block',
-                  padding: '8px 18px',
-                  background: '#fa75aa',
-                  color: '#fff',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  marginBottom: 8,
-                }}
-              >
-                Choose File
-                <input
-                  id="upload-frame-template"
-                  type="file"
-                  accept="image/png"
-                  onChange={handleUploadFrameTemplate}
-                  disabled={uploadingFrameTemplate}
-                  style={{ display: 'none' }}
-                />
-              </label>
-              {uploadingFrameTemplate && <div style={{ color: '#fa75aa', fontSize: 13 }}>Uploading...</div>}
-            </div>
-
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12, textAlign: 'center' }}>Choose Frame Template</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Template</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {frameTemplates.map(template => (
                 <button
                   key={template.name}

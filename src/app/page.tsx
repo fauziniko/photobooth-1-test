@@ -1,16 +1,19 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Camera from '../../components/Camera';
 import LayoutSelector from '../../components/LayoutSelector';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
 import PhotoEditor from '../../components/PhotoEditor';
+import UploadFrameTemplateModal from '../../components/UploadFrameTemplateModal';
 
+type FrameTemplate = { name: string; frameUrl: string; stickerUrl: string };
+type FrameTemplateForUI = { name: string; label: string; src: string; sticker?: string };
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
-  const [showCamera, setShowCamera] = useState(true); 
+  const [showCamera, setShowCamera] = useState(true); // <-- Tambahkan baris ini
   const [countdown, setCountdown] = useState(3);
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
@@ -23,33 +26,28 @@ export default function Home() {
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
   const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
   const [selectedFrameTemplate, setSelectedFrameTemplate] = useState('none');
-  const [minioFrameTemplates, setMinioFrameTemplates] = useState<{ name: string; label: string; src: string }[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [frameTemplates, setFrameTemplates] = useState<FrameTemplateForUI[]>([]);
 
   useEffect(() => {
-    const fetchTemplates = () => {
-      fetch('/api/upload-frame-template', { method: 'GET' })
-        .then(res => res.json())
-        .then(data => {
-          if (data.templates) {
-            setMinioFrameTemplates(
-              data.templates.map((src: string) => {
-                const name = src.split('/').pop() || 'template';
-                return { name, label: name, src };
-              })
-            );
-          }
-        });
+    const fetchTemplates = async () => {
+      const res = await fetch('/api/list-frame-template');
+      const data = await res.json();
+      const templates: FrameTemplateForUI[] = [
+        { name: 'none', label: 'No Template', src: '' },
+        ...(data.templates || []).map((tpl: FrameTemplate) => ({
+          name: tpl.name,
+          label: tpl.name,
+          src: tpl.frameUrl || '',
+          sticker: tpl.stickerUrl || '',
+        })),
+      ];
+      setFrameTemplates(templates);
     };
     fetchTemplates();
     window.addEventListener('frameTemplatesUpdated', fetchTemplates);
     return () => window.removeEventListener('frameTemplatesUpdated', fetchTemplates);
   }, []);
-
-  // Hanya gunakan template dari MinIO
-  const allFrameTemplates = [
-    { name: 'none', label: 'No Template', src: '' },
-    ...minioFrameTemplates,
-  ];
 
   // Ubah handleLayoutChange agar kamera muncul lagi saat layout diganti
   const handleLayoutChange = (n: number) => {
@@ -108,6 +106,7 @@ export default function Home() {
   const handleDownloadGIF = async () => {
     if (photos.length === 0) return;
 
+    // Buat image pertama untuk ambil ukuran asli
     const firstImg = new window.Image();
     firstImg.src = photos[0];
     await new Promise(resolve => { firstImg.onload = resolve; });
@@ -156,6 +155,7 @@ export default function Home() {
     gif.render();
   };
 
+  // Fungsi untuk menambah stiker ke posisi default (tengah frame)
   const handleAddSticker = (src: string) => {
     setStickers(prev => [...prev, { src, x: 100, y: 100, size: 48, rotate: 0 }]);
   };
@@ -213,7 +213,7 @@ export default function Home() {
     Promise.all(readers).then(imgs => {
       setPhotos(prev => {
         const newPhotos = [...prev, ...imgs].slice(0, layout);
-        setShowCamera(false); 
+        setShowCamera(false); // <-- Ini sekarang sudah benar
         return newPhotos;
       });
     });
@@ -222,6 +222,17 @@ export default function Home() {
 
   return (
     <>
+      {showUploadModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
+        }}>
+          <UploadFrameTemplateModal
+            onClose={() => setShowUploadModal(false)}
+            // tambahkan prop lain jika perlu
+          />
+        </div>
+      )}
       <main
         style={{
           minHeight: '100vh',
@@ -354,7 +365,7 @@ export default function Home() {
                 onRotateSticker={handleRotateSticker}
                 onDeleteSticker={handleDeleteSticker}
                 gap={photoGap}
-                frameTemplates={allFrameTemplates}
+                frameTemplates={frameTemplates} // <-- gunakan state, bukan FRAME_TEMPLATES
                 selectedFrameTemplate={selectedFrameTemplate}
               />
             </div>
@@ -376,7 +387,7 @@ export default function Home() {
                 selectedFilter={filter}
                 onSelectFrame={setFrameColor}
                 selectedFrame={frameColor}
-                frameTemplates={allFrameTemplates}
+                frameTemplates={frameTemplates}
                 selectedFrameTemplate={selectedFrameTemplate}
                 onSelectFrameTemplate={setSelectedFrameTemplate}
                 availableFilters={[
@@ -391,13 +402,15 @@ export default function Home() {
                   { name: 'yellow', label: 'Yellow', color: '#ffe066' },
                   { name: 'blue', label: 'Blue', color: '#7ecbff' },
                 ]}
+                availableStickers={[]}
                 frameBorderRadius={frameBorderRadius}
                 onChangeFrameBorderRadius={setFrameBorderRadius}
                 photoGap={photoGap}
                 onChangePhotoGap={setPhotoGap}
                 photoBorderRadius={photoBorderRadius}
                 onChangePhotoBorderRadius={setPhotoBorderRadius}
-                onResetDefault={handleResetDefault} // <-- tambahkan baris ini
+                onResetDefault={handleResetDefault}
+                onShowUploadModal={() => setShowUploadModal(true)}
               />
               {/* Tombol-tombol di bawah editor */}
               <div className="photo-editor-actions" style={{ marginTop: 24 }}>
@@ -495,7 +508,7 @@ export default function Home() {
           </span>
           <br />
           <span style={{ fontSize: 16, color: '#d72688', fontWeight: 500 }}>
-            &copy; 2025 Photobooth App v1.5
+            &copy; 2025 Photobooth App v1.9
           </span>
         </div>
       </footer>
