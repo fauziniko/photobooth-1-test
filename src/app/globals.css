@@ -54,10 +54,6 @@ body {
   .strip-controls-wrapper {
     padding: 0 16px 24px 16px !important; /* kanan, bawah, kiri */
     box-sizing: border-box;
-    flex-direction: column !important;
-    gap: 0 !important;
-    align-items: center !important; /* ubah dari stretch ke center */
-    display: flex !important;       /* pastikan flex */
   }
   .strip-controls-wrapper button {
     font-size: 13px !important;
@@ -125,16 +121,9 @@ body {
     margin-top: 24px;
   }
   .photo-editor-actions {
-    flex-direction: column !important;
-    gap: 7px !important;
-    align-items: center !important; /* tombol tidak stretch */
-    width: auto !important;
-  }
-  .photo-editor-actions button {
-    width: auto !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    display: inline-block !important;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
   }
 }
 
