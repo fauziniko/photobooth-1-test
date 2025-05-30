@@ -364,22 +364,85 @@ export default function Home() {
                 filter={filter} // <-- Tambahkan ini
               />
             )}
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: 24,
+                justifyContent: 'center',
+                marginTop: 16,
+                alignItems: 'center',
+                paddingLeft: 16,
+                paddingRight: 16,
+                boxSizing: 'border-box',
+                width: '100%',
+                maxWidth: 500, // Batasi lebar agar tidak nabrak dinding layar
+                marginLeft: 'auto',
+                marginRight: 'auto',
+              }}
+            >
+              {/* Layout Dropdown */}
+              <div style={{ height: 48, minWidth: 140, display: 'flex', alignItems: 'center' }}>
+                <select
+                  value={layout}
+                  onChange={e => handleLayoutChange(Number(e.target.value))}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 12,
+                    border: '1px solid #fa75aa',
+                    color: '#d72688',
+                    fontWeight: 500,
+                    fontSize: 15,
+                    background: '#fff',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    height: 48,
+                    minWidth: 140,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <option value={2}>2 Pose</option>
+                  <option value={3}>3 Pose</option>
+                  <option value={4}>4 Pose</option>
+                  <option value={6}>6 Pose</option>
+                </select>
+              </div>
+              {/* Upload Image */}
               <label
                 htmlFor="upload-image"
                 style={{
-                  display: 'inline-block',
-                  padding: '10px 24px',
-                  background: '#fa75aa',
-                  color: '#fff',
-                  borderRadius: 16,
-                  fontWeight: 'bold',
-                  fontSize: 15,
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 0,
+                  margin: 0,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px #fa75aa22',
+                  background: 'none',
+                  border: 'none',
+                  height: 48,
+                  minWidth: 140,
                 }}
               >
-                Upload Image
+                <span
+                  style={{
+                    padding: '8px 16px',
+                    background: '#fff',
+                    color: '#d72688',
+                    borderRadius: 12,
+                    border: '1px solid #fa75aa',
+                    fontWeight: 500,
+                    fontSize: 15,
+                    marginRight: 8,
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    height: 48,
+                    minWidth: 140,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  Upload Image
+                </span>
                 <input
                   id="upload-image"
                   type="file"
@@ -388,7 +451,10 @@ export default function Home() {
                   style={{ display: 'none' }}
                 />
               </label>
-              {/* Tombol Start Capture sudah ada di komponen Camera */}
+              {/* Filter Dropdown */}
+              <div style={{ height: 48, minWidth: 140, display: 'flex', alignItems: 'center' }}>
+                <FilterSelector value={filter} onSelect={setFilter} />
+              </div>
             </div>
             {/* Countdown di atas, lalu Pilih Layout */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
@@ -411,9 +477,7 @@ export default function Home() {
                   <option value={5}>5s</option>
                 </select>
               </label>
-              <LayoutSelector onSelect={handleLayoutChange} />
-              {/* Tambahkan FilterSelector di bawah Pilih Layout */}
-              <FilterSelector value={filter} onSelect={setFilter} />
+              {/* <LayoutSelector onSelect={handleLayoutChange} /> */}
             </div>
           </>
         ) : (

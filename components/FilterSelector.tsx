@@ -18,27 +18,32 @@ interface Props {
 
 export default function FilterSelector({ value, onSelect }: Props) {
   return (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
-      {FILTERS.map(f => (
-        <button
-          key={f.value}
-          type="button"
-          onClick={() => onSelect(f.value)}
-          style={{
-            padding: '7px 16px',
-            borderRadius: 16,
-            border: value === f.value ? '2px solid #fa75aa' : '1px solid #ccc',
-            background: value === f.value ? '#fa75aa' : '#fff',
-            color: value === f.value ? '#fff' : '#222',
-            fontWeight: 500,
-            cursor: 'pointer',
-            fontSize: 14,
-            transition: 'all 0.2s'
-          }}
-        >
-          {f.label}
-        </button>
-      ))}
+    <div style={{ marginTop: 0, height: 48, minWidth: 140, display: 'flex', alignItems: 'center' }}>
+      <select
+        value={value}
+        onChange={e => onSelect(e.target.value)}
+        style={{
+          padding: '8px 16px',
+          borderRadius: 12,
+          border: '1px solid #fa75aa',
+          color: '#d72688',
+          fontWeight: 500,
+          fontSize: 15,
+          background: '#fff',
+          outline: 'none',
+          cursor: 'pointer',
+          height: 48,
+          minWidth: 140,
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        {FILTERS.map(f => (
+          <option key={f.value} value={f.value}>
+            {f.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
