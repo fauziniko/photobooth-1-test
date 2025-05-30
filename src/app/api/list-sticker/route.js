@@ -34,5 +34,6 @@ export async function GET() {
 }
 
 export async function POST() {
+  // Implementasi upload frame-sticker di sini jika perlu
   return NextResponse.json({ ok: true });
 }
