@@ -342,13 +342,16 @@ export default function PhotoPreview({
               className="sticker-handle-group"
               style={{
                 position: 'absolute',
-                left: sticker.x + sticker.size - 12,
-                top: sticker.y + sticker.size - 12,
+                left: sticker.x + sticker.size / 2,
+                top: sticker.y + sticker.size + 8,
+                transform: 'translateX(-50%)',
                 zIndex: 31,
                 display: 'flex',
                 flexDirection: 'row',
                 gap: 2,
                 pointerEvents: 'auto',
+                minWidth: 0,
+                maxWidth: 'none',
               }}
             >
               {/* ROTATE LEFT */}
