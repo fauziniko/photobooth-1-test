@@ -6,9 +6,10 @@ interface Props {
   photosToTake: number;
   countdown: number;
   onStartCapture?: () => void;
+  filter?: string; // <-- Tambahkan properti filter
 }
 
-export default function Camera({ onCapture, photosToTake, countdown, onStartCapture }: Props) {
+export default function Camera({ onCapture, photosToTake, countdown, onStartCapture, filter }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -92,6 +93,9 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
       canvas.width = 640;
       canvas.height = 480;
       const ctx = canvas.getContext('2d')!;
+      if (filter && filter !== 'none') {
+        ctx.filter = filter; // Terapkan filter ke canvas context
+      }
       if (isMirrored) {
         ctx.save();
         ctx.translate(canvas.width, 0);
@@ -195,13 +199,15 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           ref={videoRef}
           autoPlay
           playsInline
+          muted
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
             borderRadius: 8,
             transform: isMirrored ? 'scaleX(-1)' : undefined,
-            background: '#000'
+            background: '#000',
+            filter: filter, // <-- Tambahkan baris ini
           }}
         />
         {count !== null && (

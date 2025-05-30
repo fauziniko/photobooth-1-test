@@ -7,6 +7,7 @@ import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
 import PhotoEditor from '../../components/PhotoEditor';
 import UploadFrameTemplateModal from '../../components/UploadFrameTemplateModal';
+import FilterSelector from '../../components/FilterSelector';
 
 
 type FrameTemplate = { name: string; frameUrl: string; stickerUrl: string };
@@ -70,6 +71,17 @@ export default function Home() {
     const node = document.getElementById('strip');
     if (!node) return;
 
+    // Apply filter ke setiap foto jika perlu
+    if (filter && filter !== 'none') {
+      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+      await Promise.all(
+        Array.from(imgEls).map(async (img, idx) => {
+          const filtered = await applyFilterToDataUrl(photos[idx], filter);
+          img.setAttribute('src', filtered);
+        })
+      );
+    }
+
     // Tunggu semua gambar di dalam #strip selesai load
     const images = Array.from(node.querySelectorAll('img'));
     await Promise.all(
@@ -85,7 +97,7 @@ export default function Home() {
 
     node.classList.add('hide-resize-handle');
     const canvas = await html2canvas(node, {
-      useCORS: true, // penting agar gambar dari MinIO bisa di-capture
+      useCORS: true,
       backgroundColor: null,
     });
     node.classList.remove('hide-resize-handle');
@@ -93,6 +105,14 @@ export default function Home() {
     link.download = 'photostrip.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
+
+    // Kembalikan src img ke original (agar preview tetap interaktif)
+    if (filter && filter !== 'none') {
+      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+      imgEls.forEach((img, idx) => {
+        img.setAttribute('src', photos[idx]);
+      });
+    }
   };
 
   const handleShowQR = async () => {
@@ -237,6 +257,25 @@ export default function Home() {
     e.target.value = '';
   };
 
+  // Fungsi untuk apply filter ke dataURL
+  async function applyFilterToDataUrl(src: string, filter: string): Promise<string> {
+    if (!filter || filter === 'none') return src;
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d')!;
+        ctx.filter = filter;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.src = src;
+    });
+  }
+
   return (
     <>
       {showUploadModal && (
@@ -322,6 +361,7 @@ export default function Home() {
                 photosToTake={layout}
                 countdown={countdown}
                 onStartCapture={handleStartCapture}
+                filter={filter} // <-- Tambahkan ini
               />
             )}
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
@@ -372,6 +412,8 @@ export default function Home() {
                 </select>
               </label>
               <LayoutSelector onSelect={handleLayoutChange} />
+              {/* Tambahkan FilterSelector di bawah Pilih Layout */}
+              <FilterSelector value={filter} onSelect={setFilter} />
             </div>
           </>
         ) : (
