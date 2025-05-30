@@ -1,4 +1,26 @@
 import { NextResponse } from 'next/server';
+import { Client } from 'minio';
+
+const minioClient = new Client({
+  endPoint: process.env.MINIO_ENDPOINT,
+  port: parseInt(process.env.MINIO_PORT, 10),
+  useSSL: process.env.MINIO_USE_SSL === 'true',
+  accessKey: process.env.MINIO_ACCESS_KEY,
+  secretKey: process.env.MINIO_SECRET_KEY,
+});
+const BUCKET = process.env.MINIO_BUCKET;
+
+export async function GET() {
+  try {
+    const dataStream = await minioClient.getObject(BUCKET, 'templates/templates.json');
+    const chunks = [];
+    for await (const chunk of dataStream) chunks.push(chunk);
+    const templates = JSON.parse(Buffer.concat(chunks).toString());
+    return NextResponse.json({ templates });
+  } catch {
+    return NextResponse.json({ templates: [] });
+  }
+}
 
 export async function POST(req) {
   const formData = await req.formData();
