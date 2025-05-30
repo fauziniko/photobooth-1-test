@@ -399,19 +399,11 @@ export default function Home() {
                 onChangeSlider={setBottomSpace}
                 sliderValue={bottomSpace}
                 onAddSticker={handleAddSticker}
-                onSelectFilter={setFilter}
-                selectedFilter={filter}
                 onSelectFrame={setFrameColor}
                 selectedFrame={frameColor}
                 frameTemplates={frameTemplates}
                 selectedFrameTemplate={selectedFrameTemplate}
                 onSelectFrameTemplate={setSelectedFrameTemplate}
-                availableFilters={[
-                  { name: 'none', label: 'Normal', color: '#fff' },
-                  { name: 'grayscale(1)', label: 'BW', color: '#bbb' },
-                  { name: 'sepia(1)', label: 'Sepia', color: '#e2c799' },
-                  { name: 'contrast(1.5)', label: 'Contrast', color: '#f7e6ff' },
-                ]}
                 availableFrames={[
                   { name: 'white', label: 'White', color: '#fff' },
                   { name: 'pink', label: 'Pink', color: '#fa75aa' },
@@ -524,7 +516,7 @@ export default function Home() {
           </span>
           <br />
           <span style={{ fontSize: 16, color: '#d72688', fontWeight: 500 }}>
-            &copy; 2025 Photobooth App v1.9
+            &copy; 2025 Photobooth App v2.0
           </span>
         </div>
       </footer>
