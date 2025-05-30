@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Camera from '../../components/Camera';
-import LayoutSelector from '../../components/LayoutSelector';
 import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -15,8 +14,7 @@ type FrameTemplateForUI = { name: string; label: string; src: string; sticker?: 
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
-  const [showCamera, setShowCamera] = useState(true); // <-- Tambahkan baris ini
-  const [countdown, setCountdown] = useState(3);
+  const [showCamera, setShowCamera] = useState(true);
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
@@ -359,9 +357,9 @@ export default function Home() {
               <Camera
                 onCapture={handleCapture}
                 photosToTake={layout}
-                countdown={countdown}
                 onStartCapture={handleStartCapture}
-                filter={filter} // <-- Tambahkan ini
+                filter={filter}
+                frameColor={frameColor}
               />
             )}
             <div
@@ -455,29 +453,6 @@ export default function Home() {
               <div style={{ height: 48, minWidth: 140, display: 'flex', alignItems: 'center' }}>
                 <FilterSelector value={filter} onSelect={setFilter} />
               </div>
-            </div>
-            {/* Countdown di atas, lalu Pilih Layout */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
-              <label style={{ color: '#111', fontWeight: 'bold' }}>
-                Countdown:
-                <select
-                  value={countdown}
-                  onChange={e => setCountdown(Number(e.target.value))}
-                  style={{
-                    marginLeft: 8,
-                    padding: '8px 12px',
-                    borderRadius: '4px',
-                    border: '1px solid #ccc',
-                    color: '#111',
-                    background: '#fff',
-                  }}
-                >
-                  <option value={1}>1s</option>
-                  <option value={3}>3s</option>
-                  <option value={5}>5s</option>
-                </select>
-              </label>
-              {/* <LayoutSelector onSelect={handleLayoutChange} /> */}
             </div>
           </>
         ) : (

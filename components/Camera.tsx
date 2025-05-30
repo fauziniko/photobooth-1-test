@@ -4,12 +4,13 @@ import { useRef, useEffect, useState } from 'react';
 interface Props {
   onCapture: (dataUrl: string) => void;
   photosToTake: number;
-  countdown: number;
+  // Hapus countdown dari props
   onStartCapture?: () => void;
-  filter?: string; // <-- Tambahkan properti filter
+  filter?: string;
+  frameColor?: string;
 }
 
-export default function Camera({ onCapture, photosToTake, countdown, onStartCapture, filter }: Props) {
+export default function Camera({ onCapture, photosToTake, onStartCapture, filter, frameColor }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -18,7 +19,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>(isMobile ? 'user' : 'environment');
   const [isMirrored, setIsMirrored] = useState(true);
-
+  const [countdown, setCountdown] = useState(3); // Default 3 detik
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.mediaDevices?.enumerateDevices) {
@@ -115,73 +116,103 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative' }}>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontWeight: 'bold', color: '#111', marginRight: 8 }}>Select Camera:</label>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          {isMobile ? (
-            <select
-              value={cameraMode}
-              onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
-              style={{
-                padding: 6,
-                borderRadius: 6,
-                color: '#111',
-                background: '#fff',
-                border: '1px solid #aaa'
-              }}
-            >
-              <option value="environment">Back Camera</option>
-              <option value="user">Front Camera</option>
-            </select>
-          ) : (
-            <select
-              value={selectedDeviceId}
-              onChange={handleDeviceChange}
-              style={{
-                padding: 6,
-                borderRadius: 6,
-                color: '#111',
-                background: '#fff',
-                border: '1px solid #aaa'
-              }}
-            >
-              {devices.map(device => (
-                <option
-                  value={device.deviceId}
-                  key={device.deviceId}
-                  style={{ color: '#111', background: '#fff' }}
-                >
-                  {device.label || `Kamera ${device.deviceId.slice(-4)}`}
-                </option>
-              ))}
-            </select>
-          )}
-          <button
-            type="button"
-            onClick={() => setIsMirrored(m => !m)}
-            title={isMirrored ? 'Nonaktifkan Mirroring' : 'Aktifkan Mirroring'}
+      {/* Select Camera & Mirror di atas live foto */}
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+        {isMobile ? (
+          <select
+            value={cameraMode}
+            onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
             style={{
-              marginLeft: 0,
-              background: isMirrored ? '#fa75aa' : '#eee',
-              color: isMirrored ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '50%',
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 20,
-              cursor: 'pointer',
-              boxShadow: isMirrored ? '0 2px 8px #fa75aa55' : 'none',
-              transition: 'all 0.2s',
+              padding: 6,
+              borderRadius: 6,
+              color: '#111',
+              background: '#fff',
+              border: '1px solid #aaa'
             }}
           >
-            🔄
-          </button>
-        </span>
+            <option value="environment">Back Camera</option>
+            <option value="user">Front Camera</option>
+          </select>
+        ) : (
+          <select
+            value={selectedDeviceId}
+            onChange={handleDeviceChange}
+            style={{
+              padding: 6,
+              borderRadius: 6,
+              color: '#111',
+              background: '#fff',
+              border: '1px solid #aaa'
+            }}
+          >
+            {devices.map(device => (
+              <option
+                value={device.deviceId}
+                key={device.deviceId}
+                style={{ color: '#111', background: '#fff' }}
+              >
+                {device.label || `Kamera ${device.deviceId.slice(-4)}`}
+              </option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          onClick={() => setIsMirrored(m => !m)}
+          title={isMirrored ? 'Nonaktifkan Mirroring' : 'Aktifkan Mirroring'}
+          style={{
+            background: isMirrored ? '#fa75aa' : '#eee',
+            color: isMirrored ? 'white' : '#333',
+            border: 'none',
+            borderRadius: '50%',
+            width: 36,
+            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 20,
+            cursor: 'pointer',
+            boxShadow: isMirrored ? '0 2px 8px #fa75aa55' : 'none',
+            transition: 'all 0.2s',
+          }}
+        >
+          🔄
+        </button>
+        {/* Dropdown countdown di samping icon mirror */}
+        <select
+          value={countdown}
+          onChange={e => setCountdown(Number(e.target.value))}
+          style={{
+            padding: 6,
+            borderRadius: 6,
+            color: '#111',
+            background: '#fff',
+            border: '1px solid #aaa',
+            fontWeight: 'bold',
+            fontSize: 16,
+            width: 70,
+            textAlign: 'center',
+          }}
+          disabled={isCapturing}
+        >
+          <option value={1}>1s</option>
+          <option value={3}>3s</option>
+          <option value={5}>5s</option>
+        </select>
       </div>
-      <div className={isMobile ? 'camera-43-container' : undefined}>
+      {/* Live Foto */}
+      <div
+        className={isMobile ? 'camera-43-container' : undefined}
+        style={{
+          position: 'relative',
+          width: 640,
+          height: 480,
+          background: frameColor,
+          borderRadius: 8,
+          overflow: 'hidden',
+          marginBottom: 12,
+        }}
+      >
         <video
           ref={videoRef}
           autoPlay
@@ -193,8 +224,8 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
             objectFit: 'cover',
             borderRadius: 8,
             transform: isMirrored ? 'scaleX(-1)' : undefined,
-            background: '#000',
-            filter: filter, // <-- Tambahkan baris ini
+            background: 'transparent',
+            filter: filter,
           }}
         />
         {count !== null && (
@@ -214,6 +245,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           </div>
         )}
       </div>
+      {/* Tombol capture dst */}
       <button 
         onClick={takePhotos} 
         disabled={isCapturing}
@@ -230,7 +262,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           transition: 'all 0.3s ease'
         }}
       >
-        {isCapturing ? 'Mengambil Foto...' : `Start Capture (${photosToTake} photos)`}
+        {isCapturing ? 'Taking Photo...' : `Start Capture (${photosToTake} photos)`}
       </button>
     </div>
   );
