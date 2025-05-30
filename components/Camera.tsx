@@ -177,22 +177,31 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           </button>
         </span>
       </div>
-      <div style={{ position: 'relative' }}>
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          playsInline 
-          width="640" 
-          height="480" 
+      <div
+        className={isMobile ? 'camera-43-container' : undefined}
+        style={{
+          position: 'relative',
+          width: isMobile ? '100vw' : 640,
+          maxWidth: isMobile ? '100vw' : 640,
+          aspectRatio: '4/3',
+          background: '#000',
+          borderRadius: 8,
+          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+          overflow: 'hidden',
+          margin: '0 auto'
+        }}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
           style={{
-            borderRadius: '8px',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
             width: '100%',
-            height: 'auto',
-            maxWidth: 640,
-            background: '#000',
-            aspectRatio: '4/3',
-            transform: isMirrored ? 'scaleX(-1)' : undefined
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: 8,
+            transform: isMirrored ? 'scaleX(-1)' : undefined,
+            background: '#000'
           }}
         />
         {count !== null && (
