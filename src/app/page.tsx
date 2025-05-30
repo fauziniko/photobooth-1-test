@@ -65,17 +65,33 @@ export default function Home() {
     setPhotos(prev => [...prev, photo]);
   };
 
-  const handleDownloadStrip = () => {
+  const handleDownloadStrip = async () => {
     const node = document.getElementById('strip');
     if (!node) return;
+
+    // Tunggu semua gambar di dalam #strip selesai load
+    const images = Array.from(node.querySelectorAll('img'));
+    await Promise.all(
+      images.map(
+        img =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise(resolve => {
+                img.onload = img.onerror = resolve;
+              })
+      )
+    );
+
     node.classList.add('hide-resize-handle');
-    html2canvas(node).then(canvas => {
-      node.classList.remove('hide-resize-handle');
-      const link = document.createElement('a');
-      link.download = 'photostrip.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+    const canvas = await html2canvas(node, {
+      useCORS: true, // penting agar gambar dari MinIO bisa di-capture
+      backgroundColor: null,
     });
+    node.classList.remove('hide-resize-handle');
+    const link = document.createElement('a');
+    link.download = 'photostrip.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   };
 
   const handleShowQR = async () => {
