@@ -1,22 +1,18 @@
 import React, { useState } from 'react';
 
 const TABS = [
-  { key: 'adjust', label: 'Settings' },
+  { key: 'color', label: 'Color' }, // Tambahkan tab baru untuk Frame Color
+  { key: 'frame', label: 'Frame' },
   { key: 'sticker', label: 'Sticker' },
-  { key: 'filter', label: 'Filter' },
-  { key: 'frame', label: 'Color' },
+  { key: 'adjust', label: 'Settings' },
 ];
 
 export default function PhotoEditor({
   onChangeSlider,
   sliderValue,
   onAddSticker,
-  onSelectFilter,
-  selectedFilter,
   onSelectFrame,
   selectedFrame,
-
-  availableFilters,
   availableFrames,
   frameBorderRadius,
   onChangeFrameBorderRadius,
@@ -28,17 +24,14 @@ export default function PhotoEditor({
   frameTemplates,
   selectedFrameTemplate,
   onSelectFrameTemplate,
-  onShowUploadModal, // tambahkan prop ini
+  onShowUploadModal, 
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
   onAddSticker: (src: string) => void;
-  onSelectFilter: (filter: string) => void;
-  selectedFilter: string;
   onSelectFrame: (frame: string) => void;
   selectedFrame: string;
   availableStickers: { src: string; label: string }[];
-  availableFilters: { name: string; label: string; color: string }[];
   availableFrames: { name: string; label: string; color: string }[];
   frameBorderRadius: number;
   onChangeFrameBorderRadius: (v: number) => void;
@@ -50,9 +43,10 @@ export default function PhotoEditor({
   frameTemplates: { name: string; label: string; src?: string }[];
   selectedFrameTemplate: string;
   onSelectFrameTemplate: (template: string) => void;
-  onShowUploadModal: () => void; // tambahkan tipe untuk prop ini
+  onShowUploadModal: () => void; 
 }) {
-  const [activeTab, setActiveTab] = useState('adjust');
+  // Ubah 'filter' menjadi 'frame' agar tab default adalah Frame
+  const [activeTab, setActiveTab] = useState('frame');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -265,7 +259,6 @@ export default function PhotoEditor({
         zIndex: 1,
       }}
     >
-      {/* Render modal di sini agar selalu di atas */}
       {uploadModal}
 
       {/* Tab Menu */}
@@ -289,7 +282,7 @@ export default function PhotoEditor({
               color: '#d72688',
               fontWeight: activeTab === tab.key ? 'bold' : 700,
               border: 'none',
-              fontSize: 15, // tambahkan baris ini untuk mengecilkan teks
+              fontSize: 15,
             }}
           >
             {tab.label}
@@ -299,6 +292,158 @@ export default function PhotoEditor({
 
       {/* Tab Content */}
       <div style={{ padding: 28, background: '#fff' }}>
+        {activeTab === 'color' && (
+          <div>
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Color</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+              {availableFrames.map(frame => (
+                <button
+                  key={frame.name}
+                  onClick={() => onSelectFrame(frame.name)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    background: frame.color,
+                    border: selectedFrame === frame.name ? '3px solid #fa75aa' : '2px solid #fa75aa33',
+                    cursor: 'pointer',
+                    outline: selectedFrame === frame.name ? '2px solid #fff' : 'none',
+                  }}
+                  aria-label={frame.label}
+                  title={frame.label}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'frame' && (
+          <div>
+            {/* Pindahkan tombol upload ke atas */}
+            <button
+              style={{
+                background: '#fa75aa',
+                color: '#fff',
+                borderRadius: 8,
+                padding: '8px 18px',
+                fontWeight: 600,
+                marginBottom: 16,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              onClick={() => onShowUploadModal()}
+            >
+              Upload PNG Frame Template
+            </button>
+
+            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Template</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {frameTemplates.map(template => (
+                <button
+                  key={template.name}
+                  onClick={() => onSelectFrameTemplate(template.name)}
+                  style={{
+                    border: selectedFrameTemplate === template.name ? '3px solid #fa75aa' : '2px solid #fa75aa33',
+                    borderRadius: 12,
+                    padding: 0,
+                    background: '#fff',
+                    cursor: 'pointer',
+                    width: 60,
+                    height: 60,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                  }}
+                  title={template.label}
+                >
+                  {template.src ? (
+                    <img src={template.src} alt={template.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <span style={{ color: '#d72688', fontSize: 12 }}>{template.label}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'sticker' && (
+          <div>
+            {/* Upload Sticker */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
+                Upload PNG Sticker
+              </label>
+              <div style={{ marginBottom: 16 }}>
+                <label
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 18px',
+                    background: '#fa75aa',
+                    color: '#fff',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    marginRight: 12,
+                  }}
+                >
+                  Choose File
+                  <input
+                    id="upload-sticker"
+                    type="file"
+                    accept="image/png"
+                    onChange={handleUploadSticker}
+                    disabled={uploading}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {uploading && <span style={{ color: '#fa75aa', marginLeft: 8 }}>Uploading...</span>}
+                {uploadError && <span style={{ color: 'red', marginLeft: 8 }}>{uploadError}</span>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, color: '#d72688', marginRight: 12 }}>Choose Sticker</div>
+              <button
+                onClick={reloadStickers}
+                style={{
+                  background: '#fa75aa',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '4px 14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+                title="Reload sticker list"
+              >
+                Reload
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {minioStickers.map(sticker => (
+                <img
+                  key={sticker.src}
+                  src={sticker.src}
+                  alt={sticker.label}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 10,
+                    border: '2px solid #fa75aa33',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px #fa75aa11',
+                    transition: 'transform 0.1s',
+                  }}
+                  onClick={() => onAddSticker(sticker.src)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'adjust' && (
           <>
             <button
@@ -403,191 +548,6 @@ export default function PhotoEditor({
               </div>
             </div>
           </>
-        )}
-
-        {activeTab === 'sticker' && (
-          <div>
-            {/* Upload Sticker */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
-                Upload PNG Sticker
-              </label>
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: 'inline-block',
-                    padding: '8px 18px',
-                    background: '#fa75aa',
-                    color: '#fff',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    marginRight: 12,
-                  }}
-                >
-                  Choose File
-                  <input
-                    id="upload-sticker"
-                    type="file"
-                    accept="image/png"
-                    onChange={handleUploadSticker}
-                    disabled={uploading}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-                {uploading && <span style={{ color: '#fa75aa', marginLeft: 8 }}>Uploading...</span>}
-                {uploadError && <span style={{ color: 'red', marginLeft: 8 }}>{uploadError}</span>}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontWeight: 600, color: '#d72688', marginRight: 12 }}>Choose Sticker</div>
-              <button
-                onClick={reloadStickers}
-                style={{
-                  background: '#fa75aa',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '4px 14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-                title="Reload sticker list"
-              >
-                Reload
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {minioStickers.map(sticker => (
-                <img
-                  key={sticker.src}
-                  src={sticker.src}
-                  alt={sticker.label}
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 10,
-                    border: '2px solid #fa75aa33',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px #fa75aa11',
-                    transition: 'transform 0.1s',
-                  }}
-                  onClick={() => onAddSticker(sticker.src)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'filter' && (
-          <div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Filter</div>
-            <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', 
-      gap: 10 
-    }}>
-              {availableFilters.map(filter => (
-                <button
-                  key={filter.name}
-                  onClick={() => onSelectFilter(filter.name)}
-                  style={{
-                    padding: '10px 5px',
-                    width: '100%',
-                    textAlign: 'center',
-                    background: filter.color,
-                    color:
-                      filter.name === 'none'
-                        ? '#111'
-                        : selectedFilter === filter.name
-                        ? '#fff'
-                        : '#d72688',
-                    border: selectedFilter === filter.name ? '2px solid #fa75aa' : '2px solid #fa75aa33',
-                    borderRadius: 8,
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    boxShadow: selectedFilter === filter.name ? '0 2px 8px #fa75aa33' : undefined,
-                  }}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'frame' && (
-          <div>
-            {/* Pindahkan tombol upload ke atas */}
-            <button
-              style={{
-                background: '#fa75aa',
-                color: '#fff',
-                borderRadius: 8,
-                padding: '8px 18px',
-                fontWeight: 600,
-                marginBottom: 16,
-                border: 'none',
-                cursor: 'pointer',
-              }}
-              onClick={() => onShowUploadModal()}
-            >
-              Upload PNG Frame Template
-            </button>
-
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Color</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
-              {availableFrames.map(frame => (
-                <button
-                  key={frame.name}
-                  onClick={() => onSelectFrame(frame.name)}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: frame.color,
-                    border: selectedFrame === frame.name ? '3px solid #fa75aa' : '2px solid #fa75aa33',
-                    cursor: 'pointer',
-                    outline: selectedFrame === frame.name ? '2px solid #fff' : 'none',
-                  }}
-                  aria-label={frame.label}
-                  title={frame.label}
-                />
-              ))}
-            </div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Template</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {frameTemplates.map(template => (
-                <button
-                  key={template.name}
-                  onClick={() => onSelectFrameTemplate(template.name)}
-                  style={{
-                    border: selectedFrameTemplate === template.name ? '3px solid #fa75aa' : '2px solid #fa75aa33',
-                    borderRadius: 12,
-                    padding: 0,
-                    background: '#fff',
-                    cursor: 'pointer',
-                    width: 60,
-                    height: 60,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                  }}
-                  title={template.label}
-                >
-                  {template.src ? (
-                    <img src={template.src} alt={template.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                  ) : (
-                    <span style={{ color: '#d72688', fontSize: 12 }}>{template.label}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
         )}
       </div>
       {/* Area preview baru foto */}
