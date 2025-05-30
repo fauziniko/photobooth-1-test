@@ -10,13 +10,13 @@ interface Props {
 
 export default function Camera({ onCapture, photosToTake, countdown, onStartCapture }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [isCapturing, setIsCapturing] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
-  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('environment');
+  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>(isMobile ? 'user' : 'environment');
   const [isMirrored, setIsMirrored] = useState(true);
-  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 
   useEffect(() => {

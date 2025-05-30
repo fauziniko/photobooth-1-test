@@ -46,8 +46,8 @@ body {
     height: 100vh !important;
     max-width: 100vw !important;
     max-height: 100vh !important;
-    object-fit: cover !important;   /* crop otomatis */
-    aspect-ratio: 4/3;
+    object-fit: contain !important;   /* ubah dari cover ke contain */
+    /* aspect-ratio: 4/3; */          /* hapus baris ini */
     background: #000;
     display: block;
   }
