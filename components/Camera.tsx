@@ -181,20 +181,7 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
           </button>
         </span>
       </div>
-      <div
-        className={isMobile ? 'camera-43-container' : undefined}
-        style={{
-          position: 'relative',
-          width: isMobile ? '100vw' : 640,
-          maxWidth: isMobile ? '100vw' : 640,
-          aspectRatio: '4/3',
-          background: '#000',
-          borderRadius: 8,
-          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-          overflow: 'hidden',
-          margin: '0 auto'
-        }}
-      >
+      <div className={isMobile ? 'camera-43-container' : undefined}>
         <video
           ref={videoRef}
           autoPlay
