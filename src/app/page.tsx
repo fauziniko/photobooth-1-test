@@ -8,6 +8,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import PhotoEditor from '../../components/PhotoEditor';
 import UploadFrameTemplateModal from '../../components/UploadFrameTemplateModal';
 
+
 type FrameTemplate = { name: string; frameUrl: string; stickerUrl: string };
 type FrameTemplateForUI = { name: string; label: string; src: string; sticker?: string };
 
@@ -261,11 +262,11 @@ export default function Home() {
       >
         <h1
           style={{
-            color: '#111',
-            fontSize: 48,
+            color: '#d72688', // ubah dari '#111' ke pink tua
+            fontSize: 40,
             fontWeight: 'bold',
             marginBottom: 16,
-            letterSpacing: 2,
+            letterSpacing: 1,
           }}
         >
           Photo Booth
@@ -273,7 +274,16 @@ export default function Home() {
         {photos.length < layout ? (
           <>
             {photos.length > 0 && (
-              <div style={{ marginBottom: 18, fontSize: 24, fontWeight: 'bold', color: '#111', letterSpacing: 1 }}>
+              <div
+                style={{
+                  marginTop: -1,         // Lebih dekat ke judul
+                  marginBottom: 2,       // Jarak bawah lebih kecil
+                  fontSize: 18,
+                  fontWeight: 400,       // Bukan bold
+                  color: '#111',
+                  letterSpacing: 1,
+                }}
+              >
                 {`Photos taken: ${photos.length} / ${layout}`}
               </div>
             )}
