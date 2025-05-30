@@ -115,45 +115,20 @@ export default function Camera({ onCapture, photosToTake, countdown, onStartCapt
         <label style={{ fontWeight: 'bold', color: '#111', marginRight: 8 }}>Select Camera:</label>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           {isMobile ? (
-            devices.length > 1 ? (
-              <select
-                value={selectedDeviceId}
-                onChange={handleDeviceChange}
-                style={{
-                  padding: 6,
-                  borderRadius: 6,
-                  color: '#111',
-                  background: '#fff',
-                  border: '1px solid #aaa'
-                }}
-              >
-                {devices.map(device => (
-                  <option
-                    value={device.deviceId}
-                    key={device.deviceId}
-                    style={{ color: '#111', background: '#fff' }}
-                  >
-                    {device.label || `Camera ${device.deviceId.slice(-4)}`}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              // fallback ke facingMode jika hanya satu kamera
-              <select
-                value={cameraMode}
-                onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
-                style={{
-                  padding: 6,
-                  borderRadius: 6,
-                  color: '#111',
-                  background: '#fff',
-                  border: '1px solid #aaa'
-                }}
-              >
-                <option value="environment">Back Camera</option>
-                <option value="user">Front Camera</option>
-              </select>
-            )
+            <select
+              value={cameraMode}
+              onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
+              style={{
+                padding: 6,
+                borderRadius: 6,
+                color: '#111',
+                background: '#fff',
+                border: '1px solid #aaa'
+              }}
+            >
+              <option value="environment">Back Camera</option>
+              <option value="user">Front Camera</option>
+            </select>
           ) : (
             <select
               value={selectedDeviceId}
