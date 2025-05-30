@@ -43,13 +43,14 @@ body {
 @media (max-width: 600px) {
   video {
     width: 100vw !important;
-    height: 100vh !important;
+    height: auto !important;
     max-width: 100vw !important;
-    max-height: 100vh !important;
-    object-fit: cover !important;   /* crop otomatis */
+    max-height: 75vw !important;
+    object-fit: contain !important;   /* tampil normal, tidak crop */
     aspect-ratio: 4/3;
     background: #000;
     display: block;
+    margin: 0 auto;
   }
   .strip-controls-wrapper {
     padding: 0 16px 24px 16px !important; /* kanan, bawah, kiri */
