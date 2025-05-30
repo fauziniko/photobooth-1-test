@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Client } from 'minio';
 
-export const minioClient = new Client({
+const minioClient = new Client({
   endPoint: process.env.MINIO_ENDPOINT,
   port: parseInt(process.env.MINIO_PORT, 10),
   useSSL: process.env.MINIO_USE_SSL === 'true',
@@ -9,7 +9,7 @@ export const minioClient = new Client({
   secretKey: process.env.MINIO_SECRET_KEY,
 });
 
-export const BUCKET = process.env.MINIO_BUCKET;
+const BUCKET = process.env.MINIO_BUCKET;
 
 export async function POST(req) {
   const formData = await req.formData();
