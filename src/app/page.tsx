@@ -262,10 +262,10 @@ export default function Home() {
       >
         <h1
           style={{
-            color: '#d72688', // ubah dari '#111' ke pink tua
+            color: '#d72688',
             fontSize: 40,
             fontWeight: 'bold',
-            marginBottom: 16,
+            marginBottom: 0, // dari 16 jadi 4 agar lebih dekat ke bawah
             letterSpacing: 1,
           }}
         >
@@ -276,10 +276,10 @@ export default function Home() {
             {photos.length > 0 && (
               <div
                 style={{
-                  marginTop: -1,         // Lebih dekat ke judul
-                  marginBottom: 2,       // Jarak bawah lebih kecil
+                  marginTop: 0,         // dari -1 jadi 0
+                  marginBottom: 2,
                   fontSize: 18,
-                  fontWeight: 400,       // Bukan bold
+                  fontWeight: 400,
                   color: '#111',
                   letterSpacing: 1,
                 }}
