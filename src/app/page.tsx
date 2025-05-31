@@ -6,13 +6,51 @@ import PhotoPreview from '../../components/PhotoPreview';
 import html2canvas from 'html2canvas';
 import { QRCodeCanvas } from 'qrcode.react';
 import PhotoEditor from '../../components/PhotoEditor';
+import PhotoResult from '../../components/PhotoResult';
+import GIF from 'gif.js';
 
 const STICKERS = [
   { src: '/stickers/ballon.png', label: 'Ballon' },
   { src: '/stickers/topi.png', label: 'Topi' },
   { src: '/stickers/flamingo.png', label: 'flamingo' },
-  // Tambahkan stiker lain sesuai kebutuhan
 ];
+
+async function generateGifFromPhotos(photos: string[], frameColor: string): Promise<string> {
+  if (photos.length === 0) return '';
+  const firstImg = new window.Image();
+  firstImg.src = photos[0];
+  await new Promise(resolve => { firstImg.onload = resolve; });
+  const width = firstImg.naturalWidth;
+  const height = firstImg.naturalHeight;
+  const gif = new GIF({
+    workers: 2,
+    quality: 10,
+    width,
+    height,
+    workerScript: '/gif.worker.js',
+  });
+  for (let i = 0; i < photos.length; i++) {
+    const img = new window.Image();
+    img.src = photos[i];
+    await new Promise(resolve => { img.onload = resolve; });
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+    ctx.fillStyle = frameColor;
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    gif.addFrame(canvas, { delay: 800 });
+  }
+  return new Promise<string>(resolve => {
+    gif.on('finished', function(blob: Blob) {
+      const url = URL.createObjectURL(blob);
+      resolve(url);
+    });
+    gif.render();
+  });
+}
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -20,39 +58,72 @@ export default function Home() {
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
-  const [bottomSpace, setBottomSpace] = useState(85); // default 85
+  const [bottomSpace, setBottomSpace] = useState(85);
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
   const [frameBorderRadius, setFrameBorderRadius] = useState(0);
-  const [photoBorderRadius, setPhotoBorderRadius] = useState(11); // default 11
+  const [photoBorderRadius, setPhotoBorderRadius] = useState(11);
   const [stickers, setStickers] = useState<{src: string, x: number, y: number, size: number, rotate?: number}[]>([]);
-  const [photoGap, setPhotoGap] = useState(8); // default 8px, bisa diubah
+  const [photoGap, setPhotoGap] = useState(8);
+  const [hasilStripUrl, setHasilStripUrl] = useState<string | undefined>(undefined);
+
+  const [showPhotoResult, setShowPhotoResult] = useState(false);
+  const [photoResultData, setPhotoResultData] = useState<{
+    photos: string[];
+    frames?: string[];
+    gifUrl?: string;
+  } | null>(null);
+
+  const [hasilFrameArray, setHasilFrameArray] = useState<string[]>([]);
+  const [hasilGifUrl, setHasilGifUrl] = useState<string | undefined>(undefined);
 
   const handleLayoutChange = (n: number) => {
     setLayout(n);
     setPhotos([]);
+    setHasilFrameArray([]);
+    setHasilGifUrl(undefined);
   };
 
   const handleStartCapture = () => {
     setPhotos([]);
+    setHasilFrameArray([]);
+    setHasilGifUrl(undefined);
   };
 
   const handleCapture = (photo: string) => {
     setPhotos(prev => [...prev, photo]);
   };
 
-  const handleDownloadStrip = () => {
-    const node = document.getElementById('strip');
-    if (!node) return;
-    node.classList.add('hide-resize-handle');
-    html2canvas(node).then(canvas => {
-      node.classList.remove('hide-resize-handle');
-      const link = document.createElement('a');
-      link.download = 'photostrip.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
+  const handleGenerateFrames = () => {
+    const frames = photos.map((src) => src);
+    setHasilFrameArray(frames);
   };
+
+const handleDownloadStrip = async () => {
+  const node = document.getElementById('strip');
+  if (!node) return;
+  node.classList.add('hide-resize-handle');
+  const canvas = await html2canvas(node);
+  node.classList.remove('hide-resize-handle');
+  const dataUrl = canvas.toDataURL('image/png');
+
+  setHasilStripUrl(dataUrl); // simpan strip png
+
+  if (hasilFrameArray.length === 0) handleGenerateFrames();
+
+  let gifUrl = hasilGifUrl;
+  if (!gifUrl) {
+    gifUrl = await generateGifFromPhotos(photos, frameColor);
+    setHasilGifUrl(gifUrl);
+  }
+
+  setPhotoResultData({
+    photos,
+    frames: [dataUrl], // tambahkan strip ke frames
+    gifUrl,
+  });
+  setShowPhotoResult(true);
+};
 
   const handleShowQR = async () => {
     const node = document.getElementById('strip');
@@ -62,7 +133,6 @@ export default function Home() {
     node.classList.remove('hide-resize-handle');
     const dataUrl = canvas.toDataURL('image/png');
 
-    // Upload ke API
     const res = await fetch('/api/upload-strip', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -79,69 +149,25 @@ export default function Home() {
     setQrData(null);
   };
 
-  const handleDownloadGIF = async () => {
-    if (photos.length === 0) return;
+const handleDownloadGIF = async () => {
+  if (photos.length === 0) return;
+  const gifUrl = await generateGifFromPhotos(photos, frameColor);
+  setHasilGifUrl(gifUrl);
 
-    // Buat image pertama untuk ambil ukuran asli
-    const firstImg = new window.Image();
-    firstImg.src = photos[0];
-    await new Promise(resolve => { firstImg.onload = resolve; });
-
-    const width = firstImg.naturalWidth;
-    const height = firstImg.naturalHeight;
-
-    const GIF = (await import('gif.js')).default;
-
-    const gif = new GIF({
-      workers: 2,
-      quality: 10,
-      width,
-      height,
-      workerScript: '/gif.worker.js',
-    });
-
-    for (let i = 0; i < photos.length; i++) {
-      const img = new window.Image();
-      img.src = photos[i];
-      await new Promise(resolve => { img.onload = resolve; });
-
-      // Render ke canvas dengan ukuran asli kamera
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) continue;
-
-      ctx.fillStyle = frameColor;
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-
-      gif.addFrame(canvas, { delay: 800 });
-    }
-
-    gif.on('finished', function(blob: Blob) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'photobooth.gif';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    gif.render();
-  };
-
-  // Fungsi untuk menambah stiker ke posisi default (tengah frame)
+  // Download GIF saja, tidak membuka galeri
+  const link = document.createElement('a');
+  link.download = 'photobooth.gif';
+  link.href = gifUrl;
+  link.click();
+};
   const handleAddSticker = (src: string) => {
     setStickers(prev => [...prev, { src, x: 100, y: 100, size: 48, rotate: 0 }]);
   };
 
-  // Fungsi untuk mengubah posisi stiker (drag & drop)
   const handleMoveSticker = (idx: number, x: number, y: number) => {
     setStickers(prev => prev.map((s, i) => i === idx ? { ...s, x, y } : s));
   };
 
-  // Fungsi untuk mengubah ukuran stiker
   const handleResizeSticker = (idx: number, newSize: number) => {
     setStickers(prev =>
       newSize === 0
@@ -150,7 +176,6 @@ export default function Home() {
     );
   };
 
-  // Fungsi untuk memutar stiker
   const handleRotateSticker = (idx: number, delta: number) => {
     setStickers(prev =>
       prev.map((s, i) =>
@@ -159,7 +184,6 @@ export default function Home() {
     );
   };
 
-  // Fungsi untuk menghapus stiker
   const handleDeleteSticker = (idx: number) => {
     setStickers(prev => prev.filter((_, i) => i !== idx));
   };
@@ -213,7 +237,6 @@ export default function Home() {
       </h1>
       {photos.length < layout ? (
         <>
-          {/* Pindahkan ke sini */}
           {photos.length > 0 && (
             <div style={{
               marginBottom: 18,
@@ -225,7 +248,6 @@ export default function Home() {
               {`Foto diambil: ${photos.length} / ${layout}`}
             </div>
           )}
-          {/* Kamera di atas */}
           <Camera
             onCapture={handleCapture}
             photosToTake={layout}
@@ -256,9 +278,7 @@ export default function Home() {
                 style={{ display: 'none' }}
               />
             </label>
-            {/* Tombol Start Capture sudah ada di komponen Camera */}
           </div>
-          {/* Countdown di atas, lalu Pilih Layout */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
             <label style={{ color: '#111', fontWeight: 'bold' }}>
               Countdown:
@@ -288,7 +308,6 @@ export default function Home() {
       ) : (
         <div className="strip-controls-wrapper">
           <div style={{ flex: 2, minWidth: 0 }}>
-            {/* Frame Preview dan tombol */}
             <PhotoPreview
               photos={photos}
               filter={filter}
@@ -301,7 +320,7 @@ export default function Home() {
               onResizeSticker={handleResizeSticker}
               onRotateSticker={handleRotateSticker}
               onDeleteSticker={handleDeleteSticker}
-              gap={photoGap} // <-- pastikan baris ini ada!
+              gap={photoGap}
             />
           </div>
           <div
@@ -309,7 +328,7 @@ export default function Home() {
             style={{
               flex: 1,
               minWidth: 0,
-              maxWidth: 900, // Lebih lebar, misal 700px
+              maxWidth: 900,
               position: 'sticky',
               top: 32,
             }}
@@ -341,17 +360,15 @@ export default function Home() {
               onChangePhotoGap={setPhotoGap}
               photoBorderRadius={photoBorderRadius}
               onChangePhotoBorderRadius={setPhotoBorderRadius}
-              onResetDefault={handleResetDefault} // <-- tambahkan baris ini
+              onResetDefault={handleResetDefault}
             />
-            {/* Tombol-tombol di bawah editor */}
             <div className="photo-editor-actions" style={{ marginTop: 24 }}>
               <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Ambil Ulang</button>
-              <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download Strip</button>
+              <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Lihat Hasil</button>
               <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>QR Code</button>
-              <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button>
+              {/* <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Download GIF</button> */}
             </div>
           </div>
-          {/* Popup QR Code tetap di luar baru*/}
           {showQR && qrData && (
             <div
               style={{
@@ -397,6 +414,42 @@ export default function Home() {
                 >
                   Tutup
                 </button>
+              </div>
+            </div>
+          )}
+          {showPhotoResult && photoResultData && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2000,
+              }}
+              onClick={() => setShowPhotoResult(false)}
+            >
+              <div
+                style={{
+                  background: '#fff',
+                  padding: 24,
+                  borderRadius: 16,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                  minWidth: 340,
+                  maxWidth: 420,
+                  maxHeight: '90vh',
+                  overflowY: 'auto',
+                  position: 'relative',
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                <PhotoResult
+                  photos={photoResultData.photos}
+                  frames={photoResultData.frames}
+                  gifUrl={photoResultData.gifUrl}
+                  onClose={() => setShowPhotoResult(false)}
+                />
               </div>
             </div>
           )}
