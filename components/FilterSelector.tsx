@@ -14,12 +14,13 @@ const FILTERS = [
 interface Props {
   value: string;
   onSelect: (v: string) => void;
+  isMobile?: boolean;
 }
 
-export default function FilterSelector({ value, onSelect }: Props) {
+export default function FilterSelector({ value, onSelect, isMobile = false }: Props) {
   return (
     <div style={{ 
-      height: 48, 
+      height: isMobile ? 44 : 48, 
       width: '100%', 
       display: 'flex', 
       alignItems: 'center' 
@@ -28,16 +29,16 @@ export default function FilterSelector({ value, onSelect }: Props) {
         value={value}
         onChange={e => onSelect(e.target.value)}
         style={{
-          padding: '8px 16px',
+          padding: isMobile ? '8px 12px' : '8px 16px',
           borderRadius: 12,
           border: '1px solid #fa75aa',
           color: '#d72688',
           fontWeight: 500,
-          fontSize: 15,
+          fontSize: isMobile ? 14 : 15,
           background: '#fff',
           outline: 'none',
           cursor: 'pointer',
-          height: 48,
+          height: isMobile ? 44 : 48,
           width: '100%',
           display: 'flex',
           alignItems: 'center',

@@ -31,9 +31,25 @@ export default function Home() {
   const [showPhotoResult, setShowPhotoResult] = useState(false);
   const [photoResultData, setPhotoResultData] = useState<string | null>(null);
   const [photoResultGifUrl, setPhotoResultGifUrl] = useState<string | undefined>(undefined);
+  // Add state for error message
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const isMobile = typeof window !== 'undefined' && 
   /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // Keep track of window width for responsive design
+  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -225,10 +241,23 @@ const handleDownloadStrip = async () => {
     setStickers([]);
   };
 
+  // Update the handleUploadImage function to support multiple files
   const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
+    
+    setUploadError(null); // Clear previous errors
+    
+    // Check if the number of files exceeds the layout count
+    if (files.length > layout - photos.length) {
+      setUploadError(`You can only upload ${layout - photos.length} more photo${layout - photos.length > 1 ? 's' : ''}. Please try again.`);
+      e.target.value = '';
+      return;
+    }
+    
+    // Convert FileList to Array
     const fileArr = Array.from(files);
+    
     const readers = fileArr.map(file => {
       return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -237,13 +266,23 @@ const handleDownloadStrip = async () => {
         reader.readAsDataURL(file);
       });
     });
+    
     Promise.all(readers).then(imgs => {
       setPhotos(prev => {
-        const newPhotos = [...prev, ...imgs].slice(0, layout);
-        setShowCamera(false); // <-- Ini sekarang sudah benar
-        return newPhotos;
+        // Take only as many photos as needed to reach the layout count
+        const combinedPhotos = [...prev, ...imgs];
+        const finalPhotos = combinedPhotos.slice(0, layout);
+        
+        // If we have all the photos we need, hide the camera
+        if (finalPhotos.length >= layout) {
+          setShowCamera(false);
+        }
+        
+        return finalPhotos;
       });
     });
+    
+    // Reset the input value to allow selecting the same files again if needed
     e.target.value = '';
   };
 
@@ -357,16 +396,16 @@ const handleDownloadStrip = async () => {
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column', // Stack vertically
+                flexDirection: 'column', // Always stack vertically for consistency
                 gap: '12px',
                 justifyContent: 'center',
                 marginTop: 16,
                 alignItems: 'stretch', // Full width for children
-                paddingLeft: 16,
-                paddingRight: 16,
+                paddingLeft: isMobile ? 12 : 16, // Slightly smaller padding on mobile
+                paddingRight: isMobile ? 12 : 16,
                 boxSizing: 'border-box',
                 width: '100%',
-                maxWidth: 500, // Batasi lebar agar tidak nabrak dinding layar
+                maxWidth: 500,
                 marginLeft: 'auto',
                 marginRight: 'auto',
               }}
@@ -382,34 +421,35 @@ const handleDownloadStrip = async () => {
                   cursor: 'pointer',
                   background: 'none',
                   border: 'none',
-                  height: 48,
+                  height: isMobile ? 44 : 48, // Slightly smaller on mobile
                   width: '100%',
                 }}
               >
                 <span
                   style={{
-                    padding: '8px 16px',
+                    padding: isMobile ? '8px 12px' : '8px 16px',
                     background: '#fff',
                     color: '#d72688',
                     borderRadius: 12,
                     border: '1px solid #fa75aa',
                     fontWeight: 500,
-                    fontSize: 15,
+                    fontSize: isMobile ? 14 : 15, // Slightly smaller font on mobile
                     cursor: 'pointer',
                     transition: 'background 0.2s',
-                    height: 48,
+                    height: isMobile ? 44 : 48,
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  Upload Image
+                  Upload Images ({layout} max)
                 </span>
                 <input
                   id="upload-image"
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleUploadImage}
                   style={{ display: 'none' }}
                 />
@@ -419,35 +459,37 @@ const handleDownloadStrip = async () => {
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'row',
+                  flexDirection: windowWidth < 768 ? 'column' : 'row', // Simplified: Always stack on mobile
                   justifyContent: 'space-between',
-                  gap: '12px',
+                  gap: windowWidth < 768 ? '8px' : '12px',
                   width: '100%',
                 }}
               >
                 {/* Layout Dropdown */}
                 <div 
                   style={{ 
-                    height: 48, 
+                    height: windowWidth < 768 ? 44 : 48, 
                     display: 'flex', 
                     alignItems: 'center',
-                    flex: 1, // Take equal space in the row
+                    flex: windowWidth < 768 ? 'unset' : 1,
+                    width: windowWidth < 768 ? '100%' : 'auto',
+                    marginBottom: windowWidth < 768 ? 8 : 0,
                   }}
                 >
                   <select
                     value={layout}
                     onChange={e => handleLayoutChange(Number(e.target.value))}
                     style={{
-                      padding: '8px 16px',
+                      padding: isMobile ? '8px 12px' : '8px 16px',
                       borderRadius: 12,
                       border: '1px solid #fa75aa',
                       color: '#d72688',
                       fontWeight: 500,
-                      fontSize: 15,
+                      fontSize: isMobile ? 14 : 15,
                       background: '#fff',
                       outline: 'none',
                       cursor: 'pointer',
-                      height: 48,
+                      height: isMobile ? 44 : 48,
                       width: '100%',
                       display: 'flex',
                       alignItems: 'center',
@@ -462,16 +504,50 @@ const handleDownloadStrip = async () => {
                 {/* Filter Dropdown */}
                 <div 
                   style={{ 
-                    height: 48, 
-                    flex: 1, // Take equal space in the row
+                    height: windowWidth < 768 ? 44 : 48, 
+                    flex: windowWidth < 768 ? 'unset' : 1,
                     display: 'flex', 
-                    alignItems: 'center' 
+                    alignItems: 'center',
+                    width: windowWidth < 768 ? '100%' : 'auto',
                   }}
                 >
-                  <FilterSelector value={filter} onSelect={setFilter} />
+                  <FilterSelector 
+                    value={filter} 
+                    onSelect={setFilter} 
+                    isMobile={windowWidth < 768} 
+                  />
                 </div>
               </div>
             </div>
+            {/* Display upload error message */}
+            {uploadError && (
+              <div style={{
+                marginTop: 8,
+                padding: '8px 12px',
+                backgroundColor: '#ffebee',
+                color: '#c62828',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 500,
+                textAlign: 'center',
+                border: '1px solid #ef9a9a',
+              }}>
+                {uploadError}
+              </div>
+            )}
+
+            {/* Display upload status */}
+            {photos.length > 0 && photos.length < layout && !uploadError && (
+              <div style={{
+                marginTop: 8,
+                fontSize: 14,
+                color: '#d72688',
+                textAlign: 'center',
+                fontWeight: 500,
+              }}>
+                {`${photos.length} of ${layout} photos uploaded. Need ${layout - photos.length} more.`}
+              </div>
+            )}
           </>
         ) : (
           <div className="strip-controls-wrapper">
