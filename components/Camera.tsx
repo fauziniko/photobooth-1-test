@@ -115,47 +115,83 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative' }}>
-      {/* Select Camera & Mirror di atas live foto */}
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      gap: '16px', 
+      position: 'relative',
+      width: '100%',
+      maxWidth: '640px',
+      margin: '0 auto'
+    }}>
+      {/* Select Camera & Mirror di atas live foto - Make this responsive */}
+      <div style={{ 
+        marginBottom: 12, 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 8,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        width: '100%',
+        padding: '0 8px'
+      }}>
         {isMobile ? (
           <select
             value={cameraMode}
             onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
             style={{
-              padding: 6,
-              borderRadius: 6,
-              color: '#111',
+              padding: '8px 12px',
+              borderRadius: 12,
+              border: '1px solid #fa75aa',
+              color: '#d72688',
+              fontWeight: 500,
+              fontSize: 14,
               background: '#fff',
-              border: '1px solid #aaa'
+              outline: 'none',
+              cursor: 'pointer',
+              flex: '1 1 auto',
+              minWidth: '110px',
+              maxWidth: '150px',
+              marginBottom: '4px'
             }}
           >
             <option value="environment">Back Camera</option>
             <option value="user">Front Camera</option>
           </select>
         ) : (
+          // Desktop camera selector with similar styling
           <select
             value={selectedDeviceId}
             onChange={handleDeviceChange}
             style={{
-              padding: 6,
-              borderRadius: 6,
-              color: '#111',
+              padding: '8px 12px',
+              borderRadius: 12,
+              border: '1px solid #fa75aa',
+              color: '#d72688',
+              fontWeight: 500,
+              fontSize: 14,
               background: '#fff',
-              border: '1px solid #aaa'
+              outline: 'none',
+              cursor: 'pointer',
+              flex: '1 1 auto',
+              minWidth: '110px',
+              maxWidth: '180px',
+              marginBottom: '4px'
             }}
           >
             {devices.map(device => (
               <option
                 value={device.deviceId}
                 key={device.deviceId}
-                style={{ color: '#111', background: '#fff' }}
+                style={{ color: '#d72688', background: '#fff' }}
               >
                 {device.label || `Kamera ${device.deviceId.slice(-4)}`}
               </option>
             ))}
           </select>
         )}
+        {/* Mirror button with consistent styling */}
         <button
           type="button"
           onClick={() => setIsMirrored(m => !m)}
@@ -174,24 +210,30 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             cursor: 'pointer',
             boxShadow: isMirrored ? '0 2px 8px #fa75aa55' : 'none',
             transition: 'all 0.2s',
+            margin: '0 4px',
+            flex: '0 0 auto'
           }}
         >
           🔄
         </button>
-        {/* Dropdown countdown di samping icon mirror */}
+        {/* Countdown selector with consistent styling */}
         <select
           value={countdown}
           onChange={e => setCountdown(Number(e.target.value))}
           style={{
-            padding: 6,
-            borderRadius: 6,
-            color: '#111',
+            padding: '8px 12px',
+            borderRadius: 12,
+            border: '1px solid #fa75aa',
+            color: '#d72688',
+            fontWeight: 500,
+            fontSize: 14,
             background: '#fff',
-            border: '1px solid #aaa',
-            fontWeight: 'bold',
-            fontSize: 16,
-            width: 70,
+            outline: 'none',
+            cursor: 'pointer',
+            width: '80px',
             textAlign: 'center',
+            flex: '0 0 auto',
+            marginBottom: '4px'
           }}
           disabled={isCapturing}
         >
@@ -200,13 +242,15 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
           <option value={5}>5s</option>
         </select>
       </div>
-      {/* Live Foto */}
+      {/* Live Foto - Make this responsive */}
       <div
         className={isMobile ? 'camera-43-container' : undefined}
         style={{
           position: 'relative',
-          width: 640,
-          height: 480,
+          width: isMobile ? '100%' : 640,
+          height: isMobile ? 'auto' : 480,
+          maxWidth: '100%',
+          aspectRatio: '4/3',
           background: frameColor,
           borderRadius: 8,
           overflow: 'hidden',
@@ -235,7 +279,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 64,
+            fontSize: isMobile ? '48px' : '64px',
             color: '#fff',
             background: 'rgba(0,0,0,0.4)',
             fontWeight: 'bold',
@@ -250,8 +294,8 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
         onClick={takePhotos} 
         disabled={isCapturing}
         style={{
-          padding: '12px 24px',
-          fontSize: '16px',
+          padding: '12px 20px',
+          fontSize: isMobile ? '14px' : '16px',
           fontWeight: 'bold',
           backgroundColor: '#fa75aa',
           color: 'white',
@@ -259,7 +303,9 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
           borderRadius: '24px',
           cursor: isCapturing ? 'not-allowed' : 'pointer',
           boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s ease',
+          width: isMobile ? 'calc(100% - 32px)' : 'auto',
+          maxWidth: '320px'
         }}
       >
         {isCapturing ? 'Taking Photo...' : `Start Capture (${photosToTake} photos)`}

@@ -32,6 +32,9 @@ export default function Home() {
   const [photoResultData, setPhotoResultData] = useState<string | null>(null);
   const [photoResultGifUrl, setPhotoResultGifUrl] = useState<string | undefined>(undefined);
 
+  const isMobile = typeof window !== 'undefined' && 
+  /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
   useEffect(() => {
     const fetchTemplates = async () => {
       const res = await fetch('/api/list-frame-template');
@@ -354,10 +357,11 @@ const handleDownloadStrip = async () => {
             <div
               style={{
                 display: 'flex',
-                gap: 24,
+                flexDirection: 'column', // Stack vertically
+                gap: '12px',
                 justifyContent: 'center',
                 marginTop: 16,
-                alignItems: 'center',
+                alignItems: 'stretch', // Full width for children
                 paddingLeft: 16,
                 paddingRight: 16,
                 boxSizing: 'border-box',
@@ -367,34 +371,7 @@ const handleDownloadStrip = async () => {
                 marginRight: 'auto',
               }}
             >
-              {/* Layout Dropdown */}
-              <div style={{ height: 48, minWidth: 140, display: 'flex', alignItems: 'center' }}>
-                <select
-                  value={layout}
-                  onChange={e => handleLayoutChange(Number(e.target.value))}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 12,
-                    border: '1px solid #fa75aa',
-                    color: '#d72688',
-                    fontWeight: 500,
-                    fontSize: 15,
-                    background: '#fff',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    height: 48,
-                    minWidth: 140,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <option value={2}>2 Pose</option>
-                  <option value={3}>3 Pose</option>
-                  <option value={4}>4 Pose</option>
-                  <option value={6}>6 Pose</option>
-                </select>
-              </div>
-              {/* Upload Image */}
+              {/* Upload Image (Full Width at Top) */}
               <label
                 htmlFor="upload-image"
                 style={{
@@ -406,7 +383,7 @@ const handleDownloadStrip = async () => {
                   background: 'none',
                   border: 'none',
                   height: 48,
-                  minWidth: 140,
+                  width: '100%',
                 }}
               >
                 <span
@@ -418,11 +395,10 @@ const handleDownloadStrip = async () => {
                     border: '1px solid #fa75aa',
                     fontWeight: 500,
                     fontSize: 15,
-                    marginRight: 8,
                     cursor: 'pointer',
                     transition: 'background 0.2s',
                     height: 48,
-                    minWidth: 140,
+                    width: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -438,9 +414,62 @@ const handleDownloadStrip = async () => {
                   style={{ display: 'none' }}
                 />
               </label>
-              {/* Filter Dropdown */}
-              <div style={{ height: 48, minWidth: 140, display: 'flex', alignItems: 'center' }}>
-                <FilterSelector value={filter} onSelect={setFilter} />
+              
+              {/* Row Container for Pose and Filter (Side by Side) */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  width: '100%',
+                }}
+              >
+                {/* Layout Dropdown */}
+                <div 
+                  style={{ 
+                    height: 48, 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    flex: 1, // Take equal space in the row
+                  }}
+                >
+                  <select
+                    value={layout}
+                    onChange={e => handleLayoutChange(Number(e.target.value))}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 12,
+                      border: '1px solid #fa75aa',
+                      color: '#d72688',
+                      fontWeight: 500,
+                      fontSize: 15,
+                      background: '#fff',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      height: 48,
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <option value={2}>2 Pose</option>
+                    <option value={3}>3 Pose</option>
+                    <option value={4}>4 Pose</option>
+                  </select>
+                </div>
+                
+                {/* Filter Dropdown */}
+                <div 
+                  style={{ 
+                    height: 48, 
+                    flex: 1, // Take equal space in the row
+                    display: 'flex', 
+                    alignItems: 'center' 
+                  }}
+                >
+                  <FilterSelector value={filter} onSelect={setFilter} />
+                </div>
               </div>
             </div>
           </>
@@ -523,7 +552,7 @@ const handleDownloadStrip = async () => {
                     if (win) {
                       // Ukuran lebar & tinggi HVS A4 = 210mm (kotak)
                       const mmWidth = 297 - 16; // 297mm A4 dikurangi 8mm kiri & 8mm kanan
-const mmHeight = 210 - 50; // 210mm A4 dikurangi 8mm atas & 8mm bawah
+const mmHeight = 210 - 16; // 210mm A4 dikurangi 8mm atas & 8mm bawah
 win.document.write(`
   <html>
     <head>

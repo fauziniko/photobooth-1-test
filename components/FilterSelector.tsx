@@ -18,7 +18,12 @@ interface Props {
 
 export default function FilterSelector({ value, onSelect }: Props) {
   return (
-    <div style={{ marginTop: 0, height: 48, minWidth: 140, display: 'flex', alignItems: 'center' }}>
+    <div style={{ 
+      height: 48, 
+      width: '100%', 
+      display: 'flex', 
+      alignItems: 'center' 
+    }}>
       <select
         value={value}
         onChange={e => onSelect(e.target.value)}
@@ -33,7 +38,7 @@ export default function FilterSelector({ value, onSelect }: Props) {
           outline: 'none',
           cursor: 'pointer',
           height: 48,
-          minWidth: 140,
+          width: '100%',
           display: 'flex',
           alignItems: 'center',
         }}
