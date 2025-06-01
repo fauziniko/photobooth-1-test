@@ -179,58 +179,6 @@ const handleDownloadStrip = async () => {
     setQrData(null);
   };
 
-  const handleDownloadGIF = async () => {
-    if (photos.length === 0) return;
-
-    const firstImg = new window.Image();
-    firstImg.src = photos[0];
-    await new Promise(resolve => { firstImg.onload = resolve; });
-
-    const width = firstImg.naturalWidth;
-    const height = firstImg.naturalHeight;
-
-    const GIF = (await import('gif.js')).default;
-
-    const gif = new GIF({
-      workers: 2,
-      quality: 10,
-      width,
-      height,
-      workerScript: '/gif.worker.js',
-    });
-
-    for (let i = 0; i < photos.length; i++) {
-      const img = new window.Image();
-      img.src = photos[i];
-      await new Promise(resolve => { img.onload = resolve; });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) continue;
-
-      ctx.fillStyle = frameColor;
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-
-      gif.addFrame(canvas, { delay: 800 });
-    }
-
-    gif.on('finished', function(blob: Blob) {
-      const url = URL.createObjectURL(blob);
-      setPhotoResultGifUrl(url); // <-- simpan ke state
-      // Download otomatis (opsional)
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'photobooth.gif';
-      a.click();
-      // URL.revokeObjectURL(url); // jangan revoke dulu, biar bisa dipreview
-    });
-
-    gif.render();
-  };
-
   // Fungsi untuk menambah stiker ke posisi default (tengah frame)
   const handleAddSticker = (src: string) => {
     setStickers(prev => [...prev, { src, x: 100, y: 100, size: 48, rotate: 0 }]);
@@ -563,8 +511,63 @@ const handleDownloadStrip = async () => {
                 <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
                   QR Code
                 </button>
-                <button onClick={handleDownloadGIF} style={{ padding: '12px 24px', backgroundColor: '#00B8D9', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
-                  Download GIF
+                <button
+                  onClick={async () => {
+                    const node = document.getElementById('strip');
+                    if (!node) return;
+                    node.classList.add('hide-resize-handle');
+                    const canvas = await html2canvas(node, { useCORS: true, backgroundColor: null });
+                    node.classList.remove('hide-resize-handle');
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const win = window.open('');
+                    if (win) {
+                      // Ukuran lebar & tinggi HVS A4 = 210mm (kotak)
+                      const mmWidth = 297 - 16; // 297mm A4 dikurangi 8mm kiri & 8mm kanan
+const mmHeight = 210 - 50; // 210mm A4 dikurangi 8mm atas & 8mm bawah
+win.document.write(`
+  <html>
+    <head>
+      <title>Print Photo Strip</title>
+      <style>
+        @media print {
+          @page { size: A4 landscape; margin: 8mm; }
+          body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+          }
+          img {
+            display: block;
+            margin: 0 auto;
+            width: ${mmWidth}mm !important;
+            height: ${mmHeight}mm !important;
+            max-width: none !important;
+            max-height: none !important;
+            object-fit: contain;
+          }
+        }
+        body {
+          text-align: center;
+          background: #fff;
+          margin: 0;
+          padding: 0;
+        }
+      </style>
+    </head>
+    <body>
+      <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;" />
+      <script>
+        window.onload = function(){window.print();}
+      </script>
+    </body>
+  </html>
+`);
+win.document.close();
+                    }
+                  }}
+                  style={{ padding: '12px 24px', backgroundColor: '#1976d2', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Print
                 </button>
               </div>
             </div>
