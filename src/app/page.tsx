@@ -14,6 +14,7 @@ type FrameTemplateForUI = { name: string; label: string; src: string; sticker?: 
 
 export default function Home() {
   const [photos, setPhotos] = useState<string[]>([]);
+  const [uploadPhotos, setUploadPhotos] = useState<string[]>([]);
   const [showCamera, setShowCamera] = useState(true);
   const [layout, setLayout] = useState(4);
   const [filter, setFilter] = useState('none');
@@ -73,95 +74,100 @@ export default function Home() {
     setShowCamera(true); // <-- Tambahkan ini
   };
 
+  // Handler untuk upload image
+  // (duplicate removed)
+
+  // Handler untuk kamera/capture
   const handleCapture = (photo: string) => {
     setPhotos(prev => [...prev, photo]);
+    // Tidak mengubah uploadPhotos!
   };
 
-const handleDownloadStrip = async () => {
-  const node = document.getElementById('strip');
-  if (!node) return;
+  const handleDownloadStrip = async () => {
+    const node = document.getElementById('strip');
+    if (!node) return;
 
-  // Apply filter ke setiap foto jika perlu
-  if (filter && filter !== 'none') {
-    const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+    // Apply filter ke setiap foto jika perlu
+    if (filter && filter !== 'none') {
+      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+      await Promise.all(
+        Array.from(imgEls).map(async (img, idx) => {
+          const filtered = await applyFilterToDataUrl(photos[idx], filter);
+          img.setAttribute('src', filtered);
+        })
+      );
+    }
+
+    // Tunggu semua gambar di dalam #strip selesai load
+    const images = Array.from(node.querySelectorAll('img'));
     await Promise.all(
-      Array.from(imgEls).map(async (img, idx) => {
-        const filtered = await applyFilterToDataUrl(photos[idx], filter);
-        img.setAttribute('src', filtered);
-      })
+      images.map(
+        img =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise(resolve => {
+                img.onload = img.onerror = resolve;
+              })
+      )
     );
-  }
 
-  // Tunggu semua gambar di dalam #strip selesai load
-  const images = Array.from(node.querySelectorAll('img'));
-  await Promise.all(
-    images.map(
-      img =>
-        img.complete
-          ? Promise.resolve()
-          : new Promise(resolve => {
-              img.onload = img.onerror = resolve;
-            })
-    )
-  );
-
-  node.classList.add('hide-resize-handle');
-  const canvas = await html2canvas(node, {
-    useCORS: true,
-    backgroundColor: null,
-  });
-  node.classList.remove('hide-resize-handle');
-  const dataUrl = canvas.toDataURL('image/png');
-
-  // Kembalikan src img ke original (agar preview tetap interaktif)
-  if (filter && filter !== 'none') {
-    const imgEls = node.querySelectorAll('img[alt^="photo-"]');
-    imgEls.forEach((img, idx) => {
-      img.setAttribute('src', photos[idx]);
+    node.classList.add('hide-resize-handle');
+    const canvas = await html2canvas(node, {
+      useCORS: true,
+      backgroundColor: null,
     });
-  }
+    node.classList.remove('hide-resize-handle');
+    const dataUrl = canvas.toDataURL('image/png');
 
-  // Generate GIF otomatis
-  const GIF = (await import('gif.js')).default;
-  const firstImg = new window.Image();
-  firstImg.src = photos[0];
-  await new Promise(resolve => { firstImg.onload = resolve; });
-  const width = firstImg.naturalWidth;
-  const height = firstImg.naturalHeight;
-  const gif = new GIF({
-    workers: 2,
-    quality: 10,
-    width,
-    height,
-    workerScript: '/gif.worker.js',
-  });
-  for (let i = 0; i < photos.length; i++) {
-    const img = new window.Image();
-    img.src = photos[i];
-    await new Promise(resolve => { img.onload = resolve; });
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) continue;
-    ctx.fillStyle = frameColor;
-    ctx.fillRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
-    gif.addFrame(canvas, { delay: 800 });
-  }
-  const gifUrl: string = await new Promise(resolve => {
-    gif.on('finished', function(blob: Blob) {
-      const url = URL.createObjectURL(blob);
-      resolve(url);
+    // Kembalikan src img ke original (agar preview tetap interaktif)
+    if (filter && filter !== 'none') {
+      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+      imgEls.forEach((img, idx) => {
+        img.setAttribute('src', photos[idx]);
+      });
+    }
+
+    // Generate GIF otomatis
+    const GIF = (await import('gif.js')).default;
+    const firstImg = new window.Image();
+    firstImg.src = photos[0];
+    await new Promise(resolve => { firstImg.onload = resolve; });
+    const width = firstImg.naturalWidth;
+    const height = firstImg.naturalHeight;
+    const gif = new GIF({
+      workers: 2,
+      quality: 10,
+      width,
+      height,
+      workerScript: '/gif.worker.js',
     });
-    gif.render();
-  });
+    for (let i = 0; i < photos.length; i++) {
+      const img = new window.Image();
+      img.src = photos[i];
+      await new Promise(resolve => { img.onload = resolve; });
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) continue;
+      ctx.fillStyle = frameColor;
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      gif.addFrame(canvas, { delay: 800 });
+    }
+    const gifUrl: string = await new Promise(resolve => {
+      gif.on('finished', function(blob: Blob) {
+        const url = URL.createObjectURL(blob);
+        resolve(url);
+      });
+      gif.render();
+    });
 
-  // Tampilkan popup PhotoResult dengan GIF
-  setPhotoResultData(dataUrl);
-  setPhotoResultGifUrl(gifUrl);
-  setShowPhotoResult(true);
-};
+    // Tampilkan popup PhotoResult dengan GIF
+    setPhotoResultData(dataUrl);
+    setPhotoResultGifUrl(gifUrl);
+    setShowPhotoResult(true);
+  };
 
   const handleShowQR = async () => {
     const node = document.getElementById('strip');
@@ -231,23 +237,21 @@ const handleDownloadStrip = async () => {
     setStickers([]);
   };
 
-  // Update the handleUploadImage function to support multiple files
+  // Update the handleUploadImage function to handle previews properly
+
   const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
-    setUploadError(null); // Clear previous errors
-    
-    // Check if the number of files exceeds the layout count
-    if (files.length > layout - photos.length) {
-      setUploadError(`You can only upload ${layout - photos.length} more photo${layout - photos.length > 1 ? 's' : ''}. Please try again.`);
+
+    setUploadError(null);
+
+    if (files.length > layout - uploadPhotos.length) {
+      setUploadError(`You can only upload ${layout - uploadPhotos.length} more photo${layout - uploadPhotos.length > 1 ? 's' : ''}. Please try again.`);
       e.target.value = '';
       return;
     }
-    
-    // Convert FileList to Array
+
     const fileArr = Array.from(files);
-    
     const readers = fileArr.map(file => {
       return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -256,23 +260,16 @@ const handleDownloadStrip = async () => {
         reader.readAsDataURL(file);
       });
     });
-    
+
     Promise.all(readers).then(imgs => {
-      setPhotos(prev => {
-        // Take only as many photos as needed to reach the layout count
-        const combinedPhotos = [...prev, ...imgs];
-        const finalPhotos = combinedPhotos.slice(0, layout);
-        
-        // If we have all the photos we need, hide the camera
-        if (finalPhotos.length >= layout) {
-          setShowCamera(false);
-        }
-        
-        return finalPhotos;
+      setUploadPhotos(prev => {
+        const combined = [...prev, ...imgs].slice(0, layout);
+        setPhotos(combined); // agar proses selanjutnya tetap pakai photos
+        setShowCamera(false);
+        return combined;
       });
     });
-    
-    // Reset the input value to allow selecting the same files again if needed
+
     e.target.value = '';
   };
 
@@ -323,7 +320,7 @@ const handleDownloadStrip = async () => {
             color: '#d72688',
             fontSize: 40,
             fontWeight: 'bold',
-            marginBottom: 0, // dari 16 jadi 4 agar lebih dekat ke bawah
+            marginBottom: 0,
             letterSpacing: 1,
           }}
         >
@@ -331,22 +328,10 @@ const handleDownloadStrip = async () => {
         </h1>
         {photos.length < layout ? (
           <>
-            {photos.length > 0 && (
-              <div
-                style={{
-                  marginTop: 0,         // dari -1 jadi 0
-                  marginBottom: 2,
-                  fontSize: 18,
-                  fontWeight: 400,
-                  color: '#111',
-                  letterSpacing: 1,
-                }}
-              >
-                {`Photos taken: ${photos.length} / ${layout}`}
-              </div>
-            )}
-            {/* Tampilkan foto hasil upload/capture secara vertikal */}
-            {(!showCamera && photos.length > 0) && (
+            {/* Remove the photos taken counter that was here */}
+            
+            {/* Tampilkan foto hasil upload/capture secara vertikal - Always shown when photos exist */}
+            {uploadPhotos.length > 0 && (
               <div
                 style={{
                   display: 'flex',
@@ -354,44 +339,82 @@ const handleDownloadStrip = async () => {
                   gap: 12,
                   alignItems: 'center',
                   marginBottom: 18,
+                  width: '100%',
+                  maxWidth: 500,
                 }}
               >
-                {photos.map((src, idx) => (
-                  <img
-                    key={idx}
-                    src={src}
-                    alt={`uploaded-${idx}`}
-                    style={{
-                      width: 240,
-                      height: 180,
-                      objectFit: 'cover',
-                      borderRadius: 12,
-                      boxShadow: '0 2px 8px #fa75aa22',
-                      background: '#fff',
-                    }}
-                  />
-                ))}
+                <div style={{
+      display: 'flex',
+      justifyContent: 'flex-start',
+      width: '100%',
+      marginBottom: 8,
+      paddingLeft: isMobile ? 12 : 16,
+      paddingRight: isMobile ? 12 : 16,
+    }}>
+      <h3 style={{ 
+        margin: 0, 
+        color: '#d72688',
+        fontSize: 18,
+        fontWeight: 600,
+      }}>
+        Uploaded Photos
+      </h3>
+    </div>
+                <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      alignItems: 'center',
+      width: '100%',
+    }}>
+      {uploadPhotos.map((src, idx) => (
+        <div 
+          key={idx}
+          style={{
+            position: 'relative',
+            width: '100%',
+            maxWidth: 320,
+          }}
+        >
+          <img
+            src={src}
+            alt={`uploaded-${idx}`}
+            style={{
+              width: '100%',
+              height: 'auto',
+              aspectRatio: '4/3',
+              objectFit: 'cover',
+              borderRadius: 12,
+              boxShadow: '0 2px 8px #fa75aa22',
+              background: '#fff',
+            }}
+          />
+        </div>
+      ))}
+    </div>
               </div>
             )}
             {/* Tampilkan kamera hanya jika showCamera true */}
             {showCamera && (
-              <Camera
-                onCapture={handleCapture}
-                photosToTake={layout}
-                onStartCapture={handleStartCapture}
-                filter={filter}
-                frameColor={frameColor}
-              />
+              <div style={{ width: '100%', maxWidth: 640, margin: '0 auto' }}>
+                <Camera
+                  onCapture={handleCapture}
+                  photosToTake={layout}
+                  onStartCapture={handleStartCapture}
+                  filter={filter}
+                  frameColor={frameColor}
+                />
+              </div>
             )}
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column', // Always stack vertically for consistency
+                flexDirection: 'column', 
                 gap: '12px',
                 justifyContent: 'center',
                 marginTop: 16,
-                alignItems: 'stretch', // Full width for children
-                paddingLeft: isMobile ? 12 : 16, // Slightly smaller padding on mobile
+                alignItems: 'stretch',
+                paddingLeft: isMobile ? 12 : 16,
                 paddingRight: isMobile ? 12 : 16,
                 boxSizing: 'border-box',
                 width: '100%',
@@ -400,7 +423,7 @@ const handleDownloadStrip = async () => {
                 marginRight: 'auto',
               }}
             >
-              {/* Upload Image (Full Width at Top) */}
+              {/* Upload Image button - Always visible */}
               <label
                 htmlFor="upload-image"
                 style={{
@@ -411,7 +434,7 @@ const handleDownloadStrip = async () => {
                   cursor: 'pointer',
                   background: 'none',
                   border: 'none',
-                  height: isMobile ? 44 : 48, // Slightly smaller on mobile
+                  height: isMobile ? 44 : 48,
                   width: '100%',
                 }}
               >
@@ -423,7 +446,7 @@ const handleDownloadStrip = async () => {
                     borderRadius: 12,
                     border: '1px solid #fa75aa',
                     fontWeight: 500,
-                    fontSize: isMobile ? 14 : 15, // Slightly smaller font on mobile
+                    fontSize: isMobile ? 14 : 15,
                     cursor: 'pointer',
                     transition: 'background 0.2s',
                     height: isMobile ? 44 : 48,
@@ -445,13 +468,13 @@ const handleDownloadStrip = async () => {
                 />
               </label>
               
-              {/* Row Container for Pose and Filter (Always Side by Side) */}
+              {/* Row Container for Pose and Filter */}
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'row', // Always use row to keep controls side by side
+                  flexDirection: 'row',
                   justifyContent: 'space-between',
-                  gap: '8px', // Smaller gap for mobile
+                  gap: '8px',
                   width: '100%',
                 }}
               >
@@ -461,20 +484,20 @@ const handleDownloadStrip = async () => {
                     height: isMobile ? 44 : 48, 
                     display: 'flex', 
                     alignItems: 'center',
-                    flex: 1, // Equal flex to share available space
-                    width: '50%', // Always take half the width
+                    flex: 1,
+                    width: '50%',
                   }}
                 >
                   <select
                     value={layout}
                     onChange={e => handleLayoutChange(Number(e.target.value))}
                     style={{
-                      padding: isMobile ? '8px 4px' : '8px 16px', // Reduce padding on mobile
+                      padding: isMobile ? '8px 4px' : '8px 16px',
                       borderRadius: 12,
                       border: '1px solid #fa75aa',
                       color: '#d72688',
                       fontWeight: 500,
-                      fontSize: isMobile ? 13 : 15, // Smaller font on mobile
+                      fontSize: isMobile ? 13 : 15,
                       background: '#fff',
                       outline: 'none',
                       cursor: 'pointer',
@@ -482,7 +505,7 @@ const handleDownloadStrip = async () => {
                       width: '100%',
                       display: 'flex',
                       alignItems: 'center',
-                      textOverflow: 'ellipsis', // Handle text overflow
+                      textOverflow: 'ellipsis',
                     }}
                   >
                     <option value={2}>2 Pose</option>
@@ -495,10 +518,10 @@ const handleDownloadStrip = async () => {
                 <div 
                   style={{ 
                     height: isMobile ? 44 : 48, 
-                    flex: 1, // Equal flex to share available space
+                    flex: 1,
                     display: 'flex', 
                     alignItems: 'center',
-                    width: '50%', // Always take half the width
+                    width: '50%',
                   }}
                 >
                   <FilterSelector 
