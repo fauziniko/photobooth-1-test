@@ -651,58 +651,68 @@ export default function Home() {
                     const mmWidth = 297 - 25;
                     const mmHeight = 210 - 25;
 
-                    // Fallback jika win.document tidak bisa diakses
                     try {
                       win.document.write(`
-    <html>
-      <head>
-        <title>Print Photo Strip</title>
-        <style>
-          @media print {
-            @page {
-              size: A4 landscape;
-              margin: 12mm;
-            }
-            html, body {
-              width: 100%;
-              height: 100%;
-              margin: 0;
-              padding: 0;
-              background: #fff;
-              text-align: left !important;
-            }
-            img {
-              display: block;
-              margin: 0 !important;
-              width: ${mmWidth}mm !important;
-              height: ${mmHeight}mm !important;
-              max-width: none !important;
-              max-height: none !important;
-              object-fit: contain;
-            }
-          }
-          body {
-            margin: 0;
-            padding: 0;
-            background: #fff;
-            text-align: left !important;
-          }
-        </style>
-      </head>
-      <body>
-        <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;display:block;margin:0;" />
-        <script>
-          window.onload = function(){
-            try { window.print(); } catch(e){}
-          }
-        </script>
-      </body>
-    </html>
-  `);
-  win.document.close();
-} catch {
-  win.location.href = dataUrl;
-}
+        <html>
+          <head>
+            <title>Print Photo Strip</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1">
+            <style>
+              @media print {
+                @page {
+                  size: A4 landscape;
+                  margin: 12mm;
+                }
+                html, body {
+                  width: 100%;
+                  height: 100%;
+                  margin: 0;
+                  padding: 0;
+                  background: #fff;
+                  text-align: left !important;
+                }
+                img {
+                  display: block;
+                  margin: 0 !important;
+                  width: ${mmWidth}mm !important;
+                  height: ${mmHeight}mm !important;
+                  max-width: none !important;
+                  max-height: none !important;
+                  object-fit: contain;
+                }
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                background: #fff;
+                text-align: left !important;
+              }
+            </style>
+            <script>
+              // Untuk mobile Safari/iOS: paksa landscape sebelum print
+              window.onload = function() {
+                if (window.matchMedia && window.matchMedia("(orientation: portrait)").matches) {
+                  document.body.style.transform = "rotate(90deg)";
+                  document.body.style.transformOrigin = "left top";
+                  document.body.style.width = "100vh";
+                  document.body.style.height = "100vw";
+                  document.body.style.overflow = "hidden";
+                }
+                setTimeout(function() {
+                  try { window.print(); } catch(e){}
+                }, 300);
+              }
+            </script>
+          </head>
+          <body>
+            <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;display:block;margin:0;" />
+          </body>
+        </html>
+      `);
+      win.document.close();
+    } catch {
+      win.location.href = dataUrl;
+    }
   }}
   style={{ padding: '12px 24px', backgroundColor: '#1976d2', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
 >
