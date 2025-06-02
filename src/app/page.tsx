@@ -654,53 +654,49 @@ export default function Home() {
                     // Fallback jika win.document tidak bisa diakses
                     try {
                       win.document.write(`
-        <html>
-          <head>
-            <title>Print Photo Strip</title>
-            <style>
-              @media print {
-                @page { size: A4 landscape; margin: 8mm; }
-                body {
-                  margin: 0;
-                  padding: 0;
-                  background: #fff;
-                }
-                img {
-                  display: block;
-                  margin: 0 auto;
-                  width: ${mmWidth}mm !important;
-                  height: ${mmHeight}mm !important;
-                  max-width: none !important;
-                  max-height: none !important;
-                  object-fit: contain;
-                }
-              }
-              body {
-                text-align: center;
-                background: #fff;
-                margin: 0;
-                padding: 0;
-              }
-            </style>
-          </head>
-          <body>
-            <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;" />
-            <script>
-              window.onload = function(){
-                try { window.print(); } catch(e){}
-              }
-            </script>
-            <div style="margin-top:16px;font-size:16px;color:#d72688;">
-              If print dialog does not appear, please tap and hold the image above and choose "Print" or "Save Image".
-            </div>
-          </body>
-        </html>
-      `);
-      win.document.close();
-    } catch {
-      // Fallback: tampilkan gambar saja
-      win.location.href = dataUrl;
-    }
+    <html>
+      <head>
+        <title>Print Photo Strip</title>
+        <style>
+          @media print {
+            @page { size: A4 landscape; margin: 8mm; }
+            body {
+              margin: 0;
+              padding: 0;
+              background: #fff;
+            }
+            img {
+              display: block;
+              margin: 0 auto;
+              width: ${mmWidth}mm !important;
+              height: ${mmHeight}mm !important;
+              max-width: none !important;
+              max-height: none !important;
+              object-fit: contain;
+            }
+          }
+          body {
+            text-align: center;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+      </head>
+      <body>
+        <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;" />
+        <script>
+          window.onload = function(){
+            try { window.print(); } catch(e){}
+          }
+        </script>
+      </body>
+    </html>
+  `);
+  win.document.close();
+} catch {
+  win.location.href = dataUrl;
+}
   }}
   style={{ padding: '12px 24px', backgroundColor: '#1976d2', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
 >
