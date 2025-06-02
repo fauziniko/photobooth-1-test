@@ -33,22 +33,12 @@ export default function Home() {
   const [photoResultGifUrl, setPhotoResultGifUrl] = useState<string | undefined>(undefined);
   // Add state for error message
   const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const isMobile = typeof window !== 'undefined' && 
-  /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // Keep track of window width for responsive design
-  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 768);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    const userAgent = navigator.userAgent;
+    const mobileCheck = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    setIsMobile(mobileCheck);
   }, []);
 
   useEffect(() => {
@@ -455,37 +445,36 @@ const handleDownloadStrip = async () => {
                 />
               </label>
               
-              {/* Row Container for Pose and Filter (Side by Side) */}
+              {/* Row Container for Pose and Filter (Always Side by Side) */}
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: windowWidth < 768 ? 'column' : 'row', // Simplified: Always stack on mobile
+                  flexDirection: 'row', // Always use row to keep controls side by side
                   justifyContent: 'space-between',
-                  gap: windowWidth < 768 ? '8px' : '12px',
+                  gap: '8px', // Smaller gap for mobile
                   width: '100%',
                 }}
               >
                 {/* Layout Dropdown */}
                 <div 
                   style={{ 
-                    height: windowWidth < 768 ? 44 : 48, 
+                    height: isMobile ? 44 : 48, 
                     display: 'flex', 
                     alignItems: 'center',
-                    flex: windowWidth < 768 ? 'unset' : 1,
-                    width: windowWidth < 768 ? '100%' : 'auto',
-                    marginBottom: windowWidth < 768 ? 8 : 0,
+                    flex: 1, // Equal flex to share available space
+                    width: '50%', // Always take half the width
                   }}
                 >
                   <select
                     value={layout}
                     onChange={e => handleLayoutChange(Number(e.target.value))}
                     style={{
-                      padding: isMobile ? '8px 12px' : '8px 16px',
+                      padding: isMobile ? '8px 4px' : '8px 16px', // Reduce padding on mobile
                       borderRadius: 12,
                       border: '1px solid #fa75aa',
                       color: '#d72688',
                       fontWeight: 500,
-                      fontSize: isMobile ? 14 : 15,
+                      fontSize: isMobile ? 13 : 15, // Smaller font on mobile
                       background: '#fff',
                       outline: 'none',
                       cursor: 'pointer',
@@ -493,6 +482,7 @@ const handleDownloadStrip = async () => {
                       width: '100%',
                       display: 'flex',
                       alignItems: 'center',
+                      textOverflow: 'ellipsis', // Handle text overflow
                     }}
                   >
                     <option value={2}>2 Pose</option>
@@ -504,17 +494,17 @@ const handleDownloadStrip = async () => {
                 {/* Filter Dropdown */}
                 <div 
                   style={{ 
-                    height: windowWidth < 768 ? 44 : 48, 
-                    flex: windowWidth < 768 ? 'unset' : 1,
+                    height: isMobile ? 44 : 48, 
+                    flex: 1, // Equal flex to share available space
                     display: 'flex', 
                     alignItems: 'center',
-                    width: windowWidth < 768 ? '100%' : 'auto',
+                    width: '50%', // Always take half the width
                   }}
                 >
                   <FilterSelector 
                     value={filter} 
                     onSelect={setFilter} 
-                    isMobile={windowWidth < 768} 
+                    isMobile={isMobile} 
                   />
                 </div>
               </div>

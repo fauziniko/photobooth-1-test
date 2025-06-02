@@ -4,7 +4,6 @@ import { useRef, useEffect, useState } from 'react';
 interface Props {
   onCapture: (dataUrl: string) => void;
   photosToTake: number;
-  // Hapus countdown dari props
   onStartCapture?: () => void;
   filter?: string;
   frameColor?: string;
@@ -12,14 +11,27 @@ interface Props {
 
 export default function Camera({ onCapture, photosToTake, onStartCapture, filter, frameColor }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const [isMobile, setIsMobile] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
-  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>(isMobile ? 'user' : 'environment');
+  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
   const [isMirrored, setIsMirrored] = useState(true);
   const [countdown, setCountdown] = useState(3); // Default 3 detik
+
+  useEffect(() => {
+    const userAgent = navigator.userAgent;
+    const mobileCheck = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    setIsMobile(mobileCheck);
+    
+    // Set initial camera mode based on mobile detection
+    if (mobileCheck) {
+      setCameraMode('user');
+    } else {
+      setCameraMode('environment');
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.mediaDevices?.enumerateDevices) {
