@@ -648,8 +648,8 @@ export default function Home() {
                     const canvas = await html2canvas(node, { useCORS: true, backgroundColor: null });
                     node.classList.remove('hide-resize-handle');
                     const dataUrl = canvas.toDataURL('image/png');
-                    const mmWidth = 297 - 16;
-                    const mmHeight = 210 - 16;
+                    const mmWidth = 297 - 25;
+                    const mmHeight = 210 - 25;
 
                     // Fallback jika win.document tidak bisa diakses
                     try {
@@ -659,15 +659,21 @@ export default function Home() {
         <title>Print Photo Strip</title>
         <style>
           @media print {
-            @page { size: A4 landscape; margin: 8mm; }
-            body {
+            @page {
+              size: A4 landscape;
+              margin: 12mm;
+            }
+            html, body {
+              width: 100%;
+              height: 100%;
               margin: 0;
               padding: 0;
               background: #fff;
+              text-align: left !important;
             }
             img {
               display: block;
-              margin: 0 auto;
+              margin: 0 !important;
               width: ${mmWidth}mm !important;
               height: ${mmHeight}mm !important;
               max-width: none !important;
@@ -676,15 +682,15 @@ export default function Home() {
             }
           }
           body {
-            text-align: center;
-            background: #fff;
             margin: 0;
             padding: 0;
+            background: #fff;
+            text-align: left !important;
           }
         </style>
       </head>
       <body>
-        <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;" />
+        <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;display:block;margin:0;" />
         <script>
           window.onload = function(){
             try { window.print(); } catch(e){}
