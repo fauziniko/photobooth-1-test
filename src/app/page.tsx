@@ -633,60 +633,79 @@ export default function Home() {
                   onClick={async () => {
                     const node = document.getElementById('strip');
                     if (!node) return;
+                    // Buka window lebih awal, sebelum proses async!
+                    let win: Window | null = null;
+                    try {
+                      win = window.open('');
+                    } catch {
+                      win = null;
+                    }
+                    if (!win) {
+                      alert('Popup blocked! Please allow popups for this site to print.');
+                      return;
+                    }
                     node.classList.add('hide-resize-handle');
                     const canvas = await html2canvas(node, { useCORS: true, backgroundColor: null });
                     node.classList.remove('hide-resize-handle');
                     const dataUrl = canvas.toDataURL('image/png');
-                    const win = window.open('');
-                    if (win) {
-                      // Ukuran lebar & tinggi HVS A4 = 210mm (kotak)
-                      const mmWidth = 297 - 16; // 297mm A4 dikurangi 8mm kiri & 8mm kanan
-const mmHeight = 210 - 16; // 210mm A4 dikurangi 8mm atas & 8mm bawah
-win.document.write(`
-  <html>
-    <head>
-      <title>Print Photo Strip</title>
-      <style>
-        @media print {
-          @page { size: A4 landscape; margin: 8mm; }
-          body {
-            margin: 0;
-            padding: 0;
-            background: #fff;
-          }
-          img {
-            display: block;
-            margin: 0 auto;
-            width: ${mmWidth}mm !important;
-            height: ${mmHeight}mm !important;
-            max-width: none !important;
-            max-height: none !important;
-            object-fit: contain;
-          }
-        }
-        body {
-          text-align: center;
-          background: #fff;
-          margin: 0;
-          padding: 0;
-        }
-      </style>
-    </head>
-    <body>
-      <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;" />
-      <script>
-        window.onload = function(){window.print();}
-      </script>
-    </body>
-  </html>
-`);
-win.document.close();
-                    }
-                  }}
-                  style={{ padding: '12px 24px', backgroundColor: '#1976d2', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  Print
-                </button>
+                    const mmWidth = 297 - 16;
+                    const mmHeight = 210 - 16;
+
+                    // Fallback jika win.document tidak bisa diakses
+                    try {
+                      win.document.write(`
+        <html>
+          <head>
+            <title>Print Photo Strip</title>
+            <style>
+              @media print {
+                @page { size: A4 landscape; margin: 8mm; }
+                body {
+                  margin: 0;
+                  padding: 0;
+                  background: #fff;
+                }
+                img {
+                  display: block;
+                  margin: 0 auto;
+                  width: ${mmWidth}mm !important;
+                  height: ${mmHeight}mm !important;
+                  max-width: none !important;
+                  max-height: none !important;
+                  object-fit: contain;
+                }
+              }
+              body {
+                text-align: center;
+                background: #fff;
+                margin: 0;
+                padding: 0;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;" />
+            <script>
+              window.onload = function(){
+                try { window.print(); } catch(e){}
+              }
+            </script>
+            <div style="margin-top:16px;font-size:16px;color:#d72688;">
+              If print dialog does not appear, please tap and hold the image above and choose "Print" or "Save Image".
+            </div>
+          </body>
+        </html>
+      `);
+      win.document.close();
+    } catch {
+      // Fallback: tampilkan gambar saja
+      win.location.href = dataUrl;
+    }
+  }}
+  style={{ padding: '12px 24px', backgroundColor: '#1976d2', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
+>
+  Print
+</button>
               </div>
             </div>
             {/* Popup QR Code tetap di luar baru*/}
