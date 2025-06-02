@@ -620,20 +620,55 @@ export default function Home() {
               />
               {/* Tombol-tombol di bawah editor */}
               <div className="photo-editor-actions" style={{ marginTop: 24 }}>
-                <button onClick={() => setPhotos([])} style={{ padding: '12px 24px', backgroundColor: '#ff1744', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <button
+                  onClick={() => setPhotos([])}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#fa75aa',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
                   Retake
                 </button>
-                <button onClick={handleDownloadStrip} style={{ padding: '12px 24px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <button
+                  onClick={handleDownloadStrip}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#fa75aa',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
                   Download Strip
                 </button>
-                <button onClick={handleShowQR} style={{ padding: '12px 24px', backgroundColor: '#FFD600', color: '#222', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <button
+                  onClick={handleShowQR}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#fa75aa',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '24px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
                   QR Code
                 </button>
                 <button
                   onClick={async () => {
                     const node = document.getElementById('strip');
                     if (!node) return;
-                    // Buka window lebih awal, sebelum proses async!
                     let win: Window | null = null;
                     try {
                       win = window.open('');
@@ -650,64 +685,71 @@ export default function Home() {
                     const dataUrl = canvas.toDataURL('image/png');
                     const mmWidth = 297 - 25;
                     const mmHeight = 210 - 25;
-
-                    // Fallback jika win.document tidak bisa diakses
                     try {
                       win.document.write(`
-    <html>
-      <head>
-        <title>Print Photo Strip</title>
-        <style>
-          @media print {
-            @page {
-              size: A4 landscape;
-              margin: 12mm;
-            }
-            html, body {
-              width: 100%;
-              height: 100%;
-              margin: 0;
-              padding: 0;
-              background: #fff;
-              text-align: left !important;
-            }
-            img {
-              display: block;
-              margin: 0 !important;
-              width: ${mmWidth}mm !important;
-              height: ${mmHeight}mm !important;
-              max-width: none !important;
-              max-height: none !important;
-              object-fit: contain;
-            }
-          }
-          body {
-            margin: 0;
-            padding: 0;
-            background: #fff;
-            text-align: left !important;
-          }
-        </style>
-      </head>
-      <body>
-        <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;display:block;margin:0;" />
-        <script>
-          window.onload = function(){
-            try { window.print(); } catch(e){}
-          }
-        </script>
-      </body>
-    </html>
-  `);
-  win.document.close();
-} catch {
-  win.location.href = dataUrl;
-}
-  }}
-  style={{ padding: '12px 24px', backgroundColor: '#1976d2', color: '#fff', border: 'none', borderRadius: '24px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
->
-  Print
-</button>
+<html>
+  <head>
+    <title>Print Photo Strip</title>
+    <style>
+      @media print {
+        @page {
+          size: A4 landscape;
+          margin: 12mm;
+        }
+        html, body {
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          background: #fff;
+          text-align: left !important;
+        }
+        img {
+          display: block;
+          margin: 0 !important;
+          width: ${mmWidth}mm !important;
+          height: ${mmHeight}mm !important;
+          max-width: none !important;
+          max-height: none !important;
+          object-fit: contain;
+        }
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        text-align: left !important;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;display:block;margin:0;" />
+    <script>
+      window.onload = function(){
+        try { window.print(); } catch(e){}
+      }
+    </script>
+  </body>
+</html>
+`);
+        win.document.close();
+      } catch {
+        win.location.href = dataUrl;
+      }
+    }}
+    style={{
+      padding: '12px 24px',
+      backgroundColor: '#fa75aa',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '24px',
+      fontSize: '16px',
+      fontWeight: 'bold',
+      cursor: 'pointer'
+    }}
+  >
+    Print
+  </button>
               </div>
             </div>
             {/* Popup QR Code tetap di luar baru*/}
