@@ -35,6 +35,7 @@ export default function Home() {
   // Add state for error message
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isLoadingResult, setIsLoadingResult] = useState(false);
 
   useEffect(() => {
     const userAgent = navigator.userAgent;
@@ -83,90 +84,95 @@ export default function Home() {
     // Tidak mengubah uploadPhotos!
   };
 
+  // Ubah handleDownloadStrip agar ada loading popup
   const handleDownloadStrip = async () => {
-    const node = document.getElementById('strip');
-    if (!node) return;
+    setIsLoadingResult(true);
+    try {
+      const node = document.getElementById('strip');
+      if (!node) return;
 
-    // Apply filter ke setiap foto jika perlu
-    if (filter && filter !== 'none') {
-      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+      // Apply filter ke setiap foto jika perlu
+      if (filter && filter !== 'none') {
+        const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+        await Promise.all(
+          Array.from(imgEls).map(async (img, idx) => {
+            const filtered = await applyFilterToDataUrl(photos[idx], filter);
+            img.setAttribute('src', filtered);
+          })
+        );
+      }
+
+      // Tunggu semua gambar di dalam #strip selesai load
+      const images = Array.from(node.querySelectorAll('img'));
       await Promise.all(
-        Array.from(imgEls).map(async (img, idx) => {
-          const filtered = await applyFilterToDataUrl(photos[idx], filter);
-          img.setAttribute('src', filtered);
-        })
+        images.map(
+          img =>
+            img.complete
+              ? Promise.resolve()
+              : new Promise(resolve => {
+                  img.onload = img.onerror = resolve;
+                })
+        )
       );
-    }
 
-    // Tunggu semua gambar di dalam #strip selesai load
-    const images = Array.from(node.querySelectorAll('img'));
-    await Promise.all(
-      images.map(
-        img =>
-          img.complete
-            ? Promise.resolve()
-            : new Promise(resolve => {
-                img.onload = img.onerror = resolve;
-              })
-      )
-    );
-
-    node.classList.add('hide-resize-handle');
-    const canvas = await html2canvas(node, {
-      useCORS: true,
-      backgroundColor: null,
-    });
-    node.classList.remove('hide-resize-handle');
-    const dataUrl = canvas.toDataURL('image/png');
-
-    // Kembalikan src img ke original (agar preview tetap interaktif)
-    if (filter && filter !== 'none') {
-      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
-      imgEls.forEach((img, idx) => {
-        img.setAttribute('src', photos[idx]);
+      node.classList.add('hide-resize-handle');
+      const canvas = await html2canvas(node, {
+        useCORS: true,
+        backgroundColor: null,
       });
-    }
+      node.classList.remove('hide-resize-handle');
+      const dataUrl = canvas.toDataURL('image/png');
 
-    // Generate GIF otomatis
-    const GIF = (await import('gif.js')).default;
-    const firstImg = new window.Image();
-    firstImg.src = photos[0];
-    await new Promise(resolve => { firstImg.onload = resolve; });
-    const width = firstImg.naturalWidth;
-    const height = firstImg.naturalHeight;
-    const gif = new GIF({
-      workers: 2,
-      quality: 10,
-      width,
-      height,
-      workerScript: '/gif.worker.js',
-    });
-    for (let i = 0; i < photos.length; i++) {
-      const img = new window.Image();
-      img.src = photos[i];
-      await new Promise(resolve => { img.onload = resolve; });
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) continue;
-      ctx.fillStyle = frameColor;
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      gif.addFrame(canvas, { delay: 800 });
-    }
-    const gifUrl: string = await new Promise(resolve => {
-      gif.on('finished', function(blob: Blob) {
-        const url = URL.createObjectURL(blob);
-        resolve(url);
+      // Kembalikan src img ke original (agar preview tetap interaktif)
+      if (filter && filter !== 'none') {
+        const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+        imgEls.forEach((img, idx) => {
+          img.setAttribute('src', photos[idx]);
+        });
+      }
+
+      // Generate GIF otomatis
+      const GIF = (await import('gif.js')).default;
+      const firstImg = new window.Image();
+      firstImg.src = photos[0];
+      await new Promise(resolve => { firstImg.onload = resolve; });
+      const width = firstImg.naturalWidth;
+      const height = firstImg.naturalHeight;
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width,
+        height,
+        workerScript: '/gif.worker.js',
       });
-      gif.render();
-    });
+      for (let i = 0; i < photos.length; i++) {
+        const img = new window.Image();
+        img.src = photos[i];
+        await new Promise(resolve => { img.onload = resolve; });
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) continue;
+        ctx.fillStyle = frameColor;
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        gif.addFrame(canvas, { delay: 800 });
+      }
+      const gifUrl = await new Promise<string>(resolve => {
+        gif.on('finished', function(blob: Blob) {
+          const url = URL.createObjectURL(blob);
+          resolve(url);
+        });
+        gif.render();
+      });
 
-    // Tampilkan popup PhotoResult dengan GIF
-    setPhotoResultData(dataUrl);
-    setPhotoResultGifUrl(gifUrl);
-    setShowPhotoResult(true);
+      setPhotoResultData(dataUrl);
+      setPhotoResultGifUrl(gifUrl);
+      setShowPhotoResult(true);
+    } finally {
+      setIsLoadingResult(false);
+    }
   };
 
   const handleShowQR = async () => {
@@ -872,6 +878,50 @@ export default function Home() {
           </span>
         </div>
       </footer>
+      {isLoadingResult && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.35)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              padding: 32,
+              borderRadius: 16,
+              boxShadow: '0 4px 24px #fa75aa22',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              minWidth: 220
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                border: '4px solid #fa75aa',
+                borderTop: '4px solid #fff',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: 18
+              }}
+            />
+            <div style={{ color: '#d72688', fontWeight: 600, fontSize: 18 }}>
+              Generating photo result...
+            </div>
+            <style>
+              {`@keyframes spin { 100% { transform: rotate(360deg); } }`}
+            </style>
+          </div>
+        </div>
+      )}
     </>
   );
 }
