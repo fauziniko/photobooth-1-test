@@ -211,79 +211,6 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                     Photo Gallery
                 </h2>
 
-                {/* Navigation arrows for desktop */}
-                {items.length > 1 && (
-                    <>
-                        <button
-                            onClick={goToPrevious}
-                            style={{
-                                position: 'absolute',
-                                left: '16px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '50%',
-                                border: '2px solid #fa75aa',
-                                background: 'rgba(255, 255, 255, 0.9)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 2,
-                                transition: 'all 0.2s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#fa75aa';
-                                e.currentTarget.style.color = '#fff';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-                                e.currentTarget.style.color = '#fa75aa';
-                            }}
-                            title="Previous (←)"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                        </button>
-
-                        <button
-                            onClick={goToNext}
-                            style={{
-                                position: 'absolute',
-                                right: '16px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '50%',
-                                border: '2px solid #fa75aa',
-                                background: 'rgba(255, 255, 255, 0.9)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 2,
-                                transition: 'all 0.2s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#fa75aa';
-                                e.currentTarget.style.color = '#fff';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-                                e.currentTarget.style.color = '#fa75aa';
-                            }}
-                            title="Next (→)"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                        </button>
-                    </>
-                )}
-
                 {/* Main image display area */}
                 <div
                     ref={imageRef}
@@ -380,12 +307,15 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                             display: 'flex',
                             gap: '12px',
                             overflowX: 'auto',
-                            overflowY: 'hidden', // Hanya scroll horizontal
-                            padding: '10px 0',
+                            overflowY: 'hidden',
+                            padding: '10px 0 14px 0', // padding bawah diperbesar
                             maxWidth: '100%',
-                            scrollbarWidth: 'none', // Firefox
-                            msOverflowStyle: 'none', // IE/Edge
-                            WebkitOverflowScrolling: 'touch', // Smooth scroll on iOS
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            WebkitOverflowScrolling: 'touch',
+                            alignItems: 'center', // pastikan thumbnail selalu center
+                            minHeight: 64, // pastikan cukup untuk thumb+padding
+                            boxSizing: 'border-box',
                         }}
                         className="photoresult-thumbnails"
                     >
@@ -477,8 +407,8 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                         download={getDownloadName()}
                         style={{
                             padding: '12px 24px',
-                            background: '#fae0ef',
-                            color: '#d72688',
+                            background: '#fa75aaFF', // Ubah warna utama di sini
+                            color: '#fff',
                             borderRadius: '8px',
                             fontWeight: 600,
                             fontSize: '16px',
@@ -495,8 +425,8 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                             e.currentTarget.style.color = '#fff';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#fae0ef';
-                            e.currentTarget.style.color = '#d72688';
+                            e.currentTarget.style.background = '#fa75aaFF';
+                            e.currentTarget.style.color = '#fff';
                         }}
                     >
                         Download
