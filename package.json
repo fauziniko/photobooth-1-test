@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "browser": "^0.2.6",
+    "framer-motion": "^12.16.0",
     "gif.js": "^0.2.0",
     "html2canvas": "^1.4.1",
     "minio": "^8.0.5",

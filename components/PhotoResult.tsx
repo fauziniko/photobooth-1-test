@@ -380,10 +380,12 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                             display: 'flex',
                             gap: '12px',
                             overflowX: 'auto',
+                            overflowY: 'hidden', // Hanya scroll horizontal
                             padding: '10px 0',
                             maxWidth: '100%',
                             scrollbarWidth: 'none', // Firefox
                             msOverflowStyle: 'none', // IE/Edge
+                            WebkitOverflowScrolling: 'touch', // Smooth scroll on iOS
                         }}
                         className="photoresult-thumbnails"
                     >
@@ -394,7 +396,6 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                                 item.src.length > 100000;
                             const isActive = idx === current;
 
-                            // Thumbnail size diperbesar
                             const thumbSize = 56;
 
                             return (

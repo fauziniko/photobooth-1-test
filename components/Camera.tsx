@@ -17,7 +17,6 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
-  const [isMirrored, setIsMirrored] = useState(true);
   const [countdown, setCountdown] = useState(3); // Default 3 detik
 
   useEffect(() => {
@@ -109,15 +108,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
       if (filter && filter !== 'none') {
         ctx.filter = filter; // Terapkan filter ke canvas context
       }
-      if (isMirrored) {
-        ctx.save();
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-        ctx.restore();
-      } else {
-        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-      }
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
       onCapture(canvas.toDataURL('image/png'));
       // Delay antar foto
@@ -203,31 +194,6 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             ))}
           </select>
         )}
-        {/* Mirror button with consistent styling */}
-        <button
-          type="button"
-          onClick={() => setIsMirrored(m => !m)}
-          title={isMirrored ? 'Nonaktifkan Mirroring' : 'Aktifkan Mirroring'}
-          style={{
-            background: isMirrored ? '#fa75aa' : '#eee',
-            color: isMirrored ? 'white' : '#333',
-            border: 'none',
-            borderRadius: '50%',
-            width: 36,
-            height: 36,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            cursor: 'pointer',
-            boxShadow: isMirrored ? '0 2px 8px #fa75aa55' : 'none',
-            transition: 'all 0.2s',
-            margin: '0 4px',
-            flex: '0 0 auto'
-          }}
-        >
-          🔄
-        </button>
         {/* Countdown selector with consistent styling */}
         <select
           value={countdown}
@@ -279,7 +245,6 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             height: '100%',
             objectFit: 'cover',
             borderRadius: 8,
-            transform: isMirrored ? 'scaleX(-1)' : undefined,
             background: 'transparent',
             filter: filter,
           }}
