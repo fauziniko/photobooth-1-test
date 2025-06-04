@@ -203,31 +203,6 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             ))}
           </select>
         )}
-        {/* Mirror button with consistent styling */}
-        <button
-          type="button"
-          onClick={() => setIsMirrored(m => !m)}
-          title={isMirrored ? 'Nonaktifkan Mirroring' : 'Aktifkan Mirroring'}
-          style={{
-            background: isMirrored ? '#fa75aa' : '#eee',
-            color: isMirrored ? 'white' : '#333',
-            border: 'none',
-            borderRadius: '50%',
-            width: 36,
-            height: 36,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            cursor: 'pointer',
-            boxShadow: isMirrored ? '0 2px 8px #fa75aa55' : 'none',
-            transition: 'all 0.2s',
-            margin: '0 4px',
-            flex: '0 0 auto'
-          }}
-        >
-          🔄
-        </button>
         {/* Countdown selector with consistent styling */}
         <select
           value={countdown}
