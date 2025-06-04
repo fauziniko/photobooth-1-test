@@ -48,11 +48,28 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
 
     let constraints: MediaStreamConstraints;
     if (isMobile) {
-      constraints = { video: { facingMode: cameraMode } };
+      constraints = {
+        video: {
+          facingMode: cameraMode,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      };
     } else if (selectedDeviceId) {
-      constraints = { video: { deviceId: { exact: selectedDeviceId } } };
+      constraints = {
+        video: {
+          deviceId: { exact: selectedDeviceId },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      };
     } else {
-      constraints = { video: true };
+      constraints = {
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      };
     }
 
     navigator.mediaDevices.getUserMedia(constraints)
@@ -102,11 +119,11 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
       }
 
       const canvas = document.createElement('canvas');
-      canvas.width = 640;
-      canvas.height = 480;
+      canvas.width = 1920;
+      canvas.height = 1080;
       const ctx = canvas.getContext('2d')!;
       if (filter && filter !== 'none') {
-        ctx.filter = filter; // Terapkan filter ke canvas context
+        ctx.filter = filter;
       }
       ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
@@ -247,6 +264,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             borderRadius: 8,
             background: 'transparent',
             filter: filter,
+            transform: 'scaleX(1)', // Pastikan tidak mirror di semua mode kamera
           }}
         />
         {count !== null && (
