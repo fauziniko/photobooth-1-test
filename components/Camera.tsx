@@ -17,6 +17,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
+  const [isMirrored] = useState(true);
   const [countdown, setCountdown] = useState(3); // Default 3 detik
 
   useEffect(() => {
@@ -64,12 +65,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
         }
       };
     } else {
-      constraints = {
-        video: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        }
-      };
+      constraints = { video: true };
     }
 
     navigator.mediaDevices.getUserMedia(constraints)
@@ -119,13 +115,21 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
       }
 
       const canvas = document.createElement('canvas');
-      canvas.width = 1920;
-      canvas.height = 1080;
+      canvas.width = 640;
+      canvas.height = 480;
       const ctx = canvas.getContext('2d')!;
       if (filter && filter !== 'none') {
-        ctx.filter = filter;
+        ctx.filter = filter; // Terapkan filter ke canvas context
       }
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      if (isMirrored) {
+        ctx.save();
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      } else {
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      }
 
       onCapture(canvas.toDataURL('image/png'));
       // Delay antar foto
@@ -211,6 +215,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             ))}
           </select>
         )}
+        
         {/* Countdown selector with consistent styling */}
         <select
           value={countdown}
@@ -262,9 +267,9 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
             height: '100%',
             objectFit: 'cover',
             borderRadius: 8,
+            transform: isMirrored ? 'scaleX(-1)' : undefined,
             background: 'transparent',
             filter: filter,
-            transform: 'scaleX(1)', // Pastikan tidak mirror di semua mode kamera
           }}
         />
         {count !== null && (
