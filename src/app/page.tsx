@@ -176,23 +176,28 @@ export default function Home() {
   };
 
   const handleShowQR = async () => {
-    const node = document.getElementById('strip');
-    if (!node) return;
-    node.classList.add('hide-resize-handle');
-    const canvas = await html2canvas(node);
-    node.classList.remove('hide-resize-handle');
-    const dataUrl = canvas.toDataURL('image/png');
+    setIsLoadingResult(true); // Tampilkan loading
+    try {
+      const node = document.getElementById('strip');
+      if (!node) return;
+      node.classList.add('hide-resize-handle');
+      const canvas = await html2canvas(node);
+      node.classList.remove('hide-resize-handle');
+      const dataUrl = canvas.toDataURL('image/png');
 
-    // Upload ke API
-    const res = await fetch('/api/upload-strip', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: dataUrl }),
-    });
-    const { url } = await res.json();
+      // Upload ke API
+      const res = await fetch('/api/upload-strip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: dataUrl }),
+      });
+      const { url } = await res.json();
 
-    setQrData(url);
-    setShowQR(true);
+      setQrData(url);
+      setShowQR(true);
+    } finally {
+      setIsLoadingResult(false); // Sembunyikan loading setelah selesai
+    }
   };
 
   const handleCloseQR = () => {
@@ -883,11 +888,11 @@ export default function Home() {
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.35)',
-            zIndex: 99999,
+            background: 'rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            zIndex: 2000,
           }}
         >
           <div
@@ -895,30 +900,16 @@ export default function Home() {
               background: '#fff',
               padding: 32,
               borderRadius: 16,
-              boxShadow: '0 4px 24px #fa75aa22',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              minWidth: 220
+              gap: 16,
+              minWidth: 320,
             }}
           >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                border: '4px solid #fa75aa',
-                borderTop: '4px solid #fff',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                marginBottom: 18
-              }}
-            />
-            <div style={{ color: '#d72688', fontWeight: 600, fontSize: 18 }}>
-              Generating photo result...
-            </div>
-            <style>
-              {`@keyframes spin { 100% { transform: rotate(360deg); } }`}
-            </style>
+            <span style={{ color: '#d72688', fontWeight: 600, fontSize: 18 }}>Processing...</span>
+            {/* Bisa tambahkan spinner di sini */}
           </div>
         </div>
       )}
