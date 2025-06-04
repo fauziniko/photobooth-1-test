@@ -49,24 +49,28 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
     if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
 
     let constraints: MediaStreamConstraints;
+    // Gunakan resolusi ideal sangat tinggi, browser akan fallback ke tertinggi yang didukung device
+    const bestQuality = {
+      width: { ideal: 4096 },
+      height: { ideal: 4096 }
+    };
+
     if (isMobile) {
       constraints = {
         video: {
           facingMode: cameraMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          ...bestQuality
         }
       };
     } else if (selectedDeviceId) {
       constraints = {
         video: {
           deviceId: { exact: selectedDeviceId },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          ...bestQuality
         }
       };
     } else {
-      constraints = { video: true };
+      constraints = { video: bestQuality };
     }
 
     navigator.mediaDevices.getUserMedia(constraints)
