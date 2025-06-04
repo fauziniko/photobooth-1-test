@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useEffect, useState } from 'react';
+import { FaRegClone } from 'react-icons/fa'; // atau icon lain sesuai kebutuhan
 
 interface Props {
   onCapture: (dataUrl: string) => void;
@@ -17,7 +18,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
-  const [isMirrored] = useState(true);
+  const [isMirrored, setIsMirrored] = useState(true); // ubah dari const [isMirrored] = useState(true);
   const [countdown, setCountdown] = useState(3); // Default 3 detik
 
   useEffect(() => {
@@ -161,59 +162,102 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
         padding: '0 8px'
       }}>
         {isMobile ? (
-          <select
-            value={cameraMode}
-            onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 12,
-              border: '1px solid #fa75aa',
-              color: '#d72688',
-              fontWeight: 500,
-              fontSize: 14,
-              background: '#fff',
-              outline: 'none',
-              cursor: 'pointer',
-              flex: '1 1 auto',
-              minWidth: '110px',
-              maxWidth: '150px',
-              marginBottom: '4px'
-            }}
-          >
-            <option value="environment">Back Camera</option>
-            <option value="user">Front Camera</option>
-          </select>
+          <>
+            <select
+              value={cameraMode}
+              onChange={e => setCameraMode(e.target.value as 'user' | 'environment')}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 12,
+                border: '1px solid #fa75aa',
+                color: '#d72688',
+                fontWeight: 500,
+                fontSize: 14,
+                background: '#fff',
+                outline: 'none',
+                cursor: 'pointer',
+                flex: '1 1 auto',
+                minWidth: '110px',
+                maxWidth: '150px',
+                marginBottom: '4px'
+              }}
+            >
+              <option value="environment">Back Camera</option>
+              <option value="user">Front Camera</option>
+            </select>
+            {/* Icon mirror toggle */}
+            <button
+              type="button"
+              onClick={() => setIsMirrored(m => !m)}
+              style={{
+                background: isMirrored ? '#fa75aa' : '#eee',
+                color: isMirrored ? '#fff' : '#d72688',
+                border: 'none',
+                borderRadius: 8,
+                padding: 8,
+                marginLeft: 4,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                height: 36
+              }}
+              title={isMirrored ? 'Mirrored (Click to unmirror)' : 'Not mirrored (Click to mirror)'}
+            >
+              <FaRegClone style={{ transform: isMirrored ? 'scaleX(-1)' : undefined }} />
+            </button>
+          </>
         ) : (
-          // Desktop camera selector with similar styling
-          <select
-            value={selectedDeviceId}
-            onChange={handleDeviceChange}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 12,
-              border: '1px solid #fa75aa',
-              color: '#d72688',
-              fontWeight: 500,
-              fontSize: 14,
-              background: '#fff',
-              outline: 'none',
-              cursor: 'pointer',
-              flex: '1 1 auto',
-              minWidth: '110px',
-              maxWidth: '180px',
-              marginBottom: '4px'
-            }}
-          >
-            {devices.map(device => (
-              <option
-                value={device.deviceId}
-                key={device.deviceId}
-                style={{ color: '#d72688', background: '#fff' }}
-              >
-                {device.label || `Kamera ${device.deviceId.slice(-4)}`}
-              </option>
-            ))}
-          </select>
+          <>
+            <select
+              value={selectedDeviceId}
+              onChange={handleDeviceChange}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 12,
+                border: '1px solid #fa75aa',
+                color: '#d72688',
+                fontWeight: 500,
+                fontSize: 14,
+                background: '#fff',
+                outline: 'none',
+                cursor: 'pointer',
+                flex: '1 1 auto',
+                minWidth: '110px',
+                maxWidth: '180px',
+                marginBottom: '4px'
+              }}
+            >
+              {devices.map(device => (
+                <option
+                  value={device.deviceId}
+                  key={device.deviceId}
+                  style={{ color: '#d72688', background: '#fff' }}
+                >
+                  {device.label || `Kamera ${device.deviceId.slice(-4)}`}
+                </option>
+              ))}
+            </select>
+            {/* Icon mirror toggle */}
+            <button
+              type="button"
+              onClick={() => setIsMirrored(m => !m)}
+              style={{
+                background: isMirrored ? '#fa75aa' : '#eee',
+                color: isMirrored ? '#fff' : '#d72688',
+                border: 'none',
+                borderRadius: 8,
+                padding: 8,
+                marginLeft: 4,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                height: 36
+              }}
+              title={isMirrored ? 'Mirrored (Click to unmirror)' : 'Not mirrored (Click to mirror)'}
+            >
+              <FaRegClone style={{ transform: isMirrored ? 'scaleX(-1)' : undefined }} />
+            </button>
+          </>
         )}
         
         {/* Countdown selector with consistent styling */}
