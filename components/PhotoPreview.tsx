@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Image from 'next/image';
 
 interface Sticker {
   src: string;
@@ -242,36 +243,24 @@ export default function PhotoPreview({
       >
         {/* Frame template di belakang */}
         {selectedFrameTemplate !== 'none' && (
-          <img
-            src={selectedTemplate?.src}
+          <Image
+            src={selectedTemplate?.src || ''}
             alt="Frame Template"
+            fill
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
               objectFit: 'cover',
-              zIndex: 0,
-              pointerEvents: 'none',
+              zIndex: 1,
             }}
           />
-        )}
-
-        {/* Sticker PNG di atas foto dan frame */}
+        )}                {/* Sticker PNG di atas foto dan frame */}
         {stickerUrl && (
-          <img
+          <Image
             src={stickerUrl}
             alt="Sticker"
+            fill
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
+              objectFit: 'cover',
               zIndex: 2,
-              pointerEvents: 'none',
             }}
           />
         )}
@@ -290,13 +279,13 @@ export default function PhotoPreview({
         >
           {photos.map((src, i) => (
             <div key={i} style={{ position: 'relative', width: 240, height: 180, margin: '0 auto' }}>
-              <img
+              <Image
                 src={src}
                 alt={`photo-${i}`}
+                width={240}
+                height={180}
                 style={{
                   filter,
-                  width: 240,
-                  height: 180,
                   objectFit: 'cover',
                   borderRadius: photoBorderRadius,
                   display: 'block',
@@ -476,15 +465,15 @@ export default function PhotoPreview({
               </div>
             </div>
             {/* --- STICKER IMAGE --- */}
-            <img
+            <Image
               src={sticker.src}
               alt=""
+              width={sticker.size}
+              height={sticker.size}
               style={{
                 position: 'absolute',
                 left: sticker.x,
                 top: sticker.y,
-                width: sticker.size,
-                height: sticker.size,
                 cursor: dragIdx === idx ? 'grabbing' : 'move',
                 zIndex: 10,
                 userSelect: 'none',

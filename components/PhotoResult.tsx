@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 
 interface PhotoResultProps {
     photos: string[];
@@ -25,13 +26,13 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
     const minSwipeDistance = 50;
 
     // Navigation functions
-    const goToPrevious = () => {
+    const goToPrevious = useCallback(() => {
         setCurrent(prev => prev > 0 ? prev - 1 : items.length - 1);
-    };
+    }, [items.length]);
 
-    const goToNext = () => {
+    const goToNext = useCallback(() => {
         setCurrent(prev => prev < items.length - 1 ? prev + 1 : 0);
-    };
+    }, [items.length]);
 
     // Touch event handlers
     const onTouchStart = (e: React.TouchEvent) => {
@@ -88,7 +89,7 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
+    }, [onClose, goToNext, goToPrevious]);
 
     // Share handler
     const handleShare = async () => {
@@ -305,12 +306,11 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                     onMouseDown={onMouseDown}
                 >
                     {items[current].type === 'gif' ? (
-                        <img
+                        <Image
                             src={items[current].src}
                             alt="GIF"
+                            fill
                             style={{
-                                maxWidth: '100%',
-                                maxHeight: '100%',
                                 objectFit: 'contain',
                                 borderRadius: '8px',
                                 userSelect: 'none',
@@ -318,12 +318,11 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                             }}
                         />
                     ) : (
-                        <img
+                        <Image
                             src={items[current].src}
                             alt={items[current].type === 'frame' ? 'Photo Strip' : `Photo ${current + 1}`}
+                            fill
                             style={{
-                                maxWidth: '100%',
-                                maxHeight: '100%',
                                 objectFit: 'contain',
                                 borderRadius: '8px',
                                 userSelect: 'none',
@@ -427,12 +426,12 @@ export default function PhotoResult({ photos, frames = [], gifUrl, onClose }: Ph
                                                 : 'Photo'
                                     }
                                 >
-                                    <img
+                                    <Image
                                         src={item.src}
                                         alt={item.type === 'gif' ? 'GIF' : item.type}
+                                        width={thumbSize}
+                                        height={thumbSize}
                                         style={{
-                                            width: thumbSize,
-                                            height: thumbSize,
                                             objectFit: 'cover',
                                             borderRadius: '8px',
                                             display: 'block',
