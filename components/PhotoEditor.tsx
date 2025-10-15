@@ -25,7 +25,8 @@ export default function PhotoEditor({
   frameTemplates,
   selectedFrameTemplate,
   onSelectFrameTemplate,
-  onShowUploadModal, 
+  onShowUploadModal,
+  userRole,
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -44,7 +45,8 @@ export default function PhotoEditor({
   frameTemplates: { name: string; label: string; src?: string }[];
   selectedFrameTemplate: string;
   onSelectFrameTemplate: (template: string) => void;
-  onShowUploadModal: () => void; 
+  onShowUploadModal: () => void;
+  userRole?: string;
 }) {
   // Ubah 'filter' menjadi 'frame' agar tab default adalah Frame
   const [activeTab, setActiveTab] = useState('frame');
@@ -656,22 +658,24 @@ export default function PhotoEditor({
 
         {activeTab === 'frame' && (
           <div>
-            {/* Pindahkan tombol upload ke atas */}
-            <button
-              style={{
-                background: '#fa75aa',
-                color: '#fff',
-                borderRadius: 8,
-                padding: '8px 18px',
-                fontWeight: 600,
-                marginBottom: 16,
-                border: 'none',
-                cursor: 'pointer',
-              }}
-              onClick={() => onShowUploadModal()}
-            >
-              Upload Template
-            </button>
+            {/* Only show Upload Template button for ADMIN users */}
+            {userRole === 'ADMIN' && (
+              <button
+                style={{
+                  background: '#fa75aa',
+                  color: '#fff',
+                  borderRadius: 8,
+                  padding: '8px 18px',
+                  fontWeight: 600,
+                  marginBottom: 16,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                onClick={() => onShowUploadModal()}
+              >
+                Upload Template
+              </button>
+            )}
 
             <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Template</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
@@ -695,6 +699,7 @@ export default function PhotoEditor({
                   title={template.label}
                 >
                   {template.src ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={template.src} alt={template.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <span style={{ color: '#d72688', fontSize: 12 }}>{template.label}</span>
@@ -707,26 +712,28 @@ export default function PhotoEditor({
 
         {activeTab === 'sticker' && (
           <div>
-            {/* Upload Sticker - hapus label "Upload PNG Sticker" */}
-            <div style={{ marginBottom: 16 }}>
-              <button
-                style={{
-                  background: '#fa75aa',
-                  color: '#fff',
-                  borderRadius: 8,
-                  padding: '8px 18px',
-                  fontWeight: 600,
-                  marginBottom: 8,
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-                onClick={() => setShowStickerUploadModal(true)}
-              >
-                Upload Sticker
-              </button>
-              {uploading && <span style={{ color: '#fa75aa', marginLeft: 8 }}>Uploading...</span>}
-              {uploadError && <span style={{ color: 'red', marginLeft: 8 }}>{uploadError}</span>}
-            </div>
+            {/* Only show Upload Sticker button for ADMIN users */}
+            {userRole === 'ADMIN' && (
+              <div style={{ marginBottom: 16 }}>
+                <button
+                  style={{
+                    background: '#fa75aa',
+                    color: '#fff',
+                    borderRadius: 8,
+                    padding: '8px 18px',
+                    fontWeight: 600,
+                    marginBottom: 8,
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setShowStickerUploadModal(true)}
+                >
+                  Upload Sticker
+                </button>
+                {uploading && <span style={{ color: '#fa75aa', marginLeft: 8 }}>Uploading...</span>}
+                {uploadError && <span style={{ color: 'red', marginLeft: 8 }}>{uploadError}</span>}
+              </div>
+            )}
             {/* Modal Upload Sticker dipindah ke luar return utama */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontWeight: 600, color: '#d72688', marginRight: 12 }}>Choose Sticker</div>
@@ -768,6 +775,7 @@ export default function PhotoEditor({
                   }}
                   onClick={() => onAddSticker(sticker.src)}
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={sticker.src}
                     alt={sticker.label}

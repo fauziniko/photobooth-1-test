@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Client } from 'minio';
+import { auth } from '@/lib/auth';
 
 const minioClient = new Client({
   endPoint: process.env.MINIO_ENDPOINT,
@@ -13,6 +14,16 @@ const BUCKET = process.env.MINIO_BUCKET;
 const STICKER_FOLDER = 'sticker/';
 
 export async function POST(req) {
+  // Check if user is admin
+  const session = await auth();
+  
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json(
+      { error: 'Unauthorized. Admin access required.' }, 
+      { status: 403 }
+    );
+  }
+
   const formData = await req.formData();
   const file = formData.get('file');
   if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });

@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useEffect, useState } from 'react';
-import { FaRegClone } from 'react-icons/fa'; // atau icon lain sesuai kebutuhan
+import { Copy } from 'lucide-react';
 
 interface Props {
   onCapture: (dataUrl: string) => void;
@@ -8,9 +8,19 @@ interface Props {
   onStartCapture?: () => void;
   filter?: string;
   frameColor?: string;
+  liveMode?: boolean;
+  onToggleLiveMode?: () => void;
 }
 
-export default function Camera({ onCapture, photosToTake, onStartCapture, filter, frameColor }: Props) {
+export default function Camera({ 
+  onCapture, 
+  photosToTake, 
+  onStartCapture, 
+  filter, 
+  frameColor,
+  liveMode = true,
+  onToggleLiveMode
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -18,7 +28,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
-  const [isMirrored, setIsMirrored] = useState(true); // ubah dari const [isMirrored] = useState(true);
+  const [isMirrored, setIsMirrored] = useState(true);
   const [countdown, setCountdown] = useState(3); // Default 3 detik
 
   useEffect(() => {
@@ -80,7 +90,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
       .catch(err => {
         alert('Cannot access camera: ' + err.name + ' - ' + err.message);
       });
-  }, [selectedDeviceId, cameraMode]);
+  }, [selectedDeviceId, cameraMode, isMobile]);
 
   const handleDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedDeviceId(e.target.value);
@@ -154,6 +164,53 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
       maxWidth: '640px',
       margin: '0 auto'
     }}>
+      {/* Live Mode Toggle - Add this above camera controls */}
+      {onToggleLiveMode && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 16px',
+          background: '#f9fafb',
+          borderRadius: 12,
+          border: '1px solid #e5e7eb'
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: '#6b7280' }}>Live Mode</span>
+          <label style={{ position: 'relative', display: 'inline-block', width: 48, height: 24, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={liveMode}
+              onChange={onToggleLiveMode}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: liveMode ? '#a78bfa' : '#d1d5db',
+              borderRadius: 24,
+              transition: 'all 0.3s'
+            }}>
+              <span style={{
+                position: 'absolute',
+                left: liveMode ? 26 : 2,
+                top: 2,
+                width: 20,
+                height: 20,
+                background: 'white',
+                borderRadius: '50%',
+                transition: 'all 0.3s'
+              }} />
+            </span>
+          </label>
+          <span style={{ fontSize: 14, fontWeight: 600, color: liveMode ? '#7c3aed' : '#9ca3af' }}>
+            {liveMode ? 'ON' : 'OFF'}
+          </span>
+        </div>
+      )}
+      
       {/* Select Camera & Mirror di atas live foto - Make this responsive */}
       <div style={{ 
         marginBottom: 12, 
@@ -207,7 +264,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
               }}
               title={isMirrored ? 'Mirrored (Click to unmirror)' : 'Not mirrored (Click to mirror)'}
             >
-              <FaRegClone style={{ transform: isMirrored ? 'scaleX(-1)' : undefined }} />
+              <Copy style={{ transform: isMirrored ? 'scaleX(-1)' : undefined }} size={16} />
             </button>
           </>
         ) : (
@@ -259,7 +316,7 @@ export default function Camera({ onCapture, photosToTake, onStartCapture, filter
               }}
               title={isMirrored ? 'Mirrored (Click to unmirror)' : 'Not mirrored (Click to mirror)'}
             >
-              <FaRegClone style={{ transform: isMirrored ? 'scaleX(-1)' : undefined }} />
+              <Copy style={{ transform: isMirrored ? 'scaleX(-1)' : undefined }} size={16} />
             </button>
           </>
         )}
