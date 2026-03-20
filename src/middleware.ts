@@ -43,12 +43,36 @@ export async function middleware(request: NextRequest) {
     // Any registered user can upload, not just ADMIN
   }
 
+  // Gallery listing page is protected, but shared detail links are public.
+  if (pathname === '/photo/gallery' || pathname === '/photo/gallery/') {
+    if (!token) {
+      const url = new URL('/auth/signin', request.url)
+      url.searchParams.set('callbackUrl', pathname)
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Gallery APIs: allow public GET for /api/gallery/:id shared links.
+  if (pathname.startsWith('/api/gallery')) {
+    const isDetailApiPath = /^\/api\/gallery\/[^/]+$/.test(pathname)
+    const isPublicDetailRead = isDetailApiPath && request.method === 'GET'
+
+    if (!token && !isPublicDetailRead) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please login first.' },
+        { status: 403 }
+      )
+    }
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
     '/admin/:path*',
+    '/photo/gallery/:path*',
+    '/api/gallery/:path*',
     '/api/upload-frame-template/:path*',
     '/api/upload-sticker/:path*',
     '/api/upload-frame-sticker/:path*',

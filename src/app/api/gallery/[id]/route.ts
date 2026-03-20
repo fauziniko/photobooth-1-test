@@ -1,5 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/lib/auth';
+
+type GalleryMetadata = {
+  userId?: string;
+  title?: string;
+  layout?: number;
+  filter?: string;
+  previewDataUrl?: string;
+  stripDataUrl?: string;
+  gifDataUrl?: string;
+  liveVideoDataUrl?: string;
+  photoFrames?: string[];
+  livePhotos?: string[];
+};
+
+const getOwnerId = (metadata: unknown) => {
+  const parsed = (metadata ?? {}) as GalleryMetadata;
+  return typeof parsed.userId === 'string' ? parsed.userId : null;
+};
 
 export async function GET(
   _req: Request,
@@ -16,17 +35,7 @@ export async function GET(
       return NextResponse.json({ error: 'Gallery item not found' }, { status: 404 });
     }
 
-    const metadata = (row.metadata ?? {}) as {
-      title?: string;
-      layout?: number;
-      filter?: string;
-      previewDataUrl?: string;
-      stripDataUrl?: string;
-      gifDataUrl?: string;
-      liveVideoDataUrl?: string;
-      photoFrames?: string[];
-      livePhotos?: string[];
-    };
+    const metadata = (row.metadata ?? {}) as GalleryMetadata;
 
     return NextResponse.json({
       item: {
@@ -59,6 +68,13 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await context.params;
     const body = await req.json();
     const nextTitle = typeof body?.title === 'string' ? body.title.trim() : '';
@@ -69,6 +85,10 @@ export async function PATCH(
 
     const existing = await prisma.photoStrip.findUnique({ where: { id } });
     if (!existing) {
+      return NextResponse.json({ error: 'Gallery item not found' }, { status: 404 });
+    }
+
+    if (getOwnerId(existing.metadata) !== userId) {
       return NextResponse.json({ error: 'Gallery item not found' }, { status: 404 });
     }
 
@@ -100,7 +120,20 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await context.params;
+
+    const existing = await prisma.photoStrip.findUnique({ where: { id } });
+    if (!existing || getOwnerId(existing.metadata) !== userId) {
+      return NextResponse.json({ error: 'Gallery item not found' }, { status: 404 });
+    }
+
     await prisma.photoStrip.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (error) {

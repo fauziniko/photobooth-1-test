@@ -1,11 +1,28 @@
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const TABS = [
   { key: 'color', label: 'Color' }, // Tambahkan tab baru untuk Frame Color
   { key: 'frame', label: 'Frame' },
   { key: 'sticker', label: 'Sticker' },
   { key: 'adjust', label: 'Settings' },
+];
+
+type PickerType = 'color' | 'frame' | 'sticker';
+
+const PRESET_COLOR_OPTIONS: { value: string; label: string; swatch: string }[] = [
+  { value: '#FFDCDC', label: 'Pastel Pink', swatch: '#FFDCDC' },
+  { value: '#FFF2EB', label: 'Pastel Peach', swatch: '#FFF2EB' },
+  { value: '#FFE8CD', label: 'Pastel Yellow', swatch: '#FFE8CD' },
+  { value: '#FFD6BA', label: 'Pastel Orange', swatch: '#FFD6BA' },
+  { value: '#FFE99A', label: 'Vintage Yellow', swatch: '#FFE99A' },
+  { value: '#FFD586', label: 'Vintage Orange', swatch: '#FFD586' },
+  { value: '#FFAAAA', label: 'Vintage Pink', swatch: '#FFAAAA' },
+  { value: '#FF9898', label: 'Vintage Red', swatch: '#FF9898' },
+  { value: '#309898', label: 'Retro Green', swatch: '#309898' },
+  { value: '#FF9F00', label: 'Retro Orange', swatch: '#FF9F00' },
+  { value: '#F4631E', label: 'Retro Brown', swatch: '#F4631E' },
+  { value: '#CB0404', label: 'Retro Red', swatch: '#CB0404' },
 ];
 
 export default function PhotoEditor({
@@ -25,8 +42,6 @@ export default function PhotoEditor({
   frameTemplates,
   selectedFrameTemplate,
   onSelectFrameTemplate,
-  onShowUploadModal,
-  userRole,
 }: {
   onChangeSlider: (v: number) => void;
   sliderValue: number;
@@ -45,87 +60,69 @@ export default function PhotoEditor({
   frameTemplates: { name: string; label: string; src?: string }[];
   selectedFrameTemplate: string;
   onSelectFrameTemplate: (template: string) => void;
-  onShowUploadModal: () => void;
-  userRole?: string;
 }) {
   // Ubah 'filter' menjadi 'frame' agar tab default adalah Frame
   const [activeTab, setActiveTab] = useState('frame');
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [uploadError, setUploadError] = useState('');
-  const [frameFile, setFrameFile] = useState<File | null>(null);
-  const [stickerFile, setStickerFile] = useState<File | null>(null);
-  const [templateName, setTemplateName] = useState('');
-  const [showStickerUploadModal, setShowStickerUploadModal] = useState(false);
-  const [stickerName, setStickerName] = useState('');
-  const [stickerCategory, setStickerCategory] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+  const [openPicker, setOpenPicker] = useState<PickerType | null>(null);
 
-  // Handler for uploading sticker with updated FormData
-  const handleStickerUpload = async () => {
-    setUploading(true);
-    setUploadError('');
-    setUploadSuccess(false);
-    
-    if (!stickerFile) {
-      setUploadError('Sticker file is required');
-      setUploading(false);
-      return;
-    }
-    
-    if (stickerFile.type !== 'image/png') {
-      setUploadError('Only PNG files allowed');
-      setUploading(false);
-      return;
-    }
-    
-    // Gabungkan kategori dan nama untuk membuat nama file yang lebih deskriptif
-    const category = stickerCategory.trim() || 'default';
-    const name = stickerName.trim() || `sticker_${Date.now()}`;
-    const combinedName = `${category}_${name}`;
-    
-    const formData = new FormData();
-    formData.append('file', stickerFile);
-    formData.append('name', combinedName); // Gunakan nama gabungan
-    formData.append('category', category);
-    
-    try {
-      const res = await fetch('/api/upload-sticker', {
-        method: 'POST',
-        body: formData,
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const colorGridCols = isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))';
+  const assetGridCols = isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))';
+
+  const allColorOptions = useMemo(() => {
+    const optionMap = new Map<string, { value: string; label: string; swatch: string }>();
+
+    availableFrames.forEach(frame => {
+      const value = String(frame.name || '').trim();
+      const swatch = String(frame.color || frame.name || '').trim();
+      if (!value || !swatch) return;
+
+      optionMap.set(value, {
+        value,
+        label: frame.label || frame.name || value,
+        swatch,
       });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: `Upload failed (${res.status})` }));
-        setUploadError(errorData.error || `Upload failed (${res.status})`);
-        setUploading(false);
-        return;
+    });
+
+    PRESET_COLOR_OPTIONS.forEach(option => {
+      if (!optionMap.has(option.value)) {
+        optionMap.set(option.value, option);
       }
-      
-      const data = await res.json().catch(() => ({}));
-      if (data.stickerUrl || data.url) {
-        setUploadSuccess(true);
-        setStickerFile(null);
-        setStickerName('');
-        setStickerCategory('');
-        // Reload stickers setelah sukses
-        setTimeout(reloadStickers, 1000);
-      } else {
-        setUploadError(data.error || 'Upload successful but no URL returned');
+    });
+
+    return Array.from(optionMap.values());
+  }, [availableFrames]);
+
+  useEffect(() => {
+    if (!openPicker) return;
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenPicker(null);
       }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setUploadError('Network error during upload');
-    }
-    
-    setUploading(false);
-  };
+    };
+
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [openPicker]);
+
+  const isTemplateMode = selectedFrameTemplate !== 'none';
 
   // Untuk menambah stiker ke list
 
   // Gabungkan stiker default dan user
   const [minioStickers, setMinioStickers] = useState<{ src: string; label: string }[]>([]);
-  React.useEffect(() => {
+  useEffect(() => {
     fetch('/api/list-sticker')
       .then(res => res.json())
       .then(data => {
@@ -139,236 +136,6 @@ export default function PhotoEditor({
         }
       });
   }, []);
-
-  const handleUploadTemplate = async () => {
-    setUploading(true);
-    setUploadError('');
-    setUploadSuccess(false);
-    if (!frameFile || !stickerFile) {
-      setUploadError('Both files are required');
-      setUploading(false);
-      return;
-    }
-    if (frameFile.type !== 'image/png' || stickerFile.type !== 'image/png') {
-      setUploadError('Only PNG files allowed');
-      setUploading(false);
-      return;
-    }
-    const formData = new FormData();
-    formData.append('frame', frameFile);
-    formData.append('sticker', stickerFile);
-    formData.append('name', templateName || `template_${Date.now()}`);
-
-    const res = await fetch('/api/upload-frame-template', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-    if (data.frameUrl && data.stickerUrl) {
-      setUploadSuccess(true);
-      setFrameFile(null);
-      setStickerFile(null);
-      setTemplateName('');
-      // Trigger refresh template list (bisa pakai event atau refetch)
-      window.dispatchEvent(new Event('frameTemplatesUpdated'));
-    } else {
-      setUploadError(data.error || 'Upload failed');
-    }
-    setUploading(false);
-  };
-
-  // Modal Upload Template (letakkan di luar return utama)
-  const uploadModal = showUploadModal && (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
-    }}>
-      <div style={{
-        background: '#fff', borderRadius: 16, padding: 32, minWidth: 320, boxShadow: '0 4px 24px #fa75aa22', position: 'relative'
-      }}>
-        <h3 style={{ color: '#d72688', marginBottom: 16 }}>Upload Frame Template</h3>
-        <label style={{ fontWeight: 600, color: '#fa75aa' }}>Template Name</label>
-        <input
-          type="text"
-          value={templateName}
-          onChange={e => setTemplateName(e.target.value)}
-          placeholder="Template name"
-          style={{ width: '100%', marginBottom: 12, padding: 6, borderRadius: 6, border: '1px solid #fa75aa33' }}
-        />
-        <label style={{ fontWeight: 600, color: '#fa75aa' }}>Frame Template (PNG)</label>
-        <div style={{ marginBottom: 12 }}>
-          <label
-            style={{
-              display: 'inline-block',
-              padding: '8px 18px',
-              background: '#fa75aa',
-              color: '#fff',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 600,
-              marginRight: 12,
-            }}
-          >
-            Choose File
-            <input
-              type="file"
-              accept="image/png"
-              onChange={e => setFrameFile(e.target.files?.[0] || null)}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <span style={{ color: '#fa75aa', fontWeight: 500 }}>
-            {frameFile ? frameFile.name : 'No file chosen'}
-          </span>
-        </div>
-        <label style={{ fontWeight: 600, color: '#fa75aa' }}>Sticker (PNG)</label>
-        <div style={{ marginBottom: 12 }}>
-          <label
-            style={{
-              display: 'inline-block',
-              padding: '8px 18px',
-              background: '#fa75aa',
-              color: '#fff',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 600,
-              marginRight: 12,
-            }}
-          >
-            Choose File
-            <input
-              type="file"
-              accept="image/png"
-              onChange={e => setStickerFile(e.target.files?.[0] || null)}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <span style={{ color: '#fa75aa', fontWeight: 500 }}>
-            {stickerFile ? stickerFile.name : 'No file chosen'}
-          </span>
-        </div>
-        {uploadError && <div style={{ color: 'red', marginBottom: 8 }}>{uploadError}</div>}
-        {uploadSuccess && <div style={{ color: 'green', marginBottom: 8 }}>Upload Success!</div>}
-        <button
-          onClick={handleUploadTemplate}
-          disabled={uploading}
-          style={{ background: '#fa75aa', color: '#fff', borderRadius: 8, padding: '8px 18px', fontWeight: 600, border: 'none', marginRight: 8 }}
-        >
-          {uploading ? 'Uploading...' : 'Upload'}
-        </button>
-        <button
-          onClick={() => { setShowUploadModal(false); setUploadError(''); setUploadSuccess(false); }}
-          style={{ background: '#eee', color: '#333', borderRadius: 8, padding: '8px 18px', fontWeight: 600, border: 'none' }}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
-  // Modal Upload Sticker (sesuaikan agar sama dengan upload template tapi lebih compact)
-  const stickerUploadModal = showStickerUploadModal && ReactDOM.createPortal(
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        background: 'rgba(0,0,0,0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2147483647, // maksimum z-index
-      }}
-    >
-      <div
-        style={{
-          background: '#fff',
-          borderRadius: 16,
-          padding: 28,
-          minWidth: 300, // sedikit lebih kecil dari template
-          maxWidth: 320, // batasi maksimum lebar
-          boxShadow: '0 4px 24px #fa75aa22',
-          position: 'relative',
-        }}
-      >
-        <h3 style={{ color: '#d72688', marginBottom: 14, fontSize: 16 }}>Upload Sticker</h3>
-        <label style={{ fontWeight: 600, color: '#fa75aa', fontSize: 14 }}>Sticker Name</label>
-        <input
-          type="text"
-          value={stickerName}
-          onChange={e => setStickerName(e.target.value)}
-          placeholder="Sticker name"
-          style={{ width: '100%', marginBottom: 10, padding: 6, borderRadius: 6, border: '1px solid #fa75aa33', color: '#fa75aa' }}
-          autoFocus
-        />
-        <label style={{ fontWeight: 600, color: '#fa75aa', fontSize: 14 }}>Category</label>
-        <input
-          type="text"
-          value={stickerCategory}
-          onChange={e => setStickerCategory(e.target.value)}
-          placeholder="Category"
-          style={{ width: '100%', marginBottom: 10, padding: 6, borderRadius: 6, border: '1px solid #fa75aa33', color: '#fa75aa' }}
-        />
-        <label style={{ fontWeight: 600, color: '#fa75aa', fontSize: 14 }}>Sticker File (PNG)</label>
-        <div style={{ marginBottom: 12 }}>
-          <label
-            style={{
-              display: 'inline-block',
-              padding: '6px 14px',
-              background: '#fa75aa',
-              color: '#fff',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 600,
-              marginRight: 8,
-              fontSize: 14,
-            }}
-          >
-            Choose File
-            <input
-              type="file"
-              accept="image/png"
-              onChange={e => setStickerFile(e.target.files?.[0] || null)}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <span style={{ color: '#fa75aa', fontWeight: 500, fontSize: 14 }}>
-            {stickerFile ? stickerFile.name : 'No file chosen'}
-          </span>
-        </div>
-        {uploadError && <div style={{ color: 'red', marginBottom: 8, fontSize: 14 }}>{uploadError}</div>}
-        {uploadSuccess && <div style={{ color: 'green', marginBottom: 8, fontSize: 14 }}>Upload Success!</div>}
-        {/* Center buttons */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 8, 
-          justifyContent: 'center', // Center horizontally
-          marginTop: 12 
-        }}>
-          <button
-            onClick={handleStickerUpload}
-            disabled={uploading}
-            style={{ background: '#fa75aa', color: '#fff', borderRadius: 8, padding: '6px 14px', fontWeight: 600, border: 'none', fontSize: 14 }}
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
-          </button>
-          <button
-            onClick={() => {
-              setShowStickerUploadModal(false);
-              setUploadError('');
-              setUploadSuccess(false);
-            }}
-            style={{ background: '#eee', color: '#333', borderRadius: 8, padding: '6px 14px', fontWeight: 600, border: 'none', fontSize: 14 }}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
 
   const reloadStickers = () => {
     fetch('/api/list-sticker')
@@ -396,6 +163,179 @@ export default function PhotoEditor({
       });
   };
 
+  const pickerModal = openPicker ? (
+    <div
+      className="pb-modal-backdrop fixed inset-0 z-[2147483640] flex items-center justify-center p-4"
+      style={{ zIndex: 2147483640 }}
+      onClick={() => setOpenPicker(null)}
+    >
+      <div
+        className="pb-modal-shell w-full max-w-3xl"
+        style={{ maxHeight: '85vh', overflow: 'hidden' }}
+        onClick={event => event.stopPropagation()}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 18px',
+            borderBottom: '1px solid #f3b7d1',
+          }}
+        >
+          <h3 style={{ margin: 0, color: '#4a2337', fontWeight: 700, fontSize: 18 }}>
+            {openPicker === 'color' && 'Semua Opsi Color'}
+            {openPicker === 'frame' && 'Semua Opsi Frame'}
+            {openPicker === 'sticker' && 'Semua Opsi Sticker'}
+          </h3>
+          <button
+            onClick={() => setOpenPicker(null)}
+            style={{
+              background: '#fff4fa',
+              color: '#d72688',
+              border: '1px solid #f3b7d1',
+              borderRadius: 8,
+              padding: '6px 12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Tutup
+          </button>
+        </div>
+
+        <div style={{ padding: 16, overflowY: 'auto', maxHeight: 'calc(85vh - 64px)' }}>
+          {openPicker === 'color' && (
+            allColorOptions.length === 0 ? (
+              <p style={{ margin: 0, color: '#7a5b6d' }}>Belum ada opsi color tersedia.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(6, minmax(0, 1fr))', gap: 12 }}>
+                {allColorOptions.map(option => (
+                  <button
+                    key={`picker-color-${option.value}`}
+                    onClick={() => {
+                      onSelectFrame(option.value);
+                      setOpenPicker(null);
+                    }}
+                    style={{
+                      border: selectedFrame === option.value ? '3px solid #fa75aa' : '1.5px solid #f3b7d1',
+                      borderRadius: 12,
+                      background: '#fff',
+                      padding: '10px 8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                    title={option.label}
+                  >
+                    <span
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: '50%',
+                        background: option.swatch,
+                        border: '1px solid #e7c8d7',
+                        display: 'inline-block',
+                      }}
+                    />
+                    <span style={{ color: '#5a2a42', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
+                      {option.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )
+          )}
+
+          {openPicker === 'frame' && (
+            frameTemplates.length === 0 ? (
+              <p style={{ margin: 0, color: '#7a5b6d' }}>Belum ada frame template tersedia.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 12 }}>
+                {frameTemplates.map(template => (
+                  <button
+                    key={`picker-frame-${template.name}`}
+                    onClick={() => {
+                      onSelectFrameTemplate(template.name);
+                      setOpenPicker(null);
+                    }}
+                    style={{
+                      border: selectedFrameTemplate === template.name ? '3px solid #fa75aa' : '2px solid #fa75aa33',
+                      borderRadius: 12,
+                      padding: 0,
+                      background: '#fff',
+                      cursor: 'pointer',
+                      width: '100%',
+                      aspectRatio: '1 / 1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                    }}
+                    title={template.label}
+                  >
+                    {template.src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={template.src} alt={template.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <span style={{ color: '#d72688', fontSize: 12 }}>{template.label}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )
+          )}
+
+          {openPicker === 'sticker' && (
+            minioStickers.length === 0 ? (
+              <p style={{ margin: 0, color: '#7a5b6d' }}>Belum ada sticker tersedia.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 12 }}>
+                {minioStickers.map(sticker => (
+                  <button
+                    key={`picker-sticker-${sticker.src}`}
+                    onClick={() => {
+                      onAddSticker(sticker.src);
+                      setOpenPicker(null);
+                    }}
+                    style={{
+                      border: '2px solid #fa75aa33',
+                      borderRadius: 12,
+                      padding: 8,
+                      background: '#fff',
+                      cursor: 'pointer',
+                      width: '100%',
+                      aspectRatio: '1 / 1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 8px #fa75aa11',
+                    }}
+                    title={sticker.label}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={sticker.src}
+                      alt={sticker.label}
+                      style={{
+                        width: '90%',
+                        height: '90%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div
       style={{
@@ -411,15 +351,13 @@ export default function PhotoEditor({
         zIndex: 1,
       }}
     >
-      {uploadModal}
-      {stickerUploadModal}
       {/* Tab Menu */}
       <div
         style={{
           display: 'flex',
           borderBottom: '1.5px solid #fa75aa22',
           background: '#ffe4f0',
-          padding: '12px 12px',
+          padding: isMobile ? '8px 8px' : '12px 12px',
           justifyContent: 'center',
         }}
       >
@@ -434,7 +372,7 @@ export default function PhotoEditor({
               color: '#d72688',
               fontWeight: activeTab === tab.key ? 'bold' : 700,
               border: 'none',
-              fontSize: 15,
+              fontSize: isMobile ? 13 : 15,
             }}
           >
             {tab.label}
@@ -443,11 +381,29 @@ export default function PhotoEditor({
       </div>
 
       {/* Tab Content */}
-      <div style={{ padding: 28, background: '#fff' }}>
+      <div style={{ padding: isMobile ? 16 : 28, background: '#fff' }}>
         {activeTab === 'color' && (
           <div>
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Color</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
+              <div style={{ fontWeight: 600, color: '#d72688' }}>Choose Frame Color</div>
+              <button
+                onClick={() => setOpenPicker('color')}
+                style={{
+                  background: '#fff4fa',
+                  color: '#d72688',
+                  border: '1px solid #f3b7d1',
+                  borderRadius: 10,
+                  padding: '6px 12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+                title="Lihat semua color"
+              >
+                Lihat Semua
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: colorGridCols, gap: 10, marginBottom: 24 }}>
               {availableFrames.map(frame => (
                 <button
                   key={frame.name}
@@ -471,7 +427,7 @@ export default function PhotoEditor({
 <div
   style={{
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: colorGridCols,
     gap: 10,
     marginBottom: 24,
   }}
@@ -535,7 +491,7 @@ export default function PhotoEditor({
 </div>
             {/* Keterangan Vintage */}
             <div style={{ fontWeight: 500, color: '#d72688', marginBottom: 8, marginTop: 8 }}>Vintage</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: colorGridCols, gap: 10, marginBottom: 24 }}>
               <button
                 onClick={() => onSelectFrame('#FFE99A')}
                 style={{
@@ -595,7 +551,7 @@ export default function PhotoEditor({
             </div>
             {/* Keterangan Retro */}
             <div style={{ fontWeight: 500, color: '#d72688', marginBottom: 8, marginTop: 8 }}>Retro</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: colorGridCols, gap: 10, marginBottom: 24 }}>
               <button
                 onClick={() => onSelectFrame('#309898')}
                 style={{
@@ -658,27 +614,26 @@ export default function PhotoEditor({
 
         {activeTab === 'frame' && (
           <div>
-            {/* Only show Upload Template button for ADMIN users */}
-            {userRole === 'ADMIN' && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
+              <div style={{ fontWeight: 600, color: '#d72688' }}>Choose Frame Template</div>
               <button
+                onClick={() => setOpenPicker('frame')}
                 style={{
-                  background: '#fa75aa',
-                  color: '#fff',
-                  borderRadius: 8,
-                  padding: '8px 18px',
+                  background: '#fff4fa',
+                  color: '#d72688',
+                  border: '1px solid #f3b7d1',
+                  borderRadius: 10,
+                  padding: '6px 12px',
                   fontWeight: 600,
-                  marginBottom: 16,
-                  border: 'none',
                   cursor: 'pointer',
+                  fontSize: 12,
                 }}
-                onClick={() => onShowUploadModal()}
+                title="Lihat semua frame"
               >
-                Upload Template
+                Lihat Semua
               </button>
-            )}
-
-            <div style={{ fontWeight: 600, color: '#d72688', marginBottom: 12 }}>Choose Frame Template</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: assetGridCols, gap: 10, marginBottom: 24 }}>
               {frameTemplates.map(template => (
                 <button
                   key={template.name}
@@ -689,8 +644,10 @@ export default function PhotoEditor({
                     padding: 0,
                     background: '#fff',
                     cursor: 'pointer',
-                    width: 60,
-                    height: 60,
+                    width: '100%',
+                    maxWidth: isMobile ? 68 : 80,
+                    aspectRatio: '1 / 1',
+                    justifySelf: 'center',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -712,29 +669,6 @@ export default function PhotoEditor({
 
         {activeTab === 'sticker' && (
           <div>
-            {/* Only show Upload Sticker button for ADMIN users */}
-            {userRole === 'ADMIN' && (
-              <div style={{ marginBottom: 16 }}>
-                <button
-                  style={{
-                    background: '#fa75aa',
-                    color: '#fff',
-                    borderRadius: 8,
-                    padding: '8px 18px',
-                    fontWeight: 600,
-                    marginBottom: 8,
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setShowStickerUploadModal(true)}
-                >
-                  Upload Sticker
-                </button>
-                {uploading && <span style={{ color: '#fa75aa', marginLeft: 8 }}>Uploading...</span>}
-                {uploadError && <span style={{ color: 'red', marginLeft: 8 }}>{uploadError}</span>}
-              </div>
-            )}
-            {/* Modal Upload Sticker dipindah ke luar return utama */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontWeight: 600, color: '#d72688', marginRight: 12 }}>Choose Sticker</div>
               <button
@@ -753,8 +687,25 @@ export default function PhotoEditor({
               >
                 Reload
               </button>
+              <button
+                onClick={() => setOpenPicker('sticker')}
+                style={{
+                  background: '#fff4fa',
+                  color: '#d72688',
+                  border: '1px solid #f3b7d1',
+                  borderRadius: 8,
+                  padding: '4px 12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  marginLeft: 8,
+                }}
+                title="Lihat semua sticker"
+              >
+                Lihat Semua
+              </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: assetGridCols, gap: 10, marginBottom: 24 }}>
               {minioStickers.map(sticker => (
                 <div
                   key={sticker.src}
@@ -764,8 +715,10 @@ export default function PhotoEditor({
                     padding: 0,
                     background: '#fff',
                     cursor: 'pointer',
-                    width: 70,
-                    height: 70,
+                    width: '100%',
+                    maxWidth: isMobile ? 70 : 80,
+                    aspectRatio: '1 / 1',
+                    justifySelf: 'center',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -795,6 +748,7 @@ export default function PhotoEditor({
           <>
             <button
               onClick={onResetDefault}
+              disabled={isTemplateMode}
               style={{
                 marginBottom: 18,
                 padding: '10px 24px',
@@ -804,12 +758,18 @@ export default function PhotoEditor({
                 borderRadius: 16,
                 fontWeight: 'bold',
                 fontSize: 15,
-                cursor: 'pointer',
+                cursor: isTemplateMode ? 'not-allowed' : 'pointer',
+                opacity: isTemplateMode ? 0.55 : 1,
                 boxShadow: '0 2px 8px #fa75aa22',
               }}
             >
               Reset to Default
             </button>
+            {isTemplateMode && (
+              <p style={{ marginTop: -6, marginBottom: 14, fontSize: 12, color: '#7a5b6d' }}>
+                Mode template aktif: pengaturan size/radius/gap mengikuti template canvas.
+              </p>
+            )}
             <label style={{ color: '#d72688', fontWeight: 600, fontSize: 15, marginBottom: 8, display: 'block' }}>
               Frame Bottom Size
             </label>
@@ -819,10 +779,12 @@ export default function PhotoEditor({
               max={200}
               value={sliderValue}
               onChange={e => onChangeSlider(Number(e.target.value))}
+              disabled={isTemplateMode}
               style={{
                 width: '100%',
                 accentColor: '#fa75aa',
                 marginBottom: 12,
+                opacity: isTemplateMode ? 0.5 : 1,
               }}
             />
             <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
@@ -840,10 +802,12 @@ export default function PhotoEditor({
                 max={48}
                 value={frameBorderRadius}
                 onChange={e => onChangeFrameBorderRadius(Number(e.target.value))}
+                disabled={isTemplateMode}
                 style={{
                   width: '100%',
                   maxWidth: 400,
                   accentColor: '#fa75aa',
+                  opacity: isTemplateMode ? 0.5 : 1,
                 }}
               />
               <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
@@ -862,10 +826,12 @@ export default function PhotoEditor({
                 max={48}
                 value={photoGap}
                 onChange={e => onChangePhotoGap(Number(e.target.value))}
+                disabled={isTemplateMode}
                 style={{
                   width: '100%',
                   maxWidth: 400,
                   accentColor: '#fa75aa',
+                  opacity: isTemplateMode ? 0.5 : 1,
                 }}
               />
               <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
@@ -884,10 +850,12 @@ export default function PhotoEditor({
                 max={48}
                 value={photoBorderRadius}
                 onChange={e => onChangePhotoBorderRadius(Number(e.target.value))}
+                disabled={isTemplateMode}
                 style={{
                   width: '100%',
                   maxWidth: 400,
                   accentColor: '#fa75aa',
+                  opacity: isTemplateMode ? 0.5 : 1,
                 }}
               />
               <div style={{ color: '#d72688', fontWeight: 500, fontSize: 14 }}>
@@ -897,6 +865,8 @@ export default function PhotoEditor({
           </>
         )}
       </div>
+
+      {openPicker && typeof document !== 'undefined' ? createPortal(pickerModal, document.body) : null}
       {/* Area preview baru foto */}
       {/* <div style={{ background: '#fff', padding: 0 }}>{children}</div> */}
     </div>

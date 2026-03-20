@@ -24,17 +24,108 @@ body {
 }
 
 button {
-  margin: 6px;
-  padding: 8px 12px;
-  border: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
   cursor: pointer;
-  border-radius: 4px;
+  font: inherit;
 }
 
 body {
   background: #fbd0e1 !important; /* pink sesuai permintaan */
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+:root {
+  --pb-primary: #fa75aa;
+  --pb-primary-dark: #d72688;
+  --pb-primary-soft: #f8bfd7;
+  --pb-surface: #fff7fb;
+  --pb-page-soft: #fff1f7;
+  --pb-page-strong: #ffe1ee;
+  --pb-border: #f3b7d1;
+  --pb-text: #4a2337;
+}
+
+.pb-page-bg {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(250, 117, 170, 0.16), transparent 38%),
+    radial-gradient(circle at 90% 90%, rgba(215, 38, 136, 0.12), transparent 36%),
+    linear-gradient(180deg, var(--pb-page-soft) 0%, var(--pb-page-strong) 100%);
+}
+
+.pb-card {
+  background: #fff;
+  border: 1px solid var(--pb-border);
+  box-shadow: 0 12px 30px rgba(250, 117, 170, 0.14);
+  border-radius: 20px;
+}
+
+.pb-input {
+  border: 1px solid var(--pb-primary-soft);
+  color: var(--pb-text);
+  background: #fff;
+}
+
+.pb-input:focus {
+  outline: none;
+  border-color: var(--pb-primary);
+  box-shadow: 0 0 0 3px rgba(250, 117, 170, 0.16);
+}
+
+.pb-btn-primary {
+  background: linear-gradient(90deg, var(--pb-primary-dark), var(--pb-primary));
+  color: #fff;
+  border: none;
+}
+
+.pb-btn-primary:hover {
+  filter: brightness(0.96);
+}
+
+.pb-btn-soft {
+  background: var(--pb-surface);
+  color: var(--pb-primary-dark);
+  border: 1px solid var(--pb-primary-soft);
+}
+
+.pb-btn-soft:hover {
+  background: #ffeaf3;
+}
+
+.pb-alert {
+  border-radius: 12px;
+  border: 1px solid var(--pb-primary-soft);
+  background: #fff4fa;
+  color: var(--pb-primary-dark);
+}
+
+.pb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(250, 117, 170, 0.2);
+  backdrop-filter: blur(3px);
+}
+
+.pb-modal-shell {
+  background: #fff;
+  border: 1px solid var(--pb-border);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(250, 117, 170, 0.22);
+}
+
+.gallery-detail-actions button,
+.gallery-detail-actions a,
+.gallery-detail-action-btn {
+  margin: 0 !important;
+}
+
+@media (max-width: 640px) {
+  .gallery-detail-action-btn {
+    font-size: 15px !important;
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -70,8 +161,16 @@ body {
 
 .strip-controls-wrapper {
   display: flex;
-  gap: 32px;
+  gap: 16px;
   align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.strip-preview-panel {
+  flex: 0 0 auto;
 }
 
 @media (max-width: 800px) {
@@ -83,8 +182,12 @@ body {
   .photo-editor-panel {
     max-width: 100% !important;
     width: 100% !important;
+    flex: 1 1 auto !important;
     position: static !important;
     margin-top: 24px;
+  }
+  .strip-preview-panel {
+    width: 100%;
   }
   .photo-editor-actions {
     flex-direction: column;
@@ -116,6 +219,11 @@ body {
 .hide-resize-handle .resize-handle,
 .hide-resize-handle .sticker-handle-group,
 .hide-resize-handle .sticker-handle {
+  display: none !important;
+}
+
+.hide-editor-overlay-controls .frame-action-controls,
+.hide-editor-overlay-controls .frame-action-control {
   display: none !important;
 }
 
@@ -174,15 +282,15 @@ body {
 }
 
 .photo-editor-panel {
-  flex: 1;
+  flex: 0 0 440px;
   min-width: 0;
-  max-width: 900px; /* Lebih lebar, misal 700px */
+  max-width: 440px;
   position: sticky;
   top: 32px;
 }
 
 .photo-editor-panel > div {
-  max-width: 900px !important;
+  max-width: 440px !important;
 }
 
 @media (max-width: 700px) {

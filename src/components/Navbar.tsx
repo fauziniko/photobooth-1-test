@@ -15,9 +15,9 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-40 lg:hidden">
+    <nav className="bg-[#fff7fb] border-b border-[#f3b7d1] shadow-sm sticky top-0 z-30 md:hidden">
       <div className="max-w-7xl mx-auto pl-16 pr-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <div className="bg-[#fa75aa] p-2 rounded-lg">
@@ -29,14 +29,14 @@ export default function Navbar() {
           </Link>
 
           {/* Navigation Links */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {status === 'loading' ? (
               <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
             ) : session ? (
               <>
                 <Link
                   href="/photo"
-                  className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-gray-700 hover:bg-pink-50 transition"
+                  className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-[#5a2a42] hover:bg-[#ffeaf3] transition"
                 >
                   <Camera className="w-4 h-4 mr-2" />
                   Take Photo
@@ -45,7 +45,7 @@ export default function Navbar() {
                 {session.user.role === 'ADMIN' && (
                   <Link
                     href="/admin"
-                    className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-purple-600 hover:bg-purple-50 transition"
+                    className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-[#d72688] hover:bg-[#ffeaf3] transition"
                   >
                     <Shield className="w-4 h-4 mr-2" />
                     Admin
@@ -53,13 +53,13 @@ export default function Navbar() {
                 )}
 
                 <div className="flex items-center space-x-3">
-                  <div className="text-sm">
+                  <div className="hidden md:block text-sm">
                     <p className="font-medium text-gray-900">{session.user.name}</p>
                     <p className="text-xs text-gray-500">{session.user.role}</p>
                   </div>
                   <button
                     onClick={() => signOut()}
-                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition"
+                    className="inline-flex items-center px-3 sm:px-4 py-2 bg-gradient-to-r from-[#d72688] to-[#fa75aa] text-white rounded-lg hover:brightness-95 transition"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     <span className="hidden sm:inline">Logout</span>
@@ -70,14 +70,14 @@ export default function Navbar() {
               <>
                 <Link
                   href="/auth/signin"
-                  className="inline-flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                  className="inline-flex items-center px-3 sm:px-4 py-2 text-[#5a2a42] hover:bg-[#ffeaf3] rounded-lg transition"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Sign In
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition"
+                  className="inline-flex items-center px-3 sm:px-4 py-2 bg-gradient-to-r from-[#d72688] to-[#fa75aa] text-white rounded-lg hover:brightness-95 transition"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Sign Up

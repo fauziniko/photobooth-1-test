@@ -11,12 +11,16 @@ import {
 } from '@/lib/indexedDB';
 import {
   clearTempPhotosFromSessionStorage,
+  clearTempLiveVideoUrlFromSessionStorage,
+  loadTempLiveVideoUrlFromSessionStorage,
   loadTempPhotosFromSessionStorage,
+  saveTempLiveVideoUrlToSessionStorage,
   saveTempPhotosToSessionStorage,
 } from '@/lib/tempPhotoStorage';
 
 export default function Page() {
   const router = useRouter();
+  const mainRef = useRef<HTMLElement | null>(null);
   const photosRef = useRef<string[]>([]);
   const isRedirectingRef = useRef(false);
 
@@ -29,6 +33,10 @@ export default function Page() {
   
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
+  const [, setCapturedLiveVideoUrl] = useState<string | null>(null);
+  const [awaitingLiveVideo, setAwaitingLiveVideo] = useState(false);
   
   const [liveMode, setLiveMode] = useState(true);
 
@@ -60,6 +68,7 @@ export default function Page() {
         setUploadPhotos([]);
         photosRef.current = [];
         clearTempPhotosFromSessionStorage();
+        clearTempLiveVideoUrlFromSessionStorage();
         sessionStorage.removeItem('photobooth-retake-reset');
         window.history.replaceState({}, '', '/photo');
         return;
@@ -86,6 +95,9 @@ export default function Page() {
           photosRef.current = savedPhotos;
         }
 
+        clearTempLiveVideoUrlFromSessionStorage();
+        setCapturedLiveVideoUrl(null);
+
         if (Number.isFinite(retakeIndex) && retakeIndex >= 0) {
           setRetakePhotoIndex(retakeIndex);
         }
@@ -106,6 +118,9 @@ export default function Page() {
           console.error('❌ Failed to load photos from IndexedDB:', error);
         }
       }
+
+      const savedLiveUrl = loadTempLiveVideoUrlFromSessionStorage();
+      setCapturedLiveVideoUrl(savedLiveUrl);
     };
     loadSavedPhotos();
   }, []);
@@ -125,12 +140,30 @@ export default function Page() {
     setIsMobile(mobileCheck);
   }, []);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      setIsFullscreen(Boolean(doc.fullscreenElement || doc.webkitFullscreenElement));
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
+    };
+  }, []);
+
   const handleLayoutChange = (n: number) => {
     isRedirectingRef.current = false;
     setLayout(n);
     setPhotos([]);
     setUploadPhotos([]);
     setRetakePhotoIndex(null);
+    setCapturedLiveVideoUrl(null);
+    setAwaitingLiveVideo(false);
+    clearTempLiveVideoUrlFromSessionStorage();
     photosRef.current = [];
     sessionStorage.removeItem('photobooth-retake-single');
     sessionStorage.removeItem('photobooth-retake-index');
@@ -140,6 +173,46 @@ export default function Page() {
   const handleStartCapture = () => {
     isRedirectingRef.current = false;
     setShowCamera(true);
+  };
+
+  const uploadLiveVideoBlobToCloud = async (blob: Blob): Promise<string | null> => {
+    try {
+      const file = new File([blob], `live-${Date.now()}.webm`, {
+        type: blob.type || 'video/webm',
+      });
+
+      const formData = new FormData();
+      formData.append('media', file);
+      formData.append('kind', 'live');
+
+      const res = await fetch('/api/upload-strip', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      return typeof data?.url === 'string' ? data.url : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const finalizeRedirectToEditor = async () => {
+    if (isRedirectingRef.current) return;
+    if (photosRef.current.length < layout) return;
+
+    isRedirectingRef.current = true;
+    try {
+      if (isIndexedDBSupported()) {
+        await savePhotosToIndexedDB(photosRef.current);
+      }
+      saveTempPhotosToSessionStorage(photosRef.current);
+    } catch (error) {
+      console.error('❌ Failed to persist photos before redirect:', error);
+    }
+
+    router.push('/photo/edit?layout=' + layout);
   };
 
   const handleCapture = async (photoDataUrl: string) => {
@@ -166,16 +239,30 @@ export default function Page() {
     setPhotos(updatedPhotos);
 
     if (updatedPhotos.length >= layout && !isRedirectingRef.current) {
-      isRedirectingRef.current = true;
-      try {
-        if (isIndexedDBSupported()) {
-          await savePhotosToIndexedDB(updatedPhotos);
-        }
-        saveTempPhotosToSessionStorage(updatedPhotos);
-      } catch (error) {
-        console.error('❌ Failed to persist photos before redirect:', error);
+      if (liveMode) {
+        setAwaitingLiveVideo(true);
       }
-      router.push('/photo/edit?layout=' + layout);
+      await finalizeRedirectToEditor();
+    }
+  };
+
+  const handleLiveVideoCapture = async (blob: Blob | null) => {
+    let uploadedLiveUrl: string | null = null;
+
+    if (blob && blob.size > 0) {
+      uploadedLiveUrl = await uploadLiveVideoBlobToCloud(blob);
+    }
+
+    setCapturedLiveVideoUrl(uploadedLiveUrl);
+
+    if (uploadedLiveUrl) {
+      saveTempLiveVideoUrlToSessionStorage(uploadedLiveUrl);
+    } else {
+      clearTempLiveVideoUrlFromSessionStorage();
+    }
+
+    if (awaitingLiveVideo) {
+      setAwaitingLiveVideo(false);
     }
   };
 
@@ -208,6 +295,9 @@ export default function Page() {
       setPhotos(combined);
       photosRef.current = combined;
       setShowCamera(false);
+      setCapturedLiveVideoUrl(null);
+      setAwaitingLiveVideo(false);
+      clearTempLiveVideoUrlFromSessionStorage();
 
       if (combined.length >= layout && !isRedirectingRef.current) {
         isRedirectingRef.current = true;
@@ -236,6 +326,7 @@ export default function Page() {
     }
 
     clearTempPhotosFromSessionStorage();
+    clearTempLiveVideoUrlFromSessionStorage();
     sessionStorage.removeItem('photobooth-retake-single');
     sessionStorage.removeItem('photobooth-retake-index');
 
@@ -244,28 +335,83 @@ export default function Page() {
     setPhotos([]);
     setUploadPhotos([]);
     setRetakePhotoIndex(null);
+    setCapturedLiveVideoUrl(null);
+    setAwaitingLiveVideo(false);
     setShowCamera(true);
   };
 
+  const toggleFullscreen = async () => {
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>;
+      webkitFullscreenElement?: Element | null;
+    };
+
+    const currentMain = mainRef.current;
+    if (!currentMain) return;
+
+    setFullscreenError(null);
+
+    try {
+      if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+          return;
+        }
+
+        if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+          return;
+        }
+      }
+
+      const requestFullscreen =
+        currentMain.requestFullscreen ||
+        ((currentMain as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen);
+
+      if (!requestFullscreen) {
+        setFullscreenError('Browser ini belum mendukung mode full screen.');
+        return;
+      }
+
+      await requestFullscreen.call(currentMain);
+    } catch (error) {
+      console.error('❌ Failed to toggle fullscreen mode:', error);
+      setFullscreenError('Gagal mengaktifkan mode full screen. Coba lagi.');
+    }
+  };
+
   const hasCompletedCapture = photos.length >= layout && retakePhotoIndex === null;
+  const isCaptureMode = showCamera && (photos.length < layout || retakePhotoIndex !== null);
 
   return (
     <>
-      <main className="min-h-screen flex flex-col items-center justify-center gap-6 py-8 px-4 bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#d72688] tracking-wide text-center">
-          Photo Booth
-        </h1>
+      <main ref={mainRef} className="pb-page-bg min-h-screen flex flex-col items-center justify-center gap-6 py-8 px-4">
+        {!isFullscreen && (
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#d72688] tracking-wide text-center">
+            Photo Booth
+          </h1>
+        )}
         
-        <div className="text-center mb-2">
-          <p className="text-sm text-gray-600">
-            <span className="font-semibold text-purple-600">
-              {photos.length < layout || retakePhotoIndex !== null ? 'Step 1 of 3:' : 'Step 2 of 3:'}
-            </span> 
-            {photos.length < layout || retakePhotoIndex !== null ? ' Capture Photos' : ' Review & Edit Photos'}
-          </p>
-        </div>
+        {!isFullscreen && (
+          <div className="text-center mb-2">
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold text-[#d72688]">
+                {photos.length < layout || retakePhotoIndex !== null ? 'Step 1 of 3:' : 'Step 2 of 3:'}
+              </span>{' '}
+              {photos.length < layout || retakePhotoIndex !== null ? ' Capture Photos' : ' Review & Edit Photos'}
+            </p>
+          </div>
+        )}
 
-        {uploadPhotos.length > 0 && (
+        {fullscreenError && (
+          <div className="w-full max-w-2xl mx-auto px-4">
+            <div className="text-sm text-[#8c295c] bg-[#fff4fa] border border-[#f3b7d1] rounded-xl px-3 py-2 text-center">
+              {fullscreenError}
+            </div>
+          </div>
+        )}
+
+        {!isFullscreen && uploadPhotos.length > 0 && (
           <div className="flex flex-col gap-3 items-center mb-4 w-full max-w-md sm:max-w-lg">
             <div className="flex justify-start w-full mb-2 px-3 sm:px-4">
               <h3 className="m-0 text-[#d72688] text-base sm:text-lg font-semibold">
@@ -287,7 +433,7 @@ export default function Page() {
           </div>
         )}
 
-        {hasCompletedCapture && (
+        {!isFullscreen && hasCompletedCapture && (
           <div className="w-full max-w-2xl mx-auto px-4">
             <div className="bg-white/95 border border-pink-200 rounded-2xl shadow-sm p-4 sm:p-5">
               <p className="text-sm sm:text-base text-[#d72688] font-semibold text-center">
@@ -316,7 +462,7 @@ export default function Page() {
         )}
 
         {showCamera && (photos.length < layout || retakePhotoIndex !== null) && (
-          <div className="w-full max-w-2xl mx-auto px-4">
+          <div className={isFullscreen ? 'fixed inset-0 z-[60] bg-black' : 'w-full max-w-2xl mx-auto px-4'}>
             <Camera
               onCapture={handleCapture}
               photosToTake={retakePhotoIndex !== null ? 1 : layout - photos.length}
@@ -325,10 +471,16 @@ export default function Page() {
               frameColor="white"
               liveMode={liveMode}
               onToggleLiveMode={() => setLiveMode(!liveMode)}
+              onLiveVideoCapture={handleLiveVideoCapture}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
+              fullscreenMode={isFullscreen && isCaptureMode}
             />
           </div>
         )}
 
+        {!isFullscreen && (
+        <>
         <div
           style={{
             display: 'flex',
@@ -337,11 +489,11 @@ export default function Page() {
             justifyContent: 'center',
             marginTop: 16,
             alignItems: 'stretch',
-            paddingLeft: isMobile ? 12 : 16,
-            paddingRight: isMobile ? 12 : 16,
+            paddingLeft: isMobile ? 8 : 16,
+            paddingRight: isMobile ? 8 : 16,
             boxSizing: 'border-box',
             width: '100%',
-            maxWidth: 500,
+            maxWidth: isMobile ? '100%' : 500,
           }}
         >
           <label
@@ -434,13 +586,13 @@ export default function Page() {
           <div style={{
             marginTop: 8,
             padding: '8px 12px',
-            backgroundColor: '#ffebee',
-            color: '#c62828',
+            backgroundColor: '#fff4fa',
+            color: '#8c295c',
             borderRadius: 8,
             fontSize: 14,
             fontWeight: 500,
             textAlign: 'center',
-            border: '1px solid #ef9a9a',
+            border: '1px solid #f3b7d1',
           }}>
             {uploadError}
           </div>
@@ -457,39 +609,46 @@ export default function Page() {
             {`${photos.length} of ${layout} photos uploaded. Need ${layout - photos.length} more.`}
           </div>
         )}
+        </>
+        )}
       </main>
 
+      {!isFullscreen && (
       <footer
         style={{
           width: '100%',
           display: 'flex',
           justifyContent: 'center',
           background: 'transparent',
-          marginTop: 48,
+          marginTop: isMobile ? 24 : 48,
+          padding: isMobile ? '0 8px 16px' : undefined,
         }}
       >
         <div
           style={{
             background: '#fff',
             boxShadow: '0 2px 12px #fa75aa22',
-            padding: '14px 32px',
-            minWidth: 280,
+            padding: isMobile ? '12px 14px' : '14px 32px',
+            minWidth: isMobile ? 'auto' : 280,
             width: '100%',
+            maxWidth: isMobile ? '100%' : 760,
             textAlign: 'center',
-            fontSize: 13,
+            fontSize: isMobile ? 12 : 13,
             color: '#d72688',
             fontWeight: 500,
+            borderRadius: 12,
           }}
         >
-          <span style={{ fontSize: 14, color: '#b95b8e' }}>
+          <span style={{ fontSize: isMobile ? 12 : 14, color: '#b95b8e' }}>
             PhotoBooth - A digital photobooth app to capture, edit, and share photo strips.
           </span>
           <br />
-          <span style={{ fontSize: 16, color: '#d72688', fontWeight: 500 }}>
+          <span style={{ fontSize: isMobile ? 14 : 16, color: '#d72688', fontWeight: 500 }}>
             &copy; 2026 PhotoBooth
           </span>
         </div>
       </footer>
+      )}
 
     </>
   );

@@ -1,14 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import html2canvas from 'html2canvas';
-import { QRCodeCanvas } from 'qrcode.react';
 import CropModal from '@/components/CropModal';
 import PhotoPreview from '@/components/PhotoPreview';
 import PhotoEditor from '@/components/PhotoEditor';
-import UploadFrameTemplateModal from '@/components/UploadFrameTemplateModal';
 import PhotoResult from '@/components/PhotoResult';
 import {
   clearPhotosFromIndexedDB,
@@ -18,18 +15,78 @@ import {
 } from '@/lib/indexedDB';
 import { addGalleryItem, updateGalleryItemPublicUrl } from '@/lib/photoGallery';
 import {
+  clearTempLiveVideoUrlFromSessionStorage,
   clearTempPhotosFromSessionStorage,
+  loadTempLiveVideoUrlFromSessionStorage,
   loadTempPhotosFromSessionStorage,
   saveTempPhotosToSessionStorage,
 } from '@/lib/tempPhotoStorage';
 
-type FrameTemplate = { name: string; frameUrl: string; stickerUrl: string };
-type FrameTemplateForUI = { name: string; label: string; src: string; sticker?: string };
+type TemplateSlot = { x: number; y: number; width: number; height: number };
+type TemplateSettings = {
+  canvasWidth: number;
+  canvasHeight: number;
+  padding: number;
+  gap: number;
+  bottomSpace: number;
+  frameBorderRadius: number;
+  photoBorderRadius: number;
+  photoWidth: number;
+  photoHeight: number;
+  slotCount: number;
+  photoSlots: TemplateSlot[];
+};
+type FrameTemplate = { name: string; frameUrl: string; stickerUrl: string; settings?: TemplateSettings | null };
+type FrameTemplateForUI = { name: string; label: string; src: string; sticker?: string; settings?: TemplateSettings | null };
 type PersistedGallery = { id: string };
+
+const toFiniteNumber = (value: unknown, fallback: number) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const normalizeTemplateSettings = (value: unknown): TemplateSettings | null => {
+  if (!value || typeof value !== 'object') return null;
+
+  const raw = value as Partial<TemplateSettings>;
+  const canvasWidth = Math.max(1, Math.round(toFiniteNumber(raw.canvasWidth, 0)));
+  const canvasHeight = Math.max(1, Math.round(toFiniteNumber(raw.canvasHeight, 0)));
+  if (!canvasWidth || !canvasHeight) return null;
+
+  const normalizedSlots = Array.isArray(raw.photoSlots)
+    ? raw.photoSlots
+        .map(slot => {
+          if (!slot || typeof slot !== 'object') return null;
+          const x = Math.round(toFiniteNumber(slot.x, NaN));
+          const y = Math.round(toFiniteNumber(slot.y, NaN));
+          const width = Math.round(toFiniteNumber(slot.width, NaN));
+          const height = Math.round(toFiniteNumber(slot.height, NaN));
+          if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+            return null;
+          }
+          if (width <= 0 || height <= 0) return null;
+          return { x, y, width, height };
+        })
+        .filter((slot): slot is TemplateSlot => Boolean(slot))
+    : [];
+
+  return {
+    canvasWidth,
+    canvasHeight,
+    padding: Math.max(0, Math.round(toFiniteNumber(raw.padding, 20))),
+    gap: Math.max(0, Math.round(toFiniteNumber(raw.gap, 8))),
+    bottomSpace: Math.max(0, Math.round(toFiniteNumber(raw.bottomSpace, 0))),
+    frameBorderRadius: Math.max(0, Math.round(toFiniteNumber(raw.frameBorderRadius, 0))),
+    photoBorderRadius: Math.max(0, Math.round(toFiniteNumber(raw.photoBorderRadius, 0))),
+    photoWidth: Math.max(1, Math.round(toFiniteNumber(raw.photoWidth, 240))),
+    photoHeight: Math.max(1, Math.round(toFiniteNumber(raw.photoHeight, 180))),
+    slotCount: Math.max(1, Math.round(toFiniteNumber(raw.slotCount, Math.max(normalizedSlots.length, 1)))),
+    photoSlots: normalizedSlots,
+  };
+};
 
 export default function PhotoEditPage() {
   const router = useRouter();
-  const { data: session } = useSession();
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [layout, setLayout] = useState(4);
@@ -37,14 +94,11 @@ export default function PhotoEditPage() {
   const [filter, setFilter] = useState('none');
   const [frameColor, setFrameColor] = useState('white');
   const [bottomSpace, setBottomSpace] = useState(85);
-  const [showQR, setShowQR] = useState(false);
-  const [qrData, setQrData] = useState<string | null>(null);
   const [frameBorderRadius, setFrameBorderRadius] = useState(0);
   const [photoBorderRadius, setPhotoBorderRadius] = useState(11);
   const [stickers, setStickers] = useState<{ src: string; x: number; y: number; size: number; rotate?: number }[]>([]);
   const [photoGap, setPhotoGap] = useState(8);
   const [selectedFrameTemplate, setSelectedFrameTemplate] = useState('none');
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [frameTemplates, setFrameTemplates] = useState<FrameTemplateForUI[]>([]);
   const [showPhotoResult, setShowPhotoResult] = useState(false);
   const [photoResultData, setPhotoResultData] = useState<string | null>(null);
@@ -54,12 +108,25 @@ export default function PhotoEditPage() {
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [cropImageUrl, setCropImageUrl] = useState('');
   const [cropPhotoIndex, setCropPhotoIndex] = useState(0);
-  const [selectedCropIndex, setSelectedCropIndex] = useState(0);
+  const [capturedLiveVideoUrl, setCapturedLiveVideoUrl] = useState<string | null>(null);
   const latestGalleryItemRef = useRef<{ signature: string; id: string } | null>(null);
   const latestPersistedGalleryRef = useRef<{ signature: string; id: string } | null>(null);
+  const preTemplateAdjustRef = useRef<{
+    bottomSpace: number;
+    frameBorderRadius: number;
+    photoGap: number;
+    photoBorderRadius: number;
+  } | null>(null);
+  const wasTemplateModeRef = useRef(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedTemplateSettings = useMemo(() => {
+    if (selectedFrameTemplate === 'none') return null;
+    const selectedTemplate = frameTemplates.find(template => template.name === selectedFrameTemplate);
+    return selectedTemplate?.settings ?? null;
+  }, [frameTemplates, selectedFrameTemplate]);
 
   const isValidPhotoData = (value: string) =>
     typeof value === 'string' && value.startsWith('data:image/') && value.length > 1000;
@@ -70,6 +137,9 @@ export default function PhotoEditPage() {
     if (Number.isFinite(layoutParam) && layoutParam >= 1) {
       setLayout(layoutParam);
     }
+
+    const savedLiveVideoUrl = loadTempLiveVideoUrlFromSessionStorage();
+    setCapturedLiveVideoUrl(savedLiveVideoUrl);
   }, []);
 
   useEffect(() => {
@@ -84,6 +154,7 @@ export default function PhotoEditPage() {
             label: tpl.name,
             src: tpl.frameUrl || '',
             sticker: tpl.stickerUrl || '',
+            settings: normalizeTemplateSettings(tpl.settings),
           })),
         ];
         setFrameTemplates(templates);
@@ -130,6 +201,43 @@ export default function PhotoEditPage() {
   }, []);
 
   useEffect(() => {
+    const isTemplateMode = selectedFrameTemplate !== 'none';
+    const templatePreset = {
+      bottomSpace: selectedTemplateSettings?.bottomSpace ?? 0,
+      frameBorderRadius: selectedTemplateSettings?.frameBorderRadius ?? 0,
+      photoGap: selectedTemplateSettings?.gap ?? 8,
+      photoBorderRadius: selectedTemplateSettings?.photoBorderRadius ?? 0,
+    };
+
+    if (isTemplateMode) {
+      if (!wasTemplateModeRef.current) {
+        preTemplateAdjustRef.current = {
+          bottomSpace,
+          frameBorderRadius,
+          photoGap,
+          photoBorderRadius,
+        };
+      }
+      wasTemplateModeRef.current = true;
+
+      setBottomSpace(templatePreset.bottomSpace);
+      setFrameBorderRadius(templatePreset.frameBorderRadius);
+      setPhotoGap(templatePreset.photoGap);
+      setPhotoBorderRadius(templatePreset.photoBorderRadius);
+      return;
+    }
+
+    if (wasTemplateModeRef.current && preTemplateAdjustRef.current) {
+      setBottomSpace(preTemplateAdjustRef.current.bottomSpace);
+      setFrameBorderRadius(preTemplateAdjustRef.current.frameBorderRadius);
+      setPhotoGap(preTemplateAdjustRef.current.photoGap);
+      setPhotoBorderRadius(preTemplateAdjustRef.current.photoBorderRadius);
+      preTemplateAdjustRef.current = null;
+    }
+    wasTemplateModeRef.current = false;
+  }, [selectedFrameTemplate, selectedTemplateSettings, bottomSpace, frameBorderRadius, photoGap, photoBorderRadius]);
+
+  useEffect(() => {
     if (isIndexedDBSupported()) {
       savePhotosToIndexedDB(photos).catch(() => {
         // No-op: we keep UI usable even when persistence fails.
@@ -141,7 +249,6 @@ export default function PhotoEditPage() {
       saveTempPhotosToSessionStorage(photos);
     }
 
-    setSelectedCropIndex(prev => (prev > Math.max(photos.length - 1, 0) ? 0 : prev));
   }, [photos]);
 
   const handleRetakePhoto = async (index: number) => {
@@ -212,7 +319,9 @@ export default function PhotoEditPage() {
       await clearPhotosFromIndexedDB();
     }
     setPhotos([]);
+    setCapturedLiveVideoUrl(null);
     clearTempPhotosFromSessionStorage();
+    clearTempLiveVideoUrlFromSessionStorage();
     sessionStorage.setItem('photobooth-retake-reset', '1');
     router.push('/photo?retake=1');
   };
@@ -239,6 +348,13 @@ export default function PhotoEditPage() {
     const node = document.getElementById('strip');
     if (!node) return null;
 
+    const renderWidth = Number(node.getAttribute('data-render-width')) || 0;
+    const renderHeight = Number(node.getAttribute('data-render-height')) || 0;
+    const nodeRect = node.getBoundingClientRect();
+    const widthScale = renderWidth > 0 && nodeRect.width > 0 ? renderWidth / nodeRect.width : 1;
+    const heightScale = renderHeight > 0 && nodeRect.height > 0 ? renderHeight / nodeRect.height : 1;
+    const targetScale = Math.max(1, widthScale, heightScale);
+
     if (applyActiveFilter && filter && filter !== 'none') {
       const imgEls = node.querySelectorAll('img[alt^="photo-"]');
       await Promise.all(
@@ -262,11 +378,14 @@ export default function PhotoEditPage() {
     );
 
     node.classList.add('hide-resize-handle');
+    node.classList.add('hide-editor-overlay-controls');
     const canvas = await html2canvas(node, {
       useCORS: true,
       backgroundColor: null,
+      scale: (window.devicePixelRatio || 1) * targetScale,
     });
     node.classList.remove('hide-resize-handle');
+    node.classList.remove('hide-editor-overlay-controls');
 
     if (applyActiveFilter && filter && filter !== 'none') {
       const imgEls = node.querySelectorAll('img[alt^="photo-"]');
@@ -280,10 +399,50 @@ export default function PhotoEditPage() {
 
   const uploadStripToCloud = async (imageDataUrl: string): Promise<string | null> => {
     try {
+      // Use FormData path for better upload stability compared to large JSON base64 payloads.
+      const blobResponse = await fetch(imageDataUrl);
+      const blob = await blobResponse.blob();
+      const formData = new FormData();
+      formData.append('media', new File([blob], `strip-${Date.now()}.png`, { type: blob.type || 'image/png' }));
+      formData.append('kind', 'strip');
+
       const res = await fetch('/api/upload-strip', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return typeof data?.url === 'string' ? data.url : null;
+      }
+
+      // Fallback to legacy JSON upload path.
+      const fallbackRes = await fetch('/api/upload-strip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageDataUrl }),
+      });
+
+      if (!fallbackRes.ok) return null;
+      const fallbackData = await fallbackRes.json();
+      return typeof fallbackData?.url === 'string' ? fallbackData.url : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const uploadMediaBlobToCloud = async (blob: Blob, kind: 'gif' | 'live' | 'frame'): Promise<string | null> => {
+    try {
+      const extension = kind === 'gif' ? 'gif' : kind === 'live' ? 'webm' : 'png';
+      const mimeType = blob.type || (kind === 'gif' ? 'image/gif' : kind === 'live' ? 'video/webm' : 'image/png');
+      const file = new File([blob], `${kind}.${extension}`, { type: mimeType });
+      const formData = new FormData();
+      formData.append('media', file);
+      formData.append('kind', kind);
+
+      const res = await fetch('/api/upload-strip', {
+        method: 'POST',
+        body: formData,
       });
 
       if (!res.ok) return null;
@@ -294,16 +453,29 @@ export default function PhotoEditPage() {
     }
   };
 
-  const convertBlobToDataUrl = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
+  const uploadCaptureFramesToCloud = async (sources: string[]): Promise<string[]> => {
+    const uploaded: string[] = [];
+
+    for (const src of sources) {
+      if (typeof src !== 'string' || !src) continue;
+
+      try {
+        const response = await fetch(src);
+        if (!response.ok) continue;
+        const blob = await response.blob();
+        const url = await uploadMediaBlobToCloud(blob, 'frame');
+        if (url) {
+          uploaded.push(url);
+        }
+      } catch {
+        // Skip failed frames so process can continue for other photos.
+      }
+    }
+
+    return uploaded;
   };
 
-  const createGifAssets = async (): Promise<{ objectUrl: string; dataUrl: string } | null> => {
+  const createGifAssets = async (): Promise<{ objectUrl: string; blob: Blob } | null> => {
     if (photos.length === 0) return null;
 
     const GIF = (await import('gif.js')).default;
@@ -350,11 +522,10 @@ export default function PhotoEditPage() {
     });
 
     const objectUrl = URL.createObjectURL(blob);
-    const dataUrl = await convertBlobToDataUrl(blob);
-    return { objectUrl, dataUrl };
+    return { objectUrl, blob };
   };
 
-  const createLiveVideoAssets = async (): Promise<{ objectUrl: string; dataUrl: string } | null> => {
+  const createLiveVideoAssets = async (): Promise<{ objectUrl: string; blob: Blob } | null> => {
     if (photos.length === 0 || typeof MediaRecorder === 'undefined') return null;
 
     const candidateTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
@@ -444,8 +615,7 @@ export default function PhotoEditPage() {
       if (blob.size === 0) return null;
 
       const objectUrl = URL.createObjectURL(blob);
-      const dataUrl = await convertBlobToDataUrl(blob);
-      return { objectUrl, dataUrl };
+      return { objectUrl, blob };
     } catch {
       return null;
     }
@@ -474,14 +644,18 @@ export default function PhotoEditPage() {
 
   const persistStripToGalleryDatabase = async (params: {
     imageUrl: string;
-    previewDataUrl: string;
-    stripDataUrl: string;
-    gifDataUrl: string | null;
-    liveVideoDataUrl: string | null;
-    photoFrames: string[];
-    livePhotos: string[];
+    previewDataUrl?: string | null;
+    gifDataUrl?: string | null;
+    liveVideoDataUrl?: string | null;
+    photoFrames?: string[];
+    livePhotos?: string[];
+    title?: string;
   }): Promise<PersistedGallery | null> => {
-    const signature = `${params.stripDataUrl.length}-${params.stripDataUrl.slice(0, 120)}`;
+    if (!params.imageUrl || params.imageUrl.startsWith('data:image/')) {
+      return null;
+    }
+
+    const signature = `${params.imageUrl.length}-${params.imageUrl.slice(0, 120)}`;
     if (latestPersistedGalleryRef.current?.signature === signature) {
       return { id: latestPersistedGalleryRef.current.id };
     }
@@ -492,12 +666,12 @@ export default function PhotoEditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: params.imageUrl,
-          previewDataUrl: params.previewDataUrl,
-          stripDataUrl: params.stripDataUrl,
-          gifDataUrl: params.gifDataUrl,
-          liveVideoDataUrl: params.liveVideoDataUrl,
-          photoFrames: params.photoFrames,
-          livePhotos: params.livePhotos,
+          previewDataUrl: params.previewDataUrl ?? null,
+          gifDataUrl: params.gifDataUrl ?? null,
+          liveVideoDataUrl: params.liveVideoDataUrl ?? null,
+          photoFrames: params.photoFrames ?? [],
+          livePhotos: params.livePhotos ?? [],
+          title: params.title ?? 'Photo Strip',
           layout,
           filter,
         }),
@@ -522,16 +696,18 @@ export default function PhotoEditPage() {
       const uploadedUrl = await uploadStripToCloud(dataUrl);
       saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
       const gifAssets = await createGifAssets();
-      const liveVideoAssets = await createLiveVideoAssets();
+      const liveVideoAssets = capturedLiveVideoUrl ? null : await createLiveVideoAssets();
+      const uploadedGifUrl = gifAssets?.blob ? await uploadMediaBlobToCloud(gifAssets.blob, 'gif') : null;
+      const uploadedLiveUrl = capturedLiveVideoUrl ?? (liveVideoAssets?.blob ? await uploadMediaBlobToCloud(liveVideoAssets.blob, 'live') : null);
+      const uploadedFrameUrls = await uploadCaptureFramesToCloud(photos);
 
       await persistStripToGalleryDatabase({
         imageUrl: uploadedUrl ?? dataUrl,
-        previewDataUrl: dataUrl,
-        stripDataUrl: dataUrl,
-        gifDataUrl: gifAssets?.dataUrl ?? null,
-        liveVideoDataUrl: liveVideoAssets?.dataUrl ?? null,
-        photoFrames: photos,
-        livePhotos: photos,
+        previewDataUrl: uploadedUrl ?? null,
+        gifDataUrl: uploadedGifUrl,
+        liveVideoDataUrl: uploadedLiveUrl,
+        photoFrames: uploadedFrameUrls,
+        livePhotos: uploadedFrameUrls,
       });
 
       if (liveVideoAssets?.objectUrl) {
@@ -541,45 +717,6 @@ export default function PhotoEditPage() {
       setPhotoResultData(dataUrl);
       setPhotoResultGifUrl(gifAssets?.objectUrl);
       setShowPhotoResult(true);
-    } finally {
-      setIsLoadingResult(false);
-    }
-  };
-
-  const handleShowQR = async () => {
-    setIsLoadingResult(true);
-    try {
-      const dataUrl = await buildStripDataUrl(false);
-      if (!dataUrl) return;
-
-      const uploadedUrl = await uploadStripToCloud(dataUrl);
-      const galleryItemId = saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
-      const gifAssets = await createGifAssets();
-      const liveVideoAssets = await createLiveVideoAssets();
-
-      const persisted = await persistStripToGalleryDatabase({
-        imageUrl: uploadedUrl ?? dataUrl,
-        previewDataUrl: dataUrl,
-        stripDataUrl: dataUrl,
-        gifDataUrl: gifAssets?.dataUrl ?? null,
-        liveVideoDataUrl: liveVideoAssets?.dataUrl ?? null,
-        photoFrames: photos,
-        livePhotos: photos,
-      });
-
-      if (gifAssets?.objectUrl) {
-        URL.revokeObjectURL(gifAssets.objectUrl);
-      }
-
-      if (liveVideoAssets?.objectUrl) {
-        URL.revokeObjectURL(liveVideoAssets.objectUrl);
-      }
-
-      const galleryItemLink = persisted?.id
-        ? `${window.location.origin}/photo/gallery/${persisted.id}`
-        : `${window.location.origin}/photo/gallery?item=${galleryItemId}`;
-      setQrData(galleryItemLink);
-      setShowQR(true);
     } finally {
       setIsLoadingResult(false);
     }
@@ -597,16 +734,18 @@ export default function PhotoEditPage() {
       saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
 
       const gifAssets = await createGifAssets();
-      const liveVideoAssets = await createLiveVideoAssets();
+      const liveVideoAssets = capturedLiveVideoUrl ? null : await createLiveVideoAssets();
+      const uploadedGifUrl = gifAssets?.blob ? await uploadMediaBlobToCloud(gifAssets.blob, 'gif') : null;
+      const uploadedLiveUrl = capturedLiveVideoUrl ?? (liveVideoAssets?.blob ? await uploadMediaBlobToCloud(liveVideoAssets.blob, 'live') : null);
+      const uploadedFrameUrls = await uploadCaptureFramesToCloud(photos);
 
       const persisted = await persistStripToGalleryDatabase({
         imageUrl: uploadedUrl ?? dataUrl,
-        previewDataUrl: dataUrl,
-        stripDataUrl: dataUrl,
-        gifDataUrl: gifAssets?.dataUrl ?? null,
-        liveVideoDataUrl: liveVideoAssets?.dataUrl ?? null,
-        photoFrames: photos,
-        livePhotos: photos,
+        previewDataUrl: uploadedUrl ?? null,
+        gifDataUrl: uploadedGifUrl,
+        liveVideoDataUrl: uploadedLiveUrl,
+        photoFrames: uploadedFrameUrls,
+        livePhotos: uploadedFrameUrls,
       });
 
       if (gifAssets?.objectUrl) {
@@ -618,6 +757,7 @@ export default function PhotoEditPage() {
       }
 
       if (persisted?.id) {
+        clearTempLiveVideoUrlFromSessionStorage();
         router.push(`/photo/gallery/${persisted.id}`);
       } else {
         alert('Gagal membuat ID gallery. Silakan coba lagi.');
@@ -629,14 +769,9 @@ export default function PhotoEditPage() {
     }
   };
 
-  const handleCloseQR = () => {
-    setShowQR(false);
-    setQrData(null);
-  };
-
   if (isLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 px-4">
+      <main className="pb-page-bg min-h-screen flex items-center justify-center px-4">
         <p className="text-[#d72688] font-semibold">Memuat editor...</p>
       </main>
     );
@@ -644,8 +779,8 @@ export default function PhotoEditPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 px-4">
-        <p className="text-red-600 font-medium text-center">{error}</p>
+      <main className="pb-page-bg min-h-screen flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-[#c43779] font-medium text-center">{error}</p>
         <button
           onClick={() => router.push('/photo')}
           className="px-5 py-2 rounded-xl bg-[#fa75aa] text-white hover:bg-[#e35d95] transition"
@@ -658,13 +793,7 @@ export default function PhotoEditPage() {
 
   return (
     <>
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[9999] p-4">
-          <UploadFrameTemplateModal onClose={() => setShowUploadModal(false)} />
-        </div>
-      )}
-
-      <main className="min-h-screen flex flex-col items-center justify-center gap-6 py-8 px-4 bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+      <main className="pb-page-bg min-h-screen flex flex-col items-center justify-center gap-6 py-8 px-4">
         <h1 className="text-3xl sm:text-4xl font-bold text-[#d72688] text-center">PhotoBooth Editor</h1>
         <p className="text-gray-600 text-sm">{photos.length}/{layout} foto siap untuk diedit</p>
 
@@ -680,7 +809,7 @@ export default function PhotoEditPage() {
           </div>
         ) : (
           <div className="strip-controls-wrapper">
-            <div style={{ flex: 2, minWidth: 0 }}>
+            <div className="strip-preview-panel" style={{ minWidth: 0 }}>
               <PhotoPreview
                 photos={photos}
                 filter={filter}
@@ -696,16 +825,16 @@ export default function PhotoEditPage() {
                 gap={photoGap}
                 frameTemplates={frameTemplates}
                 selectedFrameTemplate={selectedFrameTemplate}
+                selectedTemplateSettings={selectedTemplateSettings}
                 onRetake={handleRetakePhoto}
+                onCrop={handleOpenCrop}
               />
             </div>
 
             <div
               className="photo-editor-panel"
               style={{
-                flex: 1,
                 minWidth: 0,
-                maxWidth: 900,
                 position: 'sticky',
                 top: 32,
               }}
@@ -733,51 +862,9 @@ export default function PhotoEditPage() {
                 photoBorderRadius={photoBorderRadius}
                 onChangePhotoBorderRadius={setPhotoBorderRadius}
                 onResetDefault={handleResetDefault}
-                onShowUploadModal={() => setShowUploadModal(true)}
-                userRole={session?.user?.role}
               />
 
               <div className="photo-editor-actions" style={{ marginTop: 24 }}>
-                <div style={{ width: '100%', marginBottom: 8 }}>
-                  <div style={{ color: '#d72688', fontWeight: 600, marginBottom: 6, fontSize: 14 }}>Crop Photo</div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <select
-                      value={selectedCropIndex}
-                      onChange={e => setSelectedCropIndex(Number(e.target.value))}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: 10,
-                        border: '1px solid #fa75aa',
-                        color: '#d72688',
-                        background: '#fff',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {photos.map((_, idx) => (
-                        <option key={idx} value={idx}>
-                          Photo {idx + 1}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => handleOpenCrop(selectedCropIndex)}
-                      style={{
-                        padding: '10px 16px',
-                        backgroundColor: '#fa75aa',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 10,
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Crop
-                    </button>
-                  </div>
-                </div>
-
                 <button
                   onClick={handleRetakeAll}
                   style={{
@@ -809,21 +896,6 @@ export default function PhotoEditPage() {
                   Download Strip
                 </button>
                 <button
-                  onClick={handleShowQR}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#fa75aa',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                  }}
-                >
-                  QR Code
-                </button>
-                <button
                   onClick={handleSaveGallery}
                   disabled={isSavingGallery}
                   style={{
@@ -840,145 +912,8 @@ export default function PhotoEditPage() {
                 >
                   {isSavingGallery ? 'Menyimpan...' : 'Simpan Gallery'}
                 </button>
-                <button
-                  onClick={async () => {
-                    const node = document.getElementById('strip');
-                    if (!node) return;
-                    let win: Window | null = null;
-                    try {
-                      win = window.open('');
-                    } catch {
-                      win = null;
-                    }
-                    if (!win) {
-                      alert('Popup blocked! Please allow popups for this site to print.');
-                      return;
-                    }
-                    node.classList.add('hide-resize-handle');
-                    const canvas = await html2canvas(node, { useCORS: true, backgroundColor: null });
-                    node.classList.remove('hide-resize-handle');
-                    const dataUrl = canvas.toDataURL('image/png');
-                    const mmWidth = 297 - 25;
-                    const mmHeight = 210 - 25;
-                    try {
-                      win.document.write(`
-<html>
-  <head>
-    <title>Print Photo Strip</title>
-    <style>
-      @media print {
-        @page {
-          size: A4 landscape;
-          margin: 12mm;
-        }
-        html, body {
-          width: 100%;
-          height: 100%;
-          margin: 0;
-          padding: 0;
-          background: #fff;
-          text-align: left !important;
-        }
-        img {
-          display: block;
-          margin: 0 !important;
-          width: ${mmWidth}mm !important;
-          height: ${mmHeight}mm !important;
-          max-width: none !important;
-          max-height: none !important;
-          object-fit: contain;
-        }
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        background: #fff;
-        text-align: left !important;
-      }
-    </style>
-  </head>
-  <body>
-    <img src="${dataUrl}" style="width:${mmWidth}mm;height:${mmHeight}mm;display:block;margin:0;" />
-    <script>
-      window.onload = function(){
-        try { window.print(); } catch(e){}
-      }
-    </script>
-  </body>
-</html>
-`);
-                      win.document.close();
-                    } catch {
-                      win.location.href = dataUrl;
-                    }
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#fa75aa',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '24px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Print
-                </button>
               </div>
             </div>
-
-            {showQR && qrData && (
-              <div
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'rgba(0,0,0,0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1000,
-                }}
-                onClick={handleCloseQR}
-              >
-                <div
-                  style={{
-                    background: '#fff',
-                    padding: 32,
-                    borderRadius: 16,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 16,
-                    minWidth: 320,
-                  }}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <h2 style={{ margin: 0, color: '#111' }}>Scan QR to Download</h2>
-                  <QRCodeCanvas value={qrData} size={220} />
-                  <button
-                    onClick={handleCloseQR}
-                    style={{
-                      marginTop: 16,
-                      padding: '8px 24px',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: '#ff1744',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      fontSize: 16,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            )}
 
             {showPhotoResult && photoResultData && (
               <div
@@ -988,7 +923,8 @@ export default function PhotoEditPage() {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  background: 'rgba(0,0,0,0.5)',
+                  background: 'rgba(250,117,170,0.22)',
+                  backdropFilter: 'blur(2px)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1001,7 +937,8 @@ export default function PhotoEditPage() {
                     background: '#fff',
                     padding: 24,
                     borderRadius: 16,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                    border: '1px solid #f3b7d1',
+                    boxShadow: '0 16px 40px rgba(250,117,170,0.2)',
                     minWidth: 340,
                     maxWidth: 420,
                     maxHeight: '90vh',
@@ -1031,7 +968,8 @@ export default function PhotoEditPage() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'rgba(250,117,170,0.22)',
+            backdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1043,7 +981,8 @@ export default function PhotoEditPage() {
               background: '#fff',
               padding: 32,
               borderRadius: 16,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+              border: '1px solid #f3b7d1',
+              boxShadow: '0 16px 40px rgba(250,117,170,0.2)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',

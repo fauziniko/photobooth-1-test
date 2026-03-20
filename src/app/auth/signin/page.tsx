@@ -39,9 +39,9 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+    <div className="pb-page-bg min-h-screen flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 lg:p-10">
+        <div className="pb-card p-6 sm:p-8 lg:p-10">
           <div className="text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-[#fa75aa] mb-3 sm:mb-4">
               <LogIn className="h-5 w-5 text-white" />
@@ -55,10 +55,10 @@ export default function SignInPage() {
           </div>
 
           {error && (
-            <div className="mt-4 sm:mt-6 rounded-lg bg-red-50 border border-red-200 p-3 sm:p-4">
+            <div className="pb-alert mt-4 sm:mt-6 p-3 sm:p-4">
               <div className="flex">
-                <AlertCircle className="h-4 w-4 text-red-400 mr-2 flex-shrink-0" />
-                <div className="text-xs sm:text-sm text-red-700">{error}</div>
+                <AlertCircle className="h-4 w-4 text-[#d72688] mr-2 flex-shrink-0" />
+                <div className="text-xs sm:text-sm text-[#8c295c]">{error}</div>
               </div>
             </div>
           )}
@@ -81,7 +81,7 @@ export default function SignInPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fa75aa] focus:border-transparent transition duration-150 ease-in-out"
+                    className="pb-input appearance-none block w-full pl-10 pr-3 py-2.5 text-sm rounded-lg placeholder-gray-400 transition duration-150 ease-in-out"
                     placeholder="admin@photobooth.com"
                   />
                 </div>
@@ -103,7 +103,7 @@ export default function SignInPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fa75aa] focus:border-transparent transition duration-150 ease-in-out"
+                    className="pb-input appearance-none block w-full pl-10 pr-3 py-2.5 text-sm rounded-lg placeholder-gray-400 transition duration-150 ease-in-out"
                     placeholder="••••••••"
                   />
                 </div>
@@ -114,7 +114,7 @@ export default function SignInPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-2.5 sm:py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#d72688] hover:bg-[#b61f72] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#fa75aa] disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out"
+                className="pb-btn-primary group relative w-full flex justify-center py-2.5 sm:py-3 px-4 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#fa75aa] disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out"
               >
                 {loading ? (
                   <span className="flex items-center">
@@ -130,10 +130,10 @@ export default function SignInPage() {
               </button>
             </div>
 
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 sm:p-4">
-              <p className="text-xs font-medium text-blue-800 mb-1">Demo Credentials:</p>
-              <p className="text-xs text-blue-700">Email: admin@photobooth.com</p>
-              <p className="text-xs text-blue-700">Password: admin123</p>
+            <div className="rounded-lg bg-[#fff4fa] border border-[#f3b7d1] p-3 sm:p-4">
+              <p className="text-xs font-medium text-[#8c295c] mb-1">Demo Credentials:</p>
+              <p className="text-xs text-[#a83f72]">Email: admin@photobooth.com</p>
+              <p className="text-xs text-[#a83f72]">Password: admin123</p>
             </div>
           </form>
 
@@ -152,7 +152,7 @@ export default function SignInPage() {
             <div className="mt-4 sm:mt-6">
               <Link
                 href="/auth/signup"
-                className="w-full flex justify-center py-2.5 sm:py-3 px-4 border border-[#fa75aa] rounded-lg text-sm font-medium text-[#fa75aa] bg-white hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#fa75aa] transition duration-150 ease-in-out"
+                className="pb-btn-soft w-full flex justify-center py-2.5 sm:py-3 px-4 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#fa75aa] transition duration-150 ease-in-out"
               >
                 Create Account
               </Link>

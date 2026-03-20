@@ -11,26 +11,77 @@ const minioClient = new Client({
 
 const BUCKET = process.env.MINIO_BUCKET;
 
+const RETRIABLE_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'EPIPE', 'ECONNABORTED']);
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function putObjectWithRetry(bucket, filename, buffer, meta, maxAttempts = 3) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await minioClient.putObject(bucket, filename, buffer, meta);
+      return;
+    } catch (error) {
+      lastError = error;
+      const code = error?.code;
+      const canRetry = RETRIABLE_CODES.has(code) && attempt < maxAttempts;
+
+      if (!canRetry) {
+        throw error;
+      }
+
+      console.warn(`⚠️ MinIO upload retry ${attempt}/${maxAttempts} for ${filename}: ${code}`);
+      await delay(250 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 export async function POST(req) {
   try {
     const contentType = req.headers.get('content-type');
     let buffer;
     let filename;
+    let objectContentType = 'image/png';
 
     // Support both JSON (base64) and FormData (blob) uploads
     if (contentType?.includes('multipart/form-data')) {
       // FormData upload
       const formData = await req.formData();
-      const stripFile = formData.get('strip');
+      const kindRaw = String(formData.get('kind') || 'strip').toLowerCase();
+      const kind = ['strip', 'gif', 'live', 'frame'].includes(kindRaw) ? kindRaw : 'strip';
+      const mediaFile = formData.get('strip') || formData.get('media');
       
-      if (!stripFile) {
-        return NextResponse.json({ error: 'No strip file provided' }, { status: 400 });
+      if (!mediaFile) {
+        return NextResponse.json({ error: 'No media file provided' }, { status: 400 });
+      }
+
+      const detectedType = typeof mediaFile.type === 'string' ? mediaFile.type : '';
+      let extension = '.png';
+      if (kind === 'gif') {
+        extension = '.gif';
+      } else if (kind === 'live') {
+        extension = '.webm';
+      } else if (detectedType.includes('jpeg')) {
+        extension = '.jpg';
+      }
+
+      if (detectedType) {
+        objectContentType = detectedType;
+      } else if (kind === 'gif') {
+        objectContentType = 'image/gif';
+      } else if (kind === 'live') {
+        objectContentType = 'video/webm';
+      } else if (kind === 'frame') {
+        objectContentType = 'image/png';
       }
       
-      buffer = Buffer.from(await stripFile.arrayBuffer());
-      filename = `strip_${Date.now()}.png`;
+      buffer = Buffer.from(await mediaFile.arrayBuffer());
+      filename = `${kind}_${Date.now()}${extension}`;
       
-      console.log('📤 Uploading photo strip from FormData:', filename);
+      console.log(`📤 Uploading media from FormData (${kind}):`, filename);
     } else {
       // JSON base64 upload (legacy support)
       const { image } = await req.json();
@@ -53,9 +104,9 @@ export async function POST(req) {
       await minioClient.makeBucket(BUCKET);
     }
 
-    // Upload ke MinIO
-    await minioClient.putObject(BUCKET, filename, buffer, {
-      'Content-Type': 'image/png',
+    // Upload ke MinIO with retry for transient network resets
+    await putObjectWithRetry(BUCKET, filename, buffer, {
+      'Content-Type': objectContentType,
     });
 
     // URL public (hanya domain MinIO + bucket + filename)

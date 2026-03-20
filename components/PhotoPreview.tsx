@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 
 interface Sticker {
@@ -7,6 +7,27 @@ interface Sticker {
   y: number;
   size: number;
   rotate?: number;
+}
+
+interface TemplateSlot {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface TemplateSettings {
+  canvasWidth: number;
+  canvasHeight: number;
+  padding?: number;
+  gap?: number;
+  bottomSpace?: number;
+  frameBorderRadius?: number;
+  photoBorderRadius?: number;
+  photoWidth?: number;
+  photoHeight?: number;
+  slotCount?: number;
+  photoSlots?: TemplateSlot[];
 }
 
 interface Props {
@@ -22,10 +43,31 @@ interface Props {
   onRotateSticker?: (idx: number, delta: number) => void;
   onDeleteSticker?: (idx: number) => void;
   gap?: number;
-  frameTemplates: { name: string; src: string; sticker?: string }[];
+  frameTemplates: { name: string; src: string; sticker?: string; settings?: TemplateSettings | null }[];
   selectedFrameTemplate: string;
+  selectedTemplateSettings?: TemplateSettings | null;
   onRetake?: (idx: number) => void;
+  onCrop?: (idx: number) => void;
 }
+
+const TEMPLATE_CANVAS = {
+  padding: 20,
+  gap: 8,
+  photoWidth: 240,
+  photoHeight: 180,
+  photoCount: 4,
+  bottomSpace: 0,
+  frameBorderRadius: 0,
+  photoBorderRadius: 0,
+};
+
+const TEMPLATE_STRIP_WIDTH = TEMPLATE_CANVAS.padding * 2 + TEMPLATE_CANVAS.photoWidth;
+const TEMPLATE_STRIP_HEIGHT =
+  TEMPLATE_CANVAS.padding * 2 +
+  TEMPLATE_CANVAS.photoHeight * TEMPLATE_CANVAS.photoCount +
+  TEMPLATE_CANVAS.gap * (TEMPLATE_CANVAS.photoCount - 1);
+
+const PHOTO_PAN_SCALE = 1.18;
 
 export default function PhotoPreview({
   photos,
@@ -42,12 +84,24 @@ export default function PhotoPreview({
   gap = 8,
   frameTemplates,
   selectedFrameTemplate,
+  selectedTemplateSettings,
   onRetake,
+  onCrop,
 }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [resizeIdx, setResizeIdx] = useState<number | null>(null);
   const [touchOffset, setTouchOffset] = useState<{ x: number; y: number } | null>(null);
   const [resizeStart, setResizeStart] = useState<{ startX: number; startY: number; startSize: number } | null>(null);
+  const [photoPanOffsets, setPhotoPanOffsets] = useState<Record<number, { x: number; y: number }>>({});
+  const photoDragState = useRef<{
+    idx: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    maxX: number;
+    maxY: number;
+  } | null>(null);
 
   // Untuk long press
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -187,6 +241,63 @@ export default function PhotoPreview({
     setResizeStart(null);
   };
 
+  const handlePhotoDragMove = useCallback((event: PointerEvent) => {
+    const state = photoDragState.current;
+    if (!state) return;
+
+    const dx = event.clientX - state.startX;
+    const dy = event.clientY - state.startY;
+
+    const nextX = Math.max(-state.maxX, Math.min(state.maxX, state.originX + dx));
+    const nextY = Math.max(-state.maxY, Math.min(state.maxY, state.originY + dy));
+
+    setPhotoPanOffsets(prev => ({
+      ...prev,
+      [state.idx]: { x: nextX, y: nextY },
+    }));
+  }, []);
+
+  const stopPhotoDrag = useCallback(() => {
+    photoDragState.current = null;
+    window.removeEventListener('pointermove', handlePhotoDragMove);
+    window.removeEventListener('pointerup', stopPhotoDrag);
+    window.removeEventListener('pointercancel', stopPhotoDrag);
+  }, [handlePhotoDragMove]);
+
+  const startPhotoDrag = useCallback(
+    (idx: number, slot?: TemplateSlot) => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!slot) return;
+      if ((event.target as HTMLElement).closest('.frame-action-controls')) return;
+
+      event.preventDefault();
+
+      const current = photoPanOffsets[idx] ?? { x: 0, y: 0 };
+      const maxX = Math.max(0, (slot.width * PHOTO_PAN_SCALE - slot.width) / 2);
+      const maxY = Math.max(0, (slot.height * PHOTO_PAN_SCALE - slot.height) / 2);
+
+      photoDragState.current = {
+        idx,
+        startX: event.clientX,
+        startY: event.clientY,
+        originX: current.x,
+        originY: current.y,
+        maxX,
+        maxY,
+      };
+
+      window.addEventListener('pointermove', handlePhotoDragMove);
+      window.addEventListener('pointerup', stopPhotoDrag);
+      window.addEventListener('pointercancel', stopPhotoDrag);
+    },
+    [handlePhotoDragMove, photoPanOffsets, stopPhotoDrag]
+  );
+
+  useEffect(() => {
+    return () => {
+      stopPhotoDrag();
+    };
+  }, [stopPhotoDrag]);
+
   // Drag sticker (move)
   const handleMouseDown = (idx: number) => (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
@@ -208,13 +319,68 @@ export default function PhotoPreview({
   // Cari sticker url dari template yang dipilih
   const selectedTemplate = frameTemplates.find(t => t.name === selectedFrameTemplate);
   const stickerUrl = selectedTemplate?.sticker;
+  const isTemplateMode = selectedFrameTemplate !== 'none' && Boolean(selectedTemplate?.src);
+  const templateSettings = selectedTemplateSettings ?? selectedTemplate?.settings ?? null;
+
+  const normalizeTemplateSlot = (value: TemplateSlot): TemplateSlot | null => {
+    const x = Number(value?.x);
+    const y = Number(value?.y);
+    const width = Number(value?.width);
+    const height = Number(value?.height);
+
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+      return null;
+    }
+
+    if (width <= 0 || height <= 0) return null;
+    return { x, y, width, height };
+  };
+
+  const templateSlots = Array.isArray(templateSettings?.photoSlots)
+    ? templateSettings.photoSlots.map(slot => normalizeTemplateSlot(slot)).filter((slot): slot is TemplateSlot => Boolean(slot))
+    : [];
+
+  // Template admin dibuat dengan ukuran canvas tetap, jadi preview perlu ikut ukuran itu agar slot foto sejajar.
+  const effectiveGap = isTemplateMode ? Number(templateSettings?.gap ?? TEMPLATE_CANVAS.gap) : gap;
+  const effectiveBottomSpace = isTemplateMode ? Number(templateSettings?.bottomSpace ?? TEMPLATE_CANVAS.bottomSpace) : bottomSpace;
+  const effectiveStripPadding = isTemplateMode ? Number(templateSettings?.padding ?? TEMPLATE_CANVAS.padding) : 20;
+  const effectivePhotoWidth = isTemplateMode ? Number(templateSettings?.photoWidth ?? TEMPLATE_CANVAS.photoWidth) : 240;
+  const effectivePhotoHeight = isTemplateMode ? Number(templateSettings?.photoHeight ?? TEMPLATE_CANVAS.photoHeight) : 180;
+  const effectiveFrameBorderRadius = isTemplateMode
+    ? Number(templateSettings?.frameBorderRadius ?? TEMPLATE_CANVAS.frameBorderRadius)
+    : frameBorderRadius;
+  const effectivePhotoBorderRadius = isTemplateMode
+    ? Number(templateSettings?.photoBorderRadius ?? TEMPLATE_CANVAS.photoBorderRadius)
+    : photoBorderRadius;
+  const effectiveStripWidth = isTemplateMode
+    ? Number(templateSettings?.canvasWidth ?? TEMPLATE_STRIP_WIDTH)
+    : effectivePhotoWidth + effectiveStripPadding * 2;
+  const effectiveStripHeight = isTemplateMode
+    ? Number(templateSettings?.canvasHeight ?? TEMPLATE_STRIP_HEIGHT)
+    : effectiveStripPadding * 2 + photos.length * effectivePhotoHeight + Math.max(0, photos.length - 1) * effectiveGap + effectiveBottomSpace;
+
+  const fallbackTemplateSlots: TemplateSlot[] = isTemplateMode
+    ? Array.from({ length: Math.max(photos.length, Number(templateSettings?.slotCount ?? photos.length)) }, (_, index) => {
+        const x = (effectiveStripWidth - effectivePhotoWidth) / 2;
+        const y = effectiveStripPadding + index * (effectivePhotoHeight + effectiveGap);
+        return {
+          x: Math.max(0, Math.round(x)),
+          y: Math.max(0, Math.round(y)),
+          width: Math.round(effectivePhotoWidth),
+          height: Math.round(effectivePhotoHeight),
+        };
+      })
+    : [];
+
+  const effectiveTemplateSlots = templateSlots.length > 0 ? templateSlots : fallbackTemplateSlots;
+  const hasTemplateSlots = isTemplateMode && effectiveTemplateSlots.length > 0;
 
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: gap,
+        gap: effectiveGap,
         alignItems: 'center',
         width: '100%',
       }}
@@ -227,15 +393,19 @@ export default function PhotoPreview({
     >
       <div
         id="strip"
+        data-render-width={Math.round(effectiveStripWidth)}
+        data-render-height={Math.round(effectiveStripHeight)}
         style={{
           backgroundColor: frameColor,
-          padding: 20,
-          borderRadius: frameBorderRadius,
+          padding: effectiveStripPadding,
+          borderRadius: effectiveFrameBorderRadius,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: gap,
+          gap: effectiveGap,
           boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          width: effectiveStripWidth,
+          height: effectiveStripHeight,
           maxWidth: '90vw',
           position: 'relative',
           overflow: 'hidden',
@@ -248,7 +418,8 @@ export default function PhotoPreview({
             alt="Frame Template"
             fill
             style={{
-              objectFit: 'cover',
+              objectFit: 'contain',
+              pointerEvents: 'none',
               zIndex: 1,
             }}
           />
@@ -259,7 +430,8 @@ export default function PhotoPreview({
             alt="Sticker"
             fill
             style={{
-              objectFit: 'cover',
+              objectFit: 'contain',
+              pointerEvents: 'none',
               zIndex: 2,
             }}
           />
@@ -268,60 +440,135 @@ export default function PhotoPreview({
         {/* Foto-foto di atas frame dan sticker */}
         <div
           style={{
-            position: 'relative',
+            position: hasTemplateSlots ? 'absolute' : 'relative',
+            inset: hasTemplateSlots ? 0 : undefined,
             zIndex: 1,
             width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: gap,
-            alignItems: 'center',
+            height: hasTemplateSlots ? '100%' : undefined,
+            display: hasTemplateSlots ? 'block' : 'flex',
+            flexDirection: hasTemplateSlots ? undefined : 'column',
+            gap: hasTemplateSlots ? undefined : effectiveGap,
+            alignItems: hasTemplateSlots ? undefined : 'center',
           }}
         >
-          {photos.map((src, i) => (
-            <div key={i} style={{ position: 'relative', width: 240, height: 180, margin: '0 auto' }}>
+          {photos.map((src, i) => {
+            const slot = effectiveTemplateSlots[i];
+            const hasSlot = Boolean(slot);
+            const photoOffset = photoPanOffsets[i] ?? { x: 0, y: 0 };
+            return (
+            <div
+              key={i}
+              style={
+                hasSlot
+                  ? {
+                      position: 'absolute',
+                      left: slot!.x,
+                      top: slot!.y,
+                      width: slot!.width,
+                      height: slot!.height,
+                      overflow: 'hidden',
+                      cursor: 'grab',
+                      touchAction: 'none',
+                    }
+                  : {
+                      position: 'relative',
+                      width: effectivePhotoWidth,
+                      height: effectivePhotoHeight,
+                      margin: '0 auto',
+                    }
+              }
+            >
               <Image
                 src={src}
                 alt={`photo-${i}`}
-                width={240}
-                height={180}
+                width={hasSlot ? slot!.width : effectivePhotoWidth}
+                height={hasSlot ? slot!.height : effectivePhotoHeight}
+                onPointerDown={hasSlot ? startPhotoDrag(i, slot) : undefined}
                 style={{
                   filter,
                   objectFit: 'cover',
-                  borderRadius: photoBorderRadius,
+                  position: hasSlot ? 'absolute' : 'relative',
+                  left: hasSlot ? '50%' : undefined,
+                  top: hasSlot ? '50%' : undefined,
+                  width: hasSlot ? `${PHOTO_PAN_SCALE * 100}%` : undefined,
+                  height: hasSlot ? `${PHOTO_PAN_SCALE * 100}%` : undefined,
+                  transform: hasSlot
+                    ? `translate(calc(-50% + ${photoOffset.x}px), calc(-50% + ${photoOffset.y}px))`
+                    : undefined,
+                  borderRadius: effectivePhotoBorderRadius,
                   display: 'block',
                   zIndex: 1,
                 }}
               />
-              {onRetake && (
-                <button
-                  onClick={() => onRetake(i)}
+              {(onRetake || onCrop) && (
+                <div
+                  className="frame-action-controls"
                   style={{
                     position: 'absolute',
                     top: 6,
                     right: 6,
-                    background: '#fff',
-                    border: '1.5px solid #fa75aa',
-                    borderRadius: '50%',
-                    width: 22,
-                    height: 22,
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 4px #fa75aa22',
+                    gap: 6,
                     zIndex: 2,
-                    padding: 0,
                   }}
-                  title="Retake Photo"
                 >
-                  {/* Icon retake (refresh/rotate arrow) */}
-                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
-                    <path d="M16.5 7.5A6.5 6.5 0 1 0 17 10M16.5 7.5V4M16.5 7.5H13.5" stroke="#d72688" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
+                  {onCrop && (
+                    <button
+                      className="frame-action-control"
+                      onClick={() => onCrop(i)}
+                      style={{
+                        background: '#fff',
+                        border: '1.5px solid #fa75aa',
+                        borderRadius: '50%',
+                        width: 22,
+                        height: 22,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 4px #fa75aa22',
+                        padding: 0,
+                      }}
+                      title="Crop Photo"
+                      aria-label="Crop Photo"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+                        <path d="M6 4V14.5A1.5 1.5 0 0 0 7.5 16H16" stroke="#d72688" strokeWidth="1.7" strokeLinecap="round"/>
+                        <path d="M4 6H14.5A1.5 1.5 0 0 1 16 7.5V10" stroke="#d72688" strokeWidth="1.7" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  )}
+
+                  {onRetake && (
+                    <button
+                      className="frame-action-control"
+                      onClick={() => onRetake(i)}
+                      style={{
+                        background: '#fff',
+                        border: '1.5px solid #fa75aa',
+                        borderRadius: '50%',
+                        width: 22,
+                        height: 22,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 4px #fa75aa22',
+                        padding: 0,
+                      }}
+                      title="Retake Photo"
+                      aria-label="Retake Photo"
+                    >
+                      {/* Icon retake (refresh/rotate arrow) */}
+                      <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+                        <path d="M16.5 7.5A6.5 6.5 0 1 0 17 10M16.5 7.5V4M16.5 7.5H13.5" stroke="#d72688" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
-          ))}
+          )})}
         </div>
         {/* 3. Stiker di atas foto */}
         {stickers.map((sticker, idx) => (
@@ -491,7 +738,7 @@ export default function PhotoPreview({
         <div
           style={{
             width: 200,
-            height: bottomSpace,
+            height: effectiveBottomSpace,
             background: 'transparent',
           }}
         />

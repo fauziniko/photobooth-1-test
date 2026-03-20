@@ -59,15 +59,15 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#fff5f8]">
+    <div className="pb-page-bg min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[#fff5f8] py-20 sm:py-28 border-b border-pink-100">
+      <section className="relative overflow-hidden bg-transparent py-20 sm:py-28 border-b border-[#f3b7d1]">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-[#ffe4ef] rounded-full mb-6 border border-pink-200">
+            <div className="inline-flex items-center px-4 py-2 bg-[#fff0f7] rounded-full mb-6 border border-[#f3b7d1]">
               <Sparkles className="w-4 h-4 text-[#d72688] mr-2" />
               <span className="text-sm font-medium text-[#d72688]">
                 Digital Photobooth Made Simple
@@ -76,7 +76,7 @@ export default function HomePage() {
 
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              Capture Fun
+              <span className="text-[#4a2337]">Capture Fun</span>
               <br />
               <span className="text-[#d72688]">
                 With PhotoBooth!
@@ -92,14 +92,14 @@ export default function HomePage() {
             {/* CTA Button */}
             <Link
               href="/photo"
-              className="inline-flex items-center px-8 py-4 bg-[#fa75aa] text-white text-lg font-semibold rounded-full hover:bg-[#d72688] transition transform hover:scale-105 shadow-xl hover:shadow-2xl"
+              className="inline-flex items-center px-8 py-4 bg-[#fa75aa] text-white text-lg font-semibold rounded-full hover:bg-[#d72688] transition duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl"
             >
               <Camera className="w-5 h-5 mr-2" />
               Try It Now
             </Link>
 
             {/* Stats */}
-            <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 max-w-4xl mx-auto">
               {stats.map((stat, index) => {
                 const Icon = stat.icon
                 return (
@@ -120,7 +120,7 @@ export default function HomePage() {
       </section>
 
       {/* Why Choose PhotoBooth Section */}
-      <section className="py-20 sm:py-28 bg-white">
+      <section className="py-20 sm:py-28 bg-[#fffafb]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
@@ -132,15 +132,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon
               return (
                 <div 
                   key={index}
-                  className="group p-6 bg-white border border-pink-100 rounded-2xl hover:shadow-xl hover:border-pink-300 transition duration-300"
+                  className="group p-6 bg-white border border-[#f3b7d1] rounded-2xl hover:shadow-xl hover:border-[#fa75aa] transition duration-300"
                 >
-                  <div className="w-14 h-14 bg-[#ffe4ef] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
+                  <div className="w-14 h-14 bg-[#fff0f7] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
                     <Icon className="w-7 h-7 text-[#d72688]" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -157,7 +157,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-[#d72688]">
+      <section className="py-20 bg-gradient-to-r from-[#d72688] to-[#fa75aa]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Heart className="w-16 h-16 text-white mx-auto mb-6 animate-pulse" />
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
@@ -190,7 +190,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-12">
+      <footer className="bg-[#5e2740] text-pink-100 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
@@ -200,7 +200,7 @@ export default function HomePage() {
                 </div>
                 <span className="text-xl font-bold text-white">PhotoBooth</span>
               </div>
-              <p className="text-sm text-gray-400">Create memories that last forever</p>
+              <p className="text-sm text-pink-200">Create memories that last forever</p>
             </div>
             
             <div className="flex space-x-6">
@@ -212,7 +212,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
+          <div className="mt-8 pt-8 border-t border-[#8b4b66] text-center text-sm text-pink-200">
             <p>&copy; 2025 PhotoBooth. All rights reserved.</p>
           </div>
         </div>

@@ -21,7 +21,7 @@ export default function CropModal({
   const theme = {
     primary: '#fa75aa',
     primaryDark: '#d72688',
-    borderSoft: '#f8bfd7',
+    borderSoft: '#f3b7d1',
     surface: '#fff7fb',
   };
 
@@ -66,7 +66,7 @@ export default function CropModal({
     ctx.restore();
 
     // Draw overlay (darkened area outside crop box)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillStyle = 'rgba(250, 117, 170, 0.28)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Clear crop box area
@@ -82,13 +82,13 @@ export default function CropModal({
     ctx.restore();
 
     // Draw crop box border
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = theme.primaryDark;
     ctx.lineWidth = 2;
     ctx.strokeRect(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
 
     // Draw corner handles
     const handleSize = 10;
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = theme.primary;
     // Top-left
     ctx.fillRect(cropBox.x - handleSize / 2, cropBox.y - handleSize / 2, handleSize, handleSize);
     // Top-right
@@ -252,26 +252,24 @@ export default function CropModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[2px] p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-pink-100 overflow-hidden">
+    <div className="pb-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="pb-modal-shell max-w-[98vw] sm:max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.borderSoft, background: theme.surface }}>
-          <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>
+          <h2 className="text-lg sm:text-xl font-semibold" style={{ color: theme.primaryDark }}>
             Crop Photo {photoIndex + 1}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg transition"
+            className="p-2 rounded-lg transition hover:bg-[#ffeaf3]"
             style={{ color: theme.primaryDark }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#ffe4ef')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto p-4" style={{ backgroundColor: '#fef2f8' }}>
+        <div className="flex-1 overflow-auto p-2 sm:p-4" style={{ backgroundColor: '#fff2f8' }}>
           <div className="flex items-center justify-center min-h-full">
             <canvas
               ref={canvasRef}
@@ -289,8 +287,8 @@ export default function CropModal({
         </div>
 
         {/* Controls */}
-        <div className="p-4 border-t bg-white" style={{ borderColor: theme.borderSoft }}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="p-3 sm:p-4 border-t bg-white" style={{ borderColor: theme.borderSoft }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 mb-4">
             {/* Aspect Ratio */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
@@ -299,7 +297,7 @@ export default function CropModal({
               <select
                 value={aspectRatio}
                 onChange={(e) => setAspectRatio(e.target.value as 'free' | '1:1' | '4:3' | '16:9')}
-                className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent focus:ring-[#fa75aa]"
                 style={{ borderColor: theme.borderSoft, color: theme.primaryDark, boxShadow: 'none' }}
               >
                 <option value="free">Free</option>
@@ -369,17 +367,17 @@ export default function CropModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 font-semibold rounded-lg transition"
+              className="w-full sm:w-auto px-6 py-2.5 font-semibold rounded-lg transition"
               style={{ backgroundColor: '#ffe4ef', color: theme.primaryDark }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-6 py-2.5 text-white font-semibold rounded-lg transition shadow-md hover:shadow-lg"
+              className="w-full sm:w-auto px-6 py-2.5 text-white font-semibold rounded-lg transition shadow-md hover:shadow-lg"
               style={{ background: `linear-gradient(90deg, ${theme.primaryDark}, ${theme.primary})` }}
             >
               Save Cropped Image

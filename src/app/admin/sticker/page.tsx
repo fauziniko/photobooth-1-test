@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Upload, Trash2, RefreshCw, Sticker as StickerIcon } from 'lucide-react'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 type StickerItem = {
   name: string
@@ -18,13 +19,29 @@ export default function StickerPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [deletingObjectName, setDeletingObjectName] = useState<string | null>(null)
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<StickerItem | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState('custom')
   const [file, setFile] = useState<File | null>(null)
+  const [stickerPreviewUrl, setStickerPreviewUrl] = useState<string | null>(null)
+  const [isDraggingSticker, setIsDraggingSticker] = useState(false)
 
-  const fetchStickers = async (isManualRefresh = false) => {
+  const stickerInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (!file) {
+      setStickerPreviewUrl(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+    setStickerPreviewUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [file])
+
+  const fetchStickers = async (isManualRefresh = false, suppressError = false) => {
     if (isManualRefresh) {
       setRefreshing(true)
     } else {
@@ -51,7 +68,9 @@ export default function StickerPage() {
         setStickers([])
       }
     } catch {
-      setMessage({ type: 'error', text: 'Gagal memuat daftar sticker.' })
+      if (!suppressError) {
+        setMessage({ type: 'error', text: 'Gagal memuat daftar sticker.' })
+      }
     } finally {
       setLoadingList(false)
       setRefreshing(false)
@@ -64,6 +83,7 @@ export default function StickerPage() {
 
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const formElement = event.currentTarget
     setMessage(null)
 
     if (!file) {
@@ -83,21 +103,69 @@ export default function StickerPage() {
         method: 'POST',
         body: formData,
       })
-      const data = await res.json()
+      let data: { error?: string } = {}
+      try {
+        data = await res.json()
+      } catch {
+        data = { error: 'Respons server tidak valid.' }
+      }
 
       if (!res.ok) {
         setMessage({ type: 'error', text: data.error || 'Upload sticker gagal.' })
         return
       }
 
+      const uploadedUrl =
+        typeof (data as { url?: unknown }).url === 'string'
+          ? (data as { url: string }).url
+          : typeof (data as { stickerUrl?: unknown }).stickerUrl === 'string'
+            ? (data as { stickerUrl: string }).stickerUrl
+            : ''
+
+      const uploadedName =
+        typeof (data as { name?: unknown }).name === 'string' && (data as { name: string }).name.trim()
+          ? (data as { name: string }).name.trim()
+          : `sticker_${Date.now()}`
+
+      const uploadedObjectName =
+        typeof (data as { objectName?: unknown }).objectName === 'string'
+          ? (data as { objectName: string }).objectName
+          : undefined
+
+      if (!uploadedUrl) {
+        setMessage({ type: 'error', text: 'Upload berhasil, tetapi URL sticker tidak diterima dari server.' })
+        return
+      }
+
+      setStickers(prev => {
+        const alreadyExists = prev.some(item => {
+          if (uploadedObjectName && item.objectName) {
+            return item.objectName === uploadedObjectName
+          }
+          return item.url === uploadedUrl
+        })
+
+        if (alreadyExists) return prev
+
+        return [
+          {
+            name: uploadedName,
+            url: uploadedUrl,
+            objectName: uploadedObjectName,
+          },
+          ...prev,
+        ]
+      })
+
       setMessage({ type: 'success', text: 'Sticker berhasil dibuat.' })
       setName('')
       setCategory('custom')
       setFile(null)
-      event.currentTarget.reset()
-      fetchStickers(true)
-    } catch {
-      setMessage({ type: 'error', text: 'Terjadi error saat upload sticker.' })
+      formElement.reset()
+      await fetchStickers(true, true)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setMessage({ type: 'error', text: `Terjadi error saat upload sticker: ${errorMessage}` })
     } finally {
       setUploading(false)
     }
@@ -108,9 +176,6 @@ export default function StickerPage() {
       setMessage({ type: 'error', text: 'Path sticker tidak tersedia. Refresh halaman terlebih dahulu.' })
       return
     }
-
-    const shouldDelete = window.confirm(`Hapus sticker ${item.name}?`)
-    if (!shouldDelete) return
 
     setDeletingObjectName(item.objectName)
     setMessage(null)
@@ -132,7 +197,18 @@ export default function StickerPage() {
       setMessage({ type: 'error', text: 'Terjadi error saat menghapus sticker.' })
     } finally {
       setDeletingObjectName(null)
+      setConfirmDeleteItem(null)
     }
+  }
+
+  const handleDropSticker = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+
+    const droppedFile = event.dataTransfer.files?.[0]
+    if (!droppedFile) return
+
+    setFile(droppedFile)
+    setIsDraggingSticker(false)
   }
 
   if (status === 'loading') {
@@ -199,7 +275,7 @@ export default function StickerPage() {
                   value={name}
                   onChange={event => setName(event.target.value)}
                   placeholder="contoh: heart-sparkle"
-                  className="w-full rounded-lg border border-[#d9c8d1] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"
+                  className="w-full rounded-lg border border-[#d9c8d1] bg-white px-3 py-2 text-sm text-[#4a2337] placeholder:text-[#a48394] focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"
                 />
               </div>
 
@@ -213,7 +289,7 @@ export default function StickerPage() {
                   value={category}
                   onChange={event => setCategory(event.target.value)}
                   placeholder="contoh: wedding"
-                  className="w-full rounded-lg border border-[#d9c8d1] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"
+                  className="w-full rounded-lg border border-[#d9c8d1] bg-white px-3 py-2 text-sm text-[#4a2337] placeholder:text-[#a48394] focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"
                 />
               </div>
 
@@ -221,15 +297,47 @@ export default function StickerPage() {
                 <label htmlFor="sticker-file" className="block text-sm font-medium text-[#5d4150] mb-1">
                   File Sticker
                 </label>
-                <input
-                  id="sticker-file"
-                  type="file"
-                  accept="image/*"
-                  onChange={event => setFile(event.target.files?.[0] || null)}
-                  required
-                  className="w-full text-sm border border-[#d9c8d1] rounded-lg px-3 py-2"
-                />
+                <div
+                  onDragOver={event => {
+                    event.preventDefault()
+                    setIsDraggingSticker(true)
+                  }}
+                  onDragLeave={() => setIsDraggingSticker(false)}
+                  onDrop={handleDropSticker}
+                  onClick={() => stickerInputRef.current?.click()}
+                  className={`w-full rounded-xl border-2 border-dashed px-4 py-5 text-sm cursor-pointer transition ${
+                    isDraggingSticker
+                      ? 'border-[#d979ab] bg-[#fff0f7]'
+                      : 'border-[#d9c8d1] bg-[#fffafc] hover:bg-[#fff3f8]'
+                  }`}
+                >
+                  <p className="text-[#5d4150] font-medium">Drag & drop file sticker di sini</p>
+                  <p className="text-xs text-[#8c6b7a] mt-1">atau klik untuk pilih file</p>
+                  <p className="text-xs text-[#6d3f55] mt-2 truncate">
+                    {file ? file.name : 'Belum ada file dipilih'}
+                  </p>
+                  <input
+                    ref={stickerInputRef}
+                    id="sticker-file"
+                    type="file"
+                    accept="image/*"
+                    onChange={event => setFile(event.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                </div>
               </div>
+
+              {stickerPreviewUrl && (
+                <div className="rounded-xl border border-[#ecd4e1] bg-[#fff7fb] p-3">
+                  <p className="text-xs font-semibold text-[#6d3f55] mb-2">Preview Sticker</p>
+                  <div className="rounded-lg border border-[#ead7df] bg-white p-2">
+                    <div className="aspect-square rounded-md overflow-hidden bg-[#fffafb] border border-[#f0e2e8] flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={stickerPreviewUrl} alt="Sticker preview" className="w-full h-full object-contain" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -250,7 +358,7 @@ export default function StickerPage() {
             ) : stickers.length === 0 ? (
               <p className="text-sm text-gray-500">Belum ada sticker.</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
                 {stickers.map(item => (
                   <div key={`${item.name}-${item.url}`} className="border border-gray-200 rounded-xl p-3">
                     <div className="aspect-square rounded-lg overflow-hidden bg-gray-50 border border-gray-100 mb-2 flex items-center justify-center">
@@ -264,7 +372,7 @@ export default function StickerPage() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => handleDelete(item)}
+                        onClick={() => setConfirmDeleteItem(item)}
                         disabled={deletingObjectName === item.objectName || !item.objectName}
                         className="inline-flex items-center text-[11px] px-2 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
                       >
@@ -287,6 +395,22 @@ export default function StickerPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteItem)}
+        title="Hapus Sticker"
+        message={confirmDeleteItem ? `Hapus sticker ${confirmDeleteItem.name}?` : ''}
+        confirmLabel="Ya, Hapus"
+        cancelLabel="Batal"
+        loading={Boolean(deletingObjectName)}
+        onCancel={() => {
+          if (!deletingObjectName) setConfirmDeleteItem(null)
+        }}
+        onConfirm={() => {
+          if (!confirmDeleteItem) return
+          handleDelete(confirmDeleteItem)
+        }}
+      />
     </div>
   )
 }

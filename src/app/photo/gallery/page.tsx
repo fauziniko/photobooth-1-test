@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { ExternalLink, ImageIcon, Pencil, Save, Trash2, X } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 type GalleryApiItem = {
   id: string;
@@ -29,6 +30,18 @@ export default function PhotoGalleryPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    open: boolean;
+    ids: string[];
+    title: string;
+    message: string;
+  }>({
+    open: false,
+    ids: [],
+    title: '',
+    message: '',
+  });
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const fetchDatabaseGallery = useCallback(async (): Promise<GalleryViewItem[]> => {
     try {
@@ -61,13 +74,42 @@ export default function PhotoGalleryPage() {
     loadGallery();
   }, [loadGallery]);
 
-  const handleDeleteItem = async (id: string) => {
-    const confirmed = window.confirm('Hapus foto gallery ini?');
-    if (!confirmed) return;
+  const requestDeleteItems = (ids: string[], title: string, message: string) => {
+    if (ids.length === 0) return;
+    setConfirmDelete({
+      open: true,
+      ids,
+      title,
+      message,
+    });
+  };
 
-    await fetch(`/api/gallery/${id}`, { method: 'DELETE' }).catch(() => null);
-    setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    loadGallery();
+  const closeDeleteDialog = () => {
+    if (confirmLoading) return;
+    setConfirmDelete({
+      open: false,
+      ids: [],
+      title: '',
+      message: '',
+    });
+  };
+
+  const confirmDeleteItems = async () => {
+    if (confirmDelete.ids.length === 0) {
+      closeDeleteDialog();
+      return;
+    }
+
+    setConfirmLoading(true);
+    await Promise.all(confirmDelete.ids.map(id => fetch(`/api/gallery/${id}`, { method: 'DELETE' }).catch(() => null)));
+    setSelectedIds(prev => prev.filter(selectedId => !confirmDelete.ids.includes(selectedId)));
+    await loadGallery();
+    setConfirmLoading(false);
+    closeDeleteDialog();
+  };
+
+  const handleDeleteItem = (id: string) => {
+    requestDeleteItems([id], 'Hapus Foto', 'Hapus foto gallery ini?');
   };
 
   const toggleSelect = (id: string) => {
@@ -84,12 +126,12 @@ export default function PhotoGalleryPage() {
 
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return;
-    const confirmed = window.confirm(`Hapus ${selectedIds.length} foto yang dipilih?`);
-    if (!confirmed) return;
 
-    await Promise.all(selectedIds.map(id => fetch(`/api/gallery/${id}`, { method: 'DELETE' }).catch(() => null)));
-    setSelectedIds([]);
-    loadGallery();
+    requestDeleteItems(
+      [...selectedIds],
+      'Hapus Foto Terpilih',
+      `Hapus ${selectedIds.length} foto yang dipilih?`
+    );
   };
 
   const startEditTitle = (item: GalleryViewItem) => {
@@ -264,6 +306,17 @@ export default function PhotoGalleryPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete.open}
+        title={confirmDelete.title}
+        message={confirmDelete.message}
+        confirmLabel="Ya, Hapus"
+        cancelLabel="Batal"
+        loading={confirmLoading}
+        onCancel={closeDeleteDialog}
+        onConfirm={confirmDeleteItems}
+      />
     </main>
   );
 }
