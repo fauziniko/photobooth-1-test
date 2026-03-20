@@ -2,11 +2,31 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
+const AUTH_COOKIE_CANDIDATES = [
+  "__Secure-authjs.session-token",
+  "authjs.session-token",
+  "__Secure-next-auth.session-token",
+  "next-auth.session-token",
+]
+
+const readAuthToken = async (request: NextRequest) => {
+  for (const cookieName of AUTH_COOKIE_CANDIDATES) {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName,
+    })
+
+    if (token) {
+      return token
+    }
+  }
+
+  return null
+}
+
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ 
-    req: request, 
-    secret: process.env.NEXTAUTH_SECRET 
-  })
+  const token = await readAuthToken(request)
 
   const { pathname } = request.nextUrl
 
