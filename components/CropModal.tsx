@@ -18,6 +18,13 @@ export default function CropModal({
   onSave,
   photoIndex,
 }: CropModalProps) {
+  const theme = {
+    primary: '#fa75aa',
+    primaryDark: '#d72688',
+    borderSoft: '#f8bfd7',
+    surface: '#fff7fb',
+  };
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -245,47 +252,55 @@ export default function CropModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[2px] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-pink-100 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.borderSoft, background: theme.surface }}>
+          <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>
             Crop Photo {photoIndex + 1}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 rounded-lg transition"
+            style={{ color: theme.primaryDark }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#ffe4ef')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto p-4 bg-gray-50">
+        <div className="flex-1 overflow-auto p-4" style={{ backgroundColor: '#fef2f8' }}>
           <div className="flex items-center justify-center min-h-full">
             <canvas
               ref={canvasRef}
-              className="max-w-full max-h-full border border-gray-300 cursor-move"
+              className="max-w-full max-h-full border-2 cursor-move rounded-xl shadow-sm"
+              style={{ borderColor: theme.borderSoft, backgroundColor: '#fff' }}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             />
           </div>
+          <p className="text-xs text-center mt-3" style={{ color: '#9f4d74' }}>
+            Geser kotak untuk memindahkan area crop, tarik sudut untuk mengubah ukuran.
+          </p>
         </div>
 
         {/* Controls */}
-        <div className="p-4 border-t border-gray-200 bg-white">
+        <div className="p-4 border-t bg-white" style={{ borderColor: theme.borderSoft }}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Aspect Ratio */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
                 Aspect Ratio
               </label>
               <select
                 value={aspectRatio}
                 onChange={(e) => setAspectRatio(e.target.value as 'free' | '1:1' | '4:3' | '16:9')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ borderColor: theme.borderSoft, color: theme.primaryDark, boxShadow: 'none' }}
               >
                 <option value="free">Free</option>
                 <option value="1:1">1:1 (Square)</option>
@@ -296,13 +311,15 @@ export default function CropModal({
 
             {/* Zoom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
                 Zoom: {zoom.toFixed(1)}x
               </label>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-                  className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                  disabled={zoom <= 0.5}
+                  className="p-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#ffe4ef', color: theme.primaryDark }}
                 >
                   <ZoomOut className="w-4 h-4" />
                 </button>
@@ -314,10 +331,13 @@ export default function CropModal({
                   value={zoom}
                   onChange={(e) => setZoom(Number(e.target.value))}
                   className="flex-1"
+                  style={{ accentColor: theme.primary }}
                 />
                 <button
                   onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-                  className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                  disabled={zoom >= 3}
+                  className="p-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#ffe4ef', color: theme.primaryDark }}
                 >
                   <ZoomIn className="w-4 h-4" />
                 </button>
@@ -326,19 +346,21 @@ export default function CropModal({
 
             {/* Rotation */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
                 Rotation: {rotation}°
               </label>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setRotation((rotation - 90) % 360)}
-                  className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm font-medium"
+                  className="flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold"
+                  style={{ backgroundColor: '#ffe4ef', color: theme.primaryDark }}
                 >
                   <RotateCw className="w-4 h-4 inline mr-1 transform rotate-180" /> -90°
                 </button>
                 <button
                   onClick={() => setRotation((rotation + 90) % 360)}
-                  className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm font-medium"
+                  className="flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold"
+                  style={{ backgroundColor: '#ffe4ef', color: theme.primaryDark }}
                 >
                   <RotateCw className="w-4 h-4 inline mr-1" /> +90°
                 </button>
@@ -350,13 +372,15 @@ export default function CropModal({
           <div className="flex gap-3 justify-end">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition"
+              className="px-6 py-2.5 font-semibold rounded-lg transition"
+              style={{ backgroundColor: '#ffe4ef', color: theme.primaryDark }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg transition shadow-md hover:shadow-lg"
+              className="px-6 py-2.5 text-white font-semibold rounded-lg transition shadow-md hover:shadow-lg"
+              style={{ background: `linear-gradient(90deg, ${theme.primaryDark}, ${theme.primary})` }}
             >
               Save Cropped Image
             </button>

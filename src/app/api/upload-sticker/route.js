@@ -13,6 +13,28 @@ const minioClient = new Client({
 const BUCKET = process.env.MINIO_BUCKET;
 const STICKER_FOLDER = 'sticker/';
 
+const sanitizeValue = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const getFileExtension = (file) => {
+  const originalName = String(file?.name || '');
+  const extMatch = originalName.match(/\.([a-zA-Z0-9]+)$/);
+  if (extMatch) {
+    return `.${extMatch[1].toLowerCase()}`;
+  }
+
+  const mimeType = String(file?.type || '').toLowerCase();
+  if (mimeType.includes('png')) return '.png';
+  if (mimeType.includes('jpeg') || mimeType.includes('jpg')) return '.jpg';
+  if (mimeType.includes('gif')) return '.gif';
+  if (mimeType.includes('webp')) return '.webp';
+  return '.png';
+};
+
 export async function POST(req) {
   // Check if user is admin
   const session = await auth();
@@ -25,15 +47,19 @@ export async function POST(req) {
   }
 
   const formData = await req.formData();
-  const file = formData.get('file');
+  const file = formData.get('file') || formData.get('sticker');
   if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
+
+  const requestedName = sanitizeValue(formData.get('name')) || `sticker-${Date.now()}`;
+  const category = sanitizeValue(formData.get('category')) || 'default';
+  const extension = getFileExtension(file);
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
   // Generate unique filename
-  const filename = `${Date.now()}_${file.name}`;
-  const minioPath = `${STICKER_FOLDER}${filename}`;
+  const filename = `${requestedName}-${Date.now()}${extension}`;
+  const minioPath = `${STICKER_FOLDER}${category}/${filename}`;
 
   // Pastikan bucket ada
   const exists = await minioClient.bucketExists(BUCKET);
@@ -48,5 +74,11 @@ export async function POST(req) {
 
   // URL public
   const url = `https://${process.env.MINIO_ENDPOINT}/${BUCKET}/${minioPath}`;
-  return NextResponse.json({ url, name: file.name });
+  return NextResponse.json({
+    url,
+    stickerUrl: url,
+    name: requestedName,
+    category,
+    objectName: minioPath,
+  });
 }

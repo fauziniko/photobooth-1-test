@@ -59,17 +59,17 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#fff5f8]">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-white py-20 sm:py-28">
+      <section className="relative overflow-hidden bg-[#fff5f8] py-20 sm:py-28 border-b border-pink-100">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-purple-100 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-purple-600 mr-2" />
-              <span className="text-sm font-medium text-purple-700">
+            <div className="inline-flex items-center px-4 py-2 bg-[#ffe4ef] rounded-full mb-6 border border-pink-200">
+              <Sparkles className="w-4 h-4 text-[#d72688] mr-2" />
+              <span className="text-sm font-medium text-[#d72688]">
                 Digital Photobooth Made Simple
               </span>
             </div>
@@ -78,7 +78,7 @@ export default function HomePage() {
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Capture Fun
               <br />
-              <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+              <span className="text-[#d72688]">
                 With PhotoBooth!
               </span>
             </h1>
@@ -92,7 +92,7 @@ export default function HomePage() {
             {/* CTA Button */}
             <Link
               href="/photo"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white text-lg font-semibold rounded-full hover:from-purple-700 hover:to-pink-600 transition transform hover:scale-105 shadow-xl hover:shadow-2xl"
+              className="inline-flex items-center px-8 py-4 bg-[#fa75aa] text-white text-lg font-semibold rounded-full hover:bg-[#d72688] transition transform hover:scale-105 shadow-xl hover:shadow-2xl"
             >
               <Camera className="w-5 h-5 mr-2" />
               Try It Now
@@ -104,7 +104,7 @@ export default function HomePage() {
                 const Icon = stat.icon
                 return (
                   <div key={index} className="text-center">
-                    <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
+                    <div className="text-4xl sm:text-5xl font-bold text-[#d72688] mb-2">
                       {stat.value}
                     </div>
                     <div className="flex items-center justify-center text-gray-600 font-medium">
@@ -125,7 +125,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
               Why Choose 
-              <span className="bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent"> PhotoBooth?</span>
+              <span className="text-[#d72688]"> PhotoBooth?</span>
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Everything you need to create amazing photo memories in one place
@@ -138,10 +138,10 @@ export default function HomePage() {
               return (
                 <div 
                   key={index}
-                  className="group p-6 bg-white border border-gray-200 rounded-2xl hover:shadow-xl hover:border-purple-200 transition duration-300"
+                  className="group p-6 bg-white border border-pink-100 rounded-2xl hover:shadow-xl hover:border-pink-300 transition duration-300"
                 >
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
-                    <Icon className="w-7 h-7 text-purple-600" />
+                  <div className="w-14 h-14 bg-[#ffe4ef] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
+                    <Icon className="w-7 h-7 text-[#d72688]" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">
                     {feature.title}
@@ -157,20 +157,20 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-600 via-pink-500 to-purple-600">
+      <section className="py-20 bg-[#d72688]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Heart className="w-16 h-16 text-white mx-auto mb-6 animate-pulse" />
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
             Ready to Create Amazing Photos?
           </h2>
-          <p className="text-lg sm:text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-pink-100 mb-8 max-w-2xl mx-auto">
             Join thousands of users who are already creating beautiful photo memories
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/photo"
-              className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 text-lg font-semibold rounded-full hover:bg-gray-100 transition transform hover:scale-105 shadow-xl"
+              className="inline-flex items-center justify-center px-8 py-4 bg-white text-[#d72688] text-lg font-semibold rounded-full hover:bg-gray-100 transition transform hover:scale-105 shadow-xl"
             >
               <Camera className="w-5 h-5 mr-2" />
               Start Now - It&apos;s Free
@@ -179,7 +179,7 @@ export default function HomePage() {
             {!session && (
               <Link
                 href="/auth/signup"
-                className="inline-flex items-center justify-center px-8 py-4 bg-transparent border-2 border-white text-white text-lg font-semibold rounded-full hover:bg-white hover:text-purple-600 transition transform hover:scale-105"
+                className="inline-flex items-center justify-center px-8 py-4 bg-transparent border-2 border-white text-white text-lg font-semibold rounded-full hover:bg-white hover:text-[#d72688] transition transform hover:scale-105"
               >
                 <Zap className="w-5 h-5 mr-2" />
                 Sign Up for More
@@ -195,7 +195,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
               <div className="flex items-center space-x-2 mb-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-[#fa75aa] rounded-xl flex items-center justify-center">
                   <Camera className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">PhotoBooth</span>

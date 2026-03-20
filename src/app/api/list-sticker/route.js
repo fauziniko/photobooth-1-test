@@ -13,22 +13,32 @@ const BUCKET = process.env.MINIO_BUCKET;
 const STICKER_FOLDER = 'sticker/';
 
 export async function GET() {
-  const stickers = [];
+  const stickerItems = [];
   const stream = minioClient.listObjectsV2(BUCKET, STICKER_FOLDER, true);
 
-  return new Promise((resolve, reject) => {
-    stream.on('data', obj => {
-      if (obj.name.endsWith('.png')) {
-        stickers.push(
-          `https://${process.env.MINIO_ENDPOINT}/${BUCKET}/${obj.name}`
-        );
-      }
+  try {
+    for await (const obj of stream) {
+      if (!obj?.name) continue;
+
+      const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(obj.name);
+      if (!isImage) continue;
+
+      const url = `https://${process.env.MINIO_ENDPOINT}/${BUCKET}/${obj.name}`;
+      const rawName = obj.name.split('/').pop() || obj.name;
+      const name = rawName.replace(/\.[^.]+$/, '');
+
+      stickerItems.push({
+        name,
+        url,
+        objectName: obj.name,
+      });
+    }
+
+    return NextResponse.json({
+      stickers: stickerItems.map(item => item.url),
+      stickerItems,
     });
-    stream.on('end', () => {
-      resolve(NextResponse.json({ stickers }));
-    });
-    stream.on('error', err => {
-      reject(NextResponse.json({ error: err.message }, { status: 500 }));
-    });
-  });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

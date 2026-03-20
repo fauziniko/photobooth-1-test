@@ -7,7 +7,10 @@ import { useSession, signOut } from 'next-auth/react'
 import { 
   Camera, 
   Home, 
+  Images,
+  Image,
   Upload, 
+  Sticker,
   User, 
   LogOut, 
   Menu, 
@@ -21,8 +24,8 @@ export default function Sidebar() {
   const { data: session, status } = useSession()
   const [isOpen, setIsOpen] = useState(false)
 
-  // Don't show sidebar on auth pages OR if not logged in (Navbar will handle navigation)
-  if (pathname?.startsWith('/auth') || status === 'unauthenticated') {
+  // Don't show sidebar on auth pages and gallery detail share pages
+  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/')) {
     return null
   }
 
@@ -34,14 +37,23 @@ export default function Sidebar() {
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Photobooth', href: '/photo', icon: Camera },
+    { name: 'Photo Gallery', href: '/photo/gallery', icon: Images },
   ]
 
   // Add Upload menu ONLY for ADMIN users
   if (session?.user?.role === 'ADMIN') {
     navigation.push({ name: 'Upload Assets', href: '/admin', icon: Upload })
+    navigation.push({ name: 'Frame Template', href: '/admin/frame-template', icon: Image })
+    navigation.push({ name: 'Sticker', href: '/admin/sticker', icon: Sticker })
   }
 
-  const isActive = (path: string) => pathname === path
+  const isActive = (path: string) => {
+    if (path === '/admin') {
+      return pathname === '/admin'
+    }
+
+    return pathname === path || pathname?.startsWith(`${path}/`)
+  }
 
   return (
     <>

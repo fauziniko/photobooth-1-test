@@ -116,6 +116,19 @@ export default function Camera({
         return;
       }
 
+      // Ensure camera has valid frame dimensions before capture to avoid black frames.
+      let waitTry = 0;
+      while ((video.videoWidth === 0 || video.videoHeight === 0) && waitTry < 8) {
+        await new Promise(res => setTimeout(res, 120));
+        waitTry++;
+      }
+
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        alert('Camera frame is not ready yet. Please try again.');
+        setIsCapturing(false);
+        return;
+      }
+
       // Ambil gambar landscape, crop tengah
       const targetRatio = 4 / 3;
       const vw = video.videoWidth;

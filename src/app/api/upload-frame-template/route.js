@@ -11,6 +11,13 @@ const minioClient = new Client({
 });
 const BUCKET = process.env.MINIO_BUCKET;
 
+const normalizeTemplateName = value =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export async function GET() {
   try {
     const dataStream = await minioClient.getObject(BUCKET, 'templates/templates.json');
@@ -37,7 +44,8 @@ export async function POST(req) {
   const formData = await req.formData();
   const frameFile = formData.get('frame');
   const stickerFile = formData.get('sticker');
-  const name = formData.get('name') || `template_${Date.now()}`;
+  const requestedName = formData.get('name');
+  const name = normalizeTemplateName(requestedName) || `template-${Date.now()}`;
 
   if (!frameFile || !stickerFile) {
     return NextResponse.json({ error: 'Both files required' }, { status: 400 });

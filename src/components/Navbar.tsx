@@ -9,21 +9,21 @@ export default function Navbar() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
 
-  // Don't show navbar on auth pages
-  if (pathname?.startsWith('/auth')) {
+  // Don't show navbar on auth pages and gallery detail share pages
+  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/')) {
     return null
   }
 
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-white shadow-lg sticky top-0 z-40 lg:hidden">
+      <div className="max-w-7xl mx-auto pl-16 pr-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="bg-gradient-to-r from-pink-500 to-purple-500 p-2 rounded-lg">
-              <Camera className="w-6 h-6 text-white" />
+            <div className="bg-[#fa75aa] p-2 rounded-lg">
+              <Camera className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-[#fa75aa]">
               PhotoBooth
             </span>
           </Link>

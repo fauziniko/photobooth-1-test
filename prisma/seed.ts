@@ -4,35 +4,46 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const adminEmail = 'admin@photobooth.com'
-  const adminPassword = 'admin123'
-
-  // Check if admin already exists
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: adminEmail },
-  })
-
-  if (existingAdmin) {
-    console.log('Admin user already exists!')
-    return
-  }
-
-  // Create admin user
-  const hashedPassword = await bcrypt.hash(adminPassword, 10)
-
-  const admin = await prisma.user.create({
-    data: {
+  const seedUsers = [
+    {
       name: 'Admin User',
-      email: adminEmail,
-      password: hashedPassword,
-      role: 'ADMIN',
+      email: 'admin@photobooth.com',
+      password: 'admin123',
+      role: 'ADMIN' as const,
     },
-  })
+    {
+      name: 'Regular User',
+      email: 'user@photobooth.com',
+      password: 'user123',
+      role: 'USER' as const,
+    },
+  ]
 
-  console.log('✅ Admin user created successfully!')
-  console.log('Email:', admin.email)
-  console.log('Password: admin123')
-  console.log('Role:', admin.role)
+  for (const seedUser of seedUsers) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: seedUser.email },
+    })
+
+    if (existingUser) {
+      console.log(`ℹ️ User already exists: ${seedUser.email}`)
+      continue
+    }
+
+    const hashedPassword = await bcrypt.hash(seedUser.password, 10)
+
+    const createdUser = await prisma.user.create({
+      data: {
+        name: seedUser.name,
+        email: seedUser.email,
+        password: hashedPassword,
+        role: seedUser.role,
+      },
+    })
+
+    console.log(`✅ User created: ${createdUser.email}`)
+    console.log(`   Password: ${seedUser.password}`)
+    console.log(`   Role: ${createdUser.role}`)
+  }
 }
 
 main()
