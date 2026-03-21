@@ -785,14 +785,7 @@ export default function FrameTemplatePage() {
       drawCoverImage(frameCtx, bgImage, canvasSize.width, canvasSize.height)
     }
 
-    for (let i = 0; i < photoSlots.length; i += 1) {
-      const slot = photoSlots[i]
-      frameCtx.fillStyle = 'rgba(255, 255, 255, 0.25)'
-      frameCtx.fillRect(slot.x, slot.y, slot.width, slot.height)
-      frameCtx.strokeStyle = 'rgba(255, 255, 255, 0.45)'
-      frameCtx.lineWidth = 1
-      frameCtx.strokeRect(slot.x, slot.y, slot.width, slot.height)
-    }
+    // Slot guides are editor-only visual helpers and must not be baked into exported frame image.
 
     const stickerCanvas = document.createElement('canvas')
     stickerCanvas.width = width
@@ -955,8 +948,8 @@ export default function FrameTemplatePage() {
                   return (
                     <div
                       key={`placeholder-${index}`}
-                      className={`absolute border bg-white/30 rounded-md flex items-center justify-center cursor-move touch-none select-none ${
-                        selectedSlotIndex === index ? 'border-[#d72688] ring-2 ring-[#f7aed0]' : 'border-[#f8bfd7]'
+                      className={`absolute border rounded-md flex items-center justify-center cursor-move touch-none select-none ${
+                        selectedSlotIndex === index ? 'border-[#d72688] ring-2 ring-[#f7aed0]' : 'border-white/70'
                       }`}
                       onPointerDown={startSlotDrag(index)}
                       style={{
@@ -964,6 +957,7 @@ export default function FrameTemplatePage() {
                         top: slot.y,
                         width: slot.width,
                         height: slot.height,
+                        backgroundColor,
                         zIndex: 2,
                       }}
                     >

@@ -68,6 +68,7 @@ const TEMPLATE_STRIP_HEIGHT =
   TEMPLATE_CANVAS.gap * (TEMPLATE_CANVAS.photoCount - 1);
 
 const PHOTO_PAN_SCALE = 1.18;
+const TEMPLATE_SLOT_PAN_SCALE = 1;
 
 export default function PhotoPreview({
   photos,
@@ -269,11 +270,14 @@ export default function PhotoPreview({
       if (!slot) return;
       if ((event.target as HTMLElement).closest('.frame-action-controls')) return;
 
+      const scale = TEMPLATE_SLOT_PAN_SCALE;
+      if (scale <= 1) return;
+
       event.preventDefault();
 
       const current = photoPanOffsets[idx] ?? { x: 0, y: 0 };
-      const maxX = Math.max(0, (slot.width * PHOTO_PAN_SCALE - slot.width) / 2);
-      const maxY = Math.max(0, (slot.height * PHOTO_PAN_SCALE - slot.height) / 2);
+      const maxX = Math.max(0, (slot.width * scale - slot.width) / 2);
+      const maxY = Math.max(0, (slot.height * scale - slot.height) / 2);
 
       photoDragState.current = {
         idx,
@@ -455,6 +459,7 @@ export default function PhotoPreview({
             const slot = effectiveTemplateSlots[i];
             const hasSlot = Boolean(slot);
             const photoOffset = photoPanOffsets[i] ?? { x: 0, y: 0 };
+            const slotPhotoScale = hasSlot ? TEMPLATE_SLOT_PAN_SCALE : PHOTO_PAN_SCALE;
             return (
             <div
               key={i}
@@ -467,7 +472,7 @@ export default function PhotoPreview({
                       width: slot!.width,
                       height: slot!.height,
                       overflow: 'hidden',
-                      cursor: 'grab',
+                      cursor: slotPhotoScale > 1 ? 'grab' : 'default',
                       touchAction: 'none',
                     }
                   : {
@@ -490,8 +495,8 @@ export default function PhotoPreview({
                   position: hasSlot ? 'absolute' : 'relative',
                   left: hasSlot ? '50%' : undefined,
                   top: hasSlot ? '50%' : undefined,
-                  width: hasSlot ? `${PHOTO_PAN_SCALE * 100}%` : undefined,
-                  height: hasSlot ? `${PHOTO_PAN_SCALE * 100}%` : undefined,
+                  width: hasSlot ? `${slotPhotoScale * 100}%` : undefined,
+                  height: hasSlot ? `${slotPhotoScale * 100}%` : undefined,
                   transform: hasSlot
                     ? `translate(calc(-50% + ${photoOffset.x}px), calc(-50% + ${photoOffset.y}px))`
                     : undefined,

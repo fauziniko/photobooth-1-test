@@ -2,8 +2,15 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ExternalLink, ImageIcon, Pencil, Save, Trash2, X } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { isIndexedDBSupported, savePhotosToIndexedDB } from '@/lib/indexedDB';
+import {
+  clearTempLiveVideoUrlFromSessionStorage,
+  saveTempLiveVideoUrlToSessionStorage,
+  saveTempPhotosToSessionStorage,
+} from '@/lib/tempPhotoStorage';
 
 type GalleryApiItem = {
   id: string;
@@ -25,6 +32,7 @@ type GalleryViewItem = {
 };
 
 export default function PhotoGalleryPage() {
+  const router = useRouter();
   const [items, setItems] = useState<GalleryViewItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -42,6 +50,21 @@ export default function PhotoGalleryPage() {
     message: '',
   });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [editingGalleryId, setEditingGalleryId] = useState<string | null>(null);
+
+  const normalizeEditorImageSource = (value: string): string | null => {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('data:image/')) return trimmed;
+    if (trimmed.startsWith('/api/image-proxy?url=')) return trimmed;
+    if (trimmed.startsWith('/')) return trimmed;
+    if (trimmed.startsWith('blob:')) return trimmed;
+    if (/^https?:\/\//i.test(trimmed)) {
+      return `/api/image-proxy?url=${encodeURIComponent(trimmed)}`;
+    }
+    return null;
+  };
 
   const fetchDatabaseGallery = useCallback(async (): Promise<GalleryViewItem[]> => {
     try {
@@ -164,9 +187,75 @@ export default function PhotoGalleryPage() {
     setTitleDraft('');
   };
 
+  const handleEditInEditor = async (id: string) => {
+    setEditingGalleryId(id);
+    try {
+      const res = await fetch(`/api/gallery/${id}`, { cache: 'no-store' });
+      if (!res.ok) {
+        alert('Gagal memuat data gallery untuk diedit.');
+        return;
+      }
+
+      const data = await res.json();
+      const detail = data?.item as {
+        id: string;
+        layout?: number;
+        imageUrl?: string;
+        previewDataUrl?: string | null;
+        stripDataUrl?: string | null;
+        liveVideoDataUrl?: string | null;
+        photoFrames?: string[];
+        livePhotos?: string[];
+      };
+
+      const sourcePhotos = [
+        ...(Array.isArray(detail?.photoFrames) ? detail.photoFrames : []),
+      ];
+
+      if (sourcePhotos.length === 0 && Array.isArray(detail?.livePhotos)) {
+        sourcePhotos.push(...detail.livePhotos);
+      }
+
+      if (sourcePhotos.length === 0) {
+        if (typeof detail?.stripDataUrl === 'string' && detail.stripDataUrl) sourcePhotos.push(detail.stripDataUrl);
+        else if (typeof detail?.previewDataUrl === 'string' && detail.previewDataUrl) sourcePhotos.push(detail.previewDataUrl);
+        else if (typeof detail?.imageUrl === 'string' && detail.imageUrl) sourcePhotos.push(detail.imageUrl);
+      }
+
+      const normalizedPhotos = sourcePhotos
+        .map(normalizeEditorImageSource)
+        .filter((v): v is string => Boolean(v));
+      if (normalizedPhotos.length === 0) {
+        alert('Foto untuk item ini tidak tersedia untuk editor.');
+        return;
+      }
+
+      saveTempPhotosToSessionStorage(normalizedPhotos);
+      if (isIndexedDBSupported()) {
+        await savePhotosToIndexedDB(normalizedPhotos);
+      }
+
+      if (typeof detail?.liveVideoDataUrl === 'string' && detail.liveVideoDataUrl.length > 0) {
+        saveTempLiveVideoUrlToSessionStorage(detail.liveVideoDataUrl);
+      } else {
+        clearTempLiveVideoUrlFromSessionStorage();
+      }
+
+      const nextLayout = Number.isFinite(Number(detail?.layout))
+        ? Number(detail.layout)
+        : Math.max(1, normalizedPhotos.length);
+
+      router.push(`/photo/edit?layout=${nextLayout}&source=gallery&id=${detail.id}`);
+    } catch {
+      alert('Terjadi kesalahan saat menyiapkan editor.');
+    } finally {
+      setEditingGalleryId(null);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-pink-50 via-pink-50 to-white py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+    <main className="min-h-screen bg-gradient-to-br from-pink-50 via-pink-50 to-white py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#d72688]">Photo Gallery</h1>
           <p className="text-sm text-gray-600 mt-1">Preview strip dibuat lebih ringkas supaya banyak sesi bisa tampil sekaligus.</p>
@@ -290,6 +379,14 @@ export default function PhotoGalleryPage() {
                       >
                         <Pencil className="w-3.5 h-3.5" />
                         Edit
+                      </button>
+                      <button
+                        onClick={() => handleEditInEditor(item.id)}
+                        disabled={editingGalleryId === item.id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#f8bfd7] text-[#d72688] bg-white hover:bg-[#fff0f7] text-xs transition disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        {editingGalleryId === item.id ? 'Menyiapkan...' : 'Edit di Editor'}
                       </button>
                       <button
                         onClick={() => handleDeleteItem(item.id)}

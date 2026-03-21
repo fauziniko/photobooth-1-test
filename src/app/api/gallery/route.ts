@@ -7,15 +7,43 @@ type GalleryMetadata = {
   title?: string;
   layout?: number;
   filter?: string;
+  canvasWidth?: number;
+  canvasHeight?: number;
   previewDataUrl?: string;
   stripDataUrl?: string;
   gifDataUrl?: string;
   liveVideoDataUrl?: string;
   photoFrames?: string[];
   livePhotos?: string[];
+  selectedFrameTemplate?: string;
+  templateSettings?: unknown;
+  frameTemplateUrl?: string;
+  frameStickerUrl?: string;
+  frameColor?: string;
 };
 
-const MAX_METADATA_DATA_URL_LENGTH = 350_000;
+type TemplateSlot = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type TemplateSettings = {
+  canvasWidth: number;
+  canvasHeight: number;
+  padding: number;
+  gap: number;
+  bottomSpace: number;
+  frameBorderRadius: number;
+  photoBorderRadius: number;
+  photoWidth: number;
+  photoHeight: number;
+  slotCount: number;
+  photoSlots: TemplateSlot[];
+};
+
+const MAX_METADATA_DATA_URL_LENGTH = 3_500_000;
 const MAX_METADATA_URL_LENGTH = 2048;
 
 const toSafeDataUrl = (value: unknown) => {
@@ -57,6 +85,47 @@ const toStringList = (value: unknown, maxItems = 8) => {
 const toSafeNumber = (value: unknown, fallback: number) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+};
+
+const toSafeTemplateSettings = (value: unknown): TemplateSettings | undefined => {
+  if (!value || typeof value !== 'object') return undefined;
+
+  const raw = value as Partial<TemplateSettings>;
+  const canvasWidth = Math.max(1, Math.round(toSafeNumber(raw.canvasWidth, 0)));
+  const canvasHeight = Math.max(1, Math.round(toSafeNumber(raw.canvasHeight, 0)));
+  if (!canvasWidth || !canvasHeight) return undefined;
+
+  const photoSlots = Array.isArray(raw.photoSlots)
+    ? raw.photoSlots
+        .map(slot => {
+          if (!slot || typeof slot !== 'object') return null;
+          const x = Math.round(toSafeNumber(slot.x, NaN));
+          const y = Math.round(toSafeNumber(slot.y, NaN));
+          const width = Math.round(toSafeNumber(slot.width, NaN));
+          const height = Math.round(toSafeNumber(slot.height, NaN));
+          if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+            return null;
+          }
+          if (width <= 0 || height <= 0) return null;
+          return { x, y, width, height };
+        })
+        .filter((slot): slot is TemplateSlot => Boolean(slot))
+        .slice(0, 12)
+    : [];
+
+  return {
+    canvasWidth,
+    canvasHeight,
+    padding: Math.max(0, Math.round(toSafeNumber(raw.padding, 20))),
+    gap: Math.max(0, Math.round(toSafeNumber(raw.gap, 8))),
+    bottomSpace: Math.max(0, Math.round(toSafeNumber(raw.bottomSpace, 0))),
+    frameBorderRadius: Math.max(0, Math.round(toSafeNumber(raw.frameBorderRadius, 0))),
+    photoBorderRadius: Math.max(0, Math.round(toSafeNumber(raw.photoBorderRadius, 0))),
+    photoWidth: Math.max(1, Math.round(toSafeNumber(raw.photoWidth, 240))),
+    photoHeight: Math.max(1, Math.round(toSafeNumber(raw.photoHeight, 180))),
+    slotCount: Math.max(1, Math.round(toSafeNumber(raw.slotCount, Math.max(photoSlots.length, 1)))),
+    photoSlots,
+  };
 };
 
 export async function GET() {
@@ -128,6 +197,10 @@ export async function POST(req: Request) {
 
     const layout = toSafeNumber(body?.layout, 4);
     const filter = typeof body?.filter === 'string' ? body.filter : 'none';
+    const canvasWidthRaw = toSafeNumber(body?.canvasWidth, 0);
+    const canvasHeightRaw = toSafeNumber(body?.canvasHeight, 0);
+    const canvasWidth = canvasWidthRaw > 0 ? Math.round(canvasWidthRaw) : undefined;
+    const canvasHeight = canvasHeightRaw > 0 ? Math.round(canvasHeightRaw) : undefined;
     const title = typeof body?.title === 'string' && body.title.trim() ? body.title.trim() : 'Photo Strip';
     const previewDataUrl = toSafeImageValue(body?.previewDataUrl);
     const stripDataUrl = toSafeImageValue(body?.stripDataUrl);
@@ -135,6 +208,11 @@ export async function POST(req: Request) {
     const liveVideoDataUrl = toSafeVideoValue(body?.liveVideoDataUrl);
     const photoFrames = toStringList(body?.photoFrames);
     const livePhotos = toStringList(body?.livePhotos);
+    const selectedFrameTemplate = typeof body?.selectedFrameTemplate === 'string' ? body.selectedFrameTemplate : 'none';
+    const templateSettings = toSafeTemplateSettings(body?.templateSettings);
+    const frameTemplateUrl = toSafePublicUrl(body?.frameTemplateUrl);
+    const frameStickerUrl = toSafePublicUrl(body?.frameStickerUrl);
+    const frameColor = typeof body?.frameColor === 'string' && body.frameColor.length <= 64 ? body.frameColor : undefined;
 
     const created = await prisma.photoStrip.create({
       data: {
@@ -143,6 +221,8 @@ export async function POST(req: Request) {
           userId,
           layout,
           filter,
+          canvasWidth,
+          canvasHeight,
           title,
           previewDataUrl,
           stripDataUrl,
@@ -150,6 +230,11 @@ export async function POST(req: Request) {
           liveVideoDataUrl,
           photoFrames,
           livePhotos,
+          selectedFrameTemplate,
+          templateSettings,
+          frameTemplateUrl,
+          frameStickerUrl,
+          frameColor,
         },
       },
     });
@@ -162,12 +247,19 @@ export async function POST(req: Request) {
         title,
         layout,
         filter,
+        canvasWidth: canvasWidth ?? null,
+        canvasHeight: canvasHeight ?? null,
         previewDataUrl: previewDataUrl ?? null,
         stripDataUrl: stripDataUrl ?? null,
         gifDataUrl: gifDataUrl ?? null,
         liveVideoDataUrl: liveVideoDataUrl ?? null,
         photoFrames: photoFrames ?? [],
         livePhotos: livePhotos ?? [],
+        selectedFrameTemplate,
+        templateSettings: templateSettings ?? null,
+        frameTemplateUrl: frameTemplateUrl ?? null,
+        frameStickerUrl: frameStickerUrl ?? null,
+        frameColor: frameColor ?? null,
       },
     });
   } catch (error) {

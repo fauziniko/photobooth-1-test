@@ -63,7 +63,13 @@ export async function POST(req) {
       if (kind === 'gif') {
         extension = '.gif';
       } else if (kind === 'live') {
-        extension = '.webm';
+        if (detectedType.includes('mp4')) {
+          extension = '.mp4';
+        } else if (detectedType.includes('quicktime')) {
+          extension = '.mov';
+        } else {
+          extension = '.webm';
+        }
       } else if (detectedType.includes('jpeg')) {
         extension = '.jpg';
       }
@@ -73,7 +79,7 @@ export async function POST(req) {
       } else if (kind === 'gif') {
         objectContentType = 'image/gif';
       } else if (kind === 'live') {
-        objectContentType = 'video/webm';
+        objectContentType = detectedType || 'video/webm';
       } else if (kind === 'frame') {
         objectContentType = 'image/png';
       }

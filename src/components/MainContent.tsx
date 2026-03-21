@@ -14,7 +14,7 @@ export default function MainContent({ children }: { children: ReactNode }) {
   useEffect(() => {
     const applyStoredState = () => {
       const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
-      setIsDesktopSidebarOpen(stored !== '0')
+      setIsDesktopSidebarOpen(stored !== 'false')
     }
 
     const handleSidebarChange = (event: Event) => {
@@ -27,21 +27,32 @@ export default function MainContent({ children }: { children: ReactNode }) {
       applyStoredState()
     }
 
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === SIDEBAR_STORAGE_KEY) {
+        setIsDesktopSidebarOpen(e.newValue !== 'false')
+      }
+    }
+
     applyStoredState()
     window.addEventListener(SIDEBAR_EVENT_NAME, handleSidebarChange as EventListener)
-    window.addEventListener('storage', applyStoredState)
+    window.addEventListener('storage', handleStorageChange)
 
     return () => {
       window.removeEventListener(SIDEBAR_EVENT_NAME, handleSidebarChange as EventListener)
-      window.removeEventListener('storage', applyStoredState)
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
-  
-  // Check if sidebar should be shown (not on auth pages)
+
   const showSidebar = !pathname?.startsWith('/auth') && !pathname?.startsWith('/photo/gallery/')
   
   return (
-    <main className={showSidebar && isDesktopSidebarOpen ? 'md:ml-56 transition-[margin] duration-300' : 'transition-[margin] duration-300'}>
+    <main
+      className={showSidebar
+        ? isDesktopSidebarOpen
+          ? 'w-full box-border md:pl-56 transition-[padding] duration-300'
+          : 'w-full box-border md:pl-0 transition-[padding] duration-300'
+        : 'w-full box-border transition-[padding] duration-300'}
+    >
       {children}
     </main>
   )

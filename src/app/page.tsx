@@ -67,48 +67,47 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-[#fff0f7] rounded-full mb-6 border border-[#f3b7d1]">
-              <Sparkles className="w-4 h-4 text-[#d72688] mr-2" />
-              <span className="text-sm font-medium text-[#d72688]">
-                Digital Photobooth Made Simple
+            <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-[#fff0f7] rounded-full mb-6 border border-[#f3b7d1]">
+              <Zap className="w-4 h-4 text-[#d72688] mr-2 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-[#d72688]">
+                Garlet Upgrade - PhotoBooth
               </span>
             </div>
 
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="text-[#4a2337]">Capture Fun</span>
+              <span className="text-[#4a2337]">Capture Moments</span>
               <br />
               <span className="text-[#d72688]">
-                With PhotoBooth!
+                With Garlet Upgrade
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-lg sm:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Capture fun moments with friends using our cool, practical, and
-              modern digital photobooth
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed px-2">
+              Your favorite digital photobooth experience - capture fun moments with friends using our modern, practical, and easy-to-use platform
             </p>
 
             {/* CTA Button */}
             <Link
               href="/photo"
-              className="inline-flex items-center px-8 py-4 bg-[#fa75aa] text-white text-lg font-semibold rounded-full hover:bg-[#d72688] transition duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl"
+              className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#d72688] to-[#fa75aa] text-white text-base sm:text-lg font-semibold rounded-full hover:brightness-95 active:scale-95 transition duration-300 shadow-xl hover:shadow-2xl"
             >
-              <Camera className="w-5 h-5 mr-2" />
+              <Camera className="w-5 h-5 mr-2 flex-shrink-0" />
               Try It Now
             </Link>
 
             {/* Stats */}
-            <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 max-w-4xl mx-auto">
+            <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto px-2">
               {stats.map((stat, index) => {
                 const Icon = stat.icon
                 return (
                   <div key={index} className="text-center">
-                    <div className="text-4xl sm:text-5xl font-bold text-[#d72688] mb-2">
+                    <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#d72688] mb-2">
                       {stat.value}
                     </div>
-                    <div className="flex items-center justify-center text-gray-600 font-medium">
-                      <Icon className="w-4 h-4 mr-2" />
+                    <div className="flex items-center justify-center text-gray-600 font-medium text-sm sm:text-base">
+                      <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
                       {stat.label}
                     </div>
                   </div>
@@ -122,31 +121,31 @@ export default function HomePage() {
       {/* Why Choose PhotoBooth Section */}
       <section className="py-20 sm:py-28 bg-[#fffafb]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 sm:mb-16 px-2">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
               Why Choose 
-              <span className="text-[#d72688]"> PhotoBooth?</span>
+              <span className="text-[#d72688]"> Garlet Upgrade?</span>
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Everything you need to create amazing photo memories in one place
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-2 sm:px-0">
             {features.map((feature, index) => {
               const Icon = feature.icon
               return (
                 <div 
                   key={index}
-                  className="group p-6 bg-white border border-[#f3b7d1] rounded-2xl hover:shadow-xl hover:border-[#fa75aa] transition duration-300"
+                  className="group p-5 sm:p-6 bg-white border border-[#f3b7d1] rounded-2xl hover:shadow-xl hover:border-[#fa75aa] hover:scale-105 transition duration-300 cursor-pointer"
                 >
-                  <div className="w-14 h-14 bg-[#fff0f7] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
-                    <Icon className="w-7 h-7 text-[#d72688]" />
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#fff0f7] to-[#ffe1ee] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition flex-shrink-0">
+                    <Icon className="w-6 sm:w-7 h-6 sm:h-7 text-[#d72688]" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600 leading-relaxed">
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -157,32 +156,33 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-[#d72688] to-[#fa75aa]">
+      <section className="py-16 sm:py-20 bg-gradient-to-r from-[#d72688] via-[#fa75aa] to-[#d72688]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Heart className="w-16 h-16 text-white mx-auto mb-6 animate-pulse" />
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
+          <Heart className="w-12 sm:w-16 h-12 sm:h-16 text-white mx-auto mb-4 sm:mb-6 animate-pulse flex-shrink-0" />
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6">
             Ready to Create Amazing Photos?
           </h2>
-          <p className="text-lg sm:text-xl text-pink-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of users who are already creating beautiful photo memories
+          <p className="text-base sm:text-lg text-pink-100 mb-6 sm:mb-8 max-w-2xl mx-auto">
+            Join thousands of users who are already creating beautiful photo memories with Garlet Upgrade
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Link
               href="/photo"
-              className="inline-flex items-center justify-center px-8 py-4 bg-white text-[#d72688] text-lg font-semibold rounded-full hover:bg-gray-100 transition transform hover:scale-105 shadow-xl"
+              className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-white text-[#d72688] text-base sm:text-lg font-semibold rounded-full hover:brightness-95 active:scale-95 transition shadow-xl"
             >
-              <Camera className="w-5 h-5 mr-2" />
+              <Camera className="w-5 h-5 mr-2 flex-shrink-0" />
               Start Now - It&apos;s Free
             </Link>
             
             {!session && (
               <Link
                 href="/auth/signup"
-                className="inline-flex items-center justify-center px-8 py-4 bg-transparent border-2 border-white text-white text-lg font-semibold rounded-full hover:bg-white hover:text-[#d72688] transition transform hover:scale-105"
+                className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-transparent border-2 border-white text-white text-base sm:text-lg font-semibold rounded-full hover:bg-white/10 active:scale-95 transition"
               >
-                <Zap className="w-5 h-5 mr-2" />
-                Sign Up for More
+                <Zap className="w-5 h-5 mr-2 flex-shrink-0" />
+                <span className="hidden sm:inline">Sign Up</span>
+                <span className="sm:hidden">Create Account</span>
               </Link>
             )}
           </div>
@@ -190,30 +190,34 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#5e2740] text-pink-100 py-12">
+      <footer className="bg-[#5e2740] text-pink-100 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-10 h-10 bg-[#fa75aa] rounded-xl flex items-center justify-center">
-                  <Camera className="w-6 h-6 text-white" />
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-0">
+            <div className="mb-6 md:mb-0">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#fa75aa] to-[#d72688] rounded-xl flex items-center justify-center flex-shrink-0 shadow">
+                  <Zap className="w-6 h-6 text-white fill-white" />
                 </div>
-                <span className="text-xl font-bold text-white">PhotoBooth</span>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Garlet Upgrade</h3>
+                  <p className="text-xs text-pink-200">PhotoBooth</p>
+                </div>
               </div>
-              <p className="text-sm text-pink-200">Create memories that last forever</p>
+              <p className="text-sm text-pink-200 ml-13">Create memories that last forever</p>
             </div>
             
-            <div className="flex space-x-6">
+            <div className="flex gap-4 sm:gap-6 text-sm">
               <Link href="/" className="hover:text-white transition">Home</Link>
               <Link href="/photo" className="hover:text-white transition">Booth</Link>
+              <Link href="/photo/gallery" className="hover:text-white transition">Gallery</Link>
               {session?.user?.role === 'ADMIN' && (
                 <Link href="/admin" className="hover:text-white transition">Admin</Link>
               )}
             </div>
           </div>
           
-          <div className="mt-8 pt-8 border-t border-[#8b4b66] text-center text-sm text-pink-200">
-            <p>&copy; 2025 PhotoBooth. All rights reserved.</p>
+          <div className="mt-8 pt-8 border-t border-[#8b4b66] text-center text-xs sm:text-sm text-pink-200">
+            <p>&copy; 2025 Garlet Upgrade. All rights reserved.</p>
           </div>
         </div>
       </footer>

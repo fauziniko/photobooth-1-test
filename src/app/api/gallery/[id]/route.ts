@@ -7,12 +7,19 @@ type GalleryMetadata = {
   title?: string;
   layout?: number;
   filter?: string;
+  canvasWidth?: number;
+  canvasHeight?: number;
   previewDataUrl?: string;
   stripDataUrl?: string;
   gifDataUrl?: string;
   liveVideoDataUrl?: string;
   photoFrames?: string[];
   livePhotos?: string[];
+  selectedFrameTemplate?: string;
+  templateSettings?: unknown;
+  frameTemplateUrl?: string;
+  frameStickerUrl?: string;
+  frameColor?: string;
 };
 
 const getOwnerId = (metadata: unknown) => {
@@ -45,6 +52,8 @@ export async function GET(
         title: typeof metadata.title === 'string' ? metadata.title : 'Photo Strip',
         layout: Number.isFinite(metadata.layout) ? Number(metadata.layout) : 4,
         filter: typeof metadata.filter === 'string' ? metadata.filter : 'none',
+        canvasWidth: Number.isFinite(metadata.canvasWidth) ? Number(metadata.canvasWidth) : null,
+        canvasHeight: Number.isFinite(metadata.canvasHeight) ? Number(metadata.canvasHeight) : null,
         previewDataUrl: typeof metadata.previewDataUrl === 'string' ? metadata.previewDataUrl : null,
         stripDataUrl: typeof metadata.stripDataUrl === 'string' ? metadata.stripDataUrl : null,
         gifDataUrl: typeof metadata.gifDataUrl === 'string' ? metadata.gifDataUrl : null,
@@ -55,6 +64,11 @@ export async function GET(
         livePhotos: Array.isArray(metadata.livePhotos)
           ? metadata.livePhotos.filter((v): v is string => typeof v === 'string')
           : [],
+        selectedFrameTemplate: typeof metadata.selectedFrameTemplate === 'string' ? metadata.selectedFrameTemplate : 'none',
+        templateSettings: metadata.templateSettings ?? null,
+        frameTemplateUrl: typeof metadata.frameTemplateUrl === 'string' ? metadata.frameTemplateUrl : null,
+        frameStickerUrl: typeof metadata.frameStickerUrl === 'string' ? metadata.frameStickerUrl : null,
+        frameColor: typeof metadata.frameColor === 'string' ? metadata.frameColor : null,
       },
     });
   } catch (error) {

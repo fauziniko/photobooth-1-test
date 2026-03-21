@@ -305,3 +305,9 @@ body {
   border-color: #fa75aa;
   transition: background 0.2s, color 0.2s, border 0.2s;
 }
+
+/* Focus & Accessibility */
+button:focus-visible, a:focus-visible {
+  outline: 2px solid #fa75aa;
+  outline-offset: 2px;
+}

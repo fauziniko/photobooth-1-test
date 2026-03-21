@@ -2,10 +2,17 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Download, ExternalLink, ImageIcon, Printer, QrCode, Share2 } from 'lucide-react';
+import { isIndexedDBSupported, savePhotosToIndexedDB } from '@/lib/indexedDB';
+import {
+  clearTempLiveVideoUrlFromSessionStorage,
+  saveTempLiveVideoUrlToSessionStorage,
+  saveTempPhotosToSessionStorage,
+} from '@/lib/tempPhotoStorage';
 
 type GalleryDetailItem = {
   id: string;
@@ -13,18 +20,41 @@ type GalleryDetailItem = {
   imageUrl: string;
   layout: number;
   filter: string;
+  canvasWidth: number | null;
+  canvasHeight: number | null;
   previewDataUrl: string | null;
   stripDataUrl: string | null;
   gifDataUrl: string | null;
   liveVideoDataUrl: string | null;
   photoFrames: string[];
   livePhotos: string[];
+  selectedFrameTemplate: string;
+  templateSettings: {
+    canvasWidth: number;
+    canvasHeight: number;
+    padding: number;
+    gap: number;
+    bottomSpace: number;
+    frameBorderRadius: number;
+    photoBorderRadius: number;
+    photoWidth: number;
+    photoHeight: number;
+    slotCount: number;
+    photoSlots: Array<{ x: number; y: number; width: number; height: number }>;
+  } | null;
+  frameTemplateUrl: string | null;
+  frameStickerUrl: string | null;
+  frameColor: string | null;
 };
 
-const isVideoSource = (value: string | null | undefined) => {
-  if (!value || typeof value !== 'string') return false;
-  if (value.startsWith('data:video/')) return true;
-  return /\.(webm|mp4|mov|m4v)(\?|#|$)/i.test(value);
+const normalizeVideoSource = (value: string | null | undefined) => {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('data:video/')) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return trimmed;
+  return null;
 };
 
 const isGifSource = (value: string | null | undefined) => {
@@ -35,6 +65,7 @@ const isGifSource = (value: string | null | undefined) => {
 
 export default function GalleryDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = typeof params?.id === 'string' ? params.id : '';
   const { status } = useSession();
 
@@ -47,9 +78,22 @@ export default function GalleryDetailPage() {
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [generatedGifDataUrl, setGeneratedGifDataUrl] = useState<string | null>(null);
   const [, setIsGeneratingGif] = useState(false);
-  const [generatedLiveVideoDataUrl, setGeneratedLiveVideoDataUrl] = useState<string | null>(null);
-  const [, setIsGeneratingLiveVideo] = useState(false);
+  const [isPreparingEditor, setIsPreparingEditor] = useState(false);
   const mediaTouchStartXRef = useRef<number | null>(null);
+
+  const normalizeEditorImageSource = (value: string): string | null => {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('data:image/')) return trimmed;
+    if (trimmed.startsWith('/api/image-proxy?url=')) return trimmed;
+    if (trimmed.startsWith('/')) return trimmed;
+    if (trimmed.startsWith('blob:')) return trimmed;
+    if (/^https?:\/\//i.test(trimmed)) {
+      return `/api/image-proxy?url=${encodeURIComponent(trimmed)}`;
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -104,18 +148,20 @@ export default function GalleryDetailPage() {
     return imagePreview ? [imagePreview] : [];
   }, [item, imagePreview]);
 
-  const livePhotos = useMemo(() => {
-    if (!item) return [] as string[];
-    if (item.livePhotos.length > 0) return item.livePhotos;
-    return capturePhotos;
-  }, [item, capturePhotos]);
-
-  const rawLiveCandidate = item?.liveVideoDataUrl ?? generatedLiveVideoDataUrl;
+  const rawLiveCandidate = item?.liveVideoDataUrl;
   const rawGifCandidate = item?.gifDataUrl ?? generatedGifDataUrl;
-  const liveVideoSrc = isVideoSource(rawLiveCandidate) ? rawLiveCandidate : null;
+  const liveVideoSrc = normalizeVideoSource(rawLiveCandidate);
   const gifSrc = isGifSource(rawGifCandidate)
     ? rawGifCandidate
     : (!liveVideoSrc && isGifSource(rawLiveCandidate) ? rawLiveCandidate : null);
+
+  const stripAspectRatio = useMemo(() => {
+    const canvasWidth = item?.templateSettings?.canvasWidth ?? item?.canvasWidth ?? null;
+    const canvasHeight = item?.templateSettings?.canvasHeight ?? item?.canvasHeight ?? null;
+    if (!canvasWidth || !canvasHeight) return null;
+    if (canvasWidth <= 0 || canvasHeight <= 0) return null;
+    return canvasWidth / canvasHeight;
+  }, [item?.canvasHeight, item?.canvasWidth, item?.templateSettings?.canvasHeight, item?.templateSettings?.canvasWidth]);
 
   const mediaSlides = useMemo(() => {
     const slides: Array<{
@@ -140,12 +186,18 @@ export default function GalleryDetailPage() {
     }
 
     if (liveVideoSrc) {
+      const liveExt = /\.mp4(\?|#|$)/i.test(liveVideoSrc)
+        ? 'mp4'
+        : /\.(mov|m4v)(\?|#|$)/i.test(liveVideoSrc)
+          ? 'mov'
+          : 'webm';
+
       slides.push({
         key: 'live-video',
         type: 'video',
         label: 'Live Video',
         src: liveVideoSrc,
-        downloadName: `live-${id}.webm`,
+        downloadName: `live-${id}.${liveExt}`,
         downloadLabel: 'Download Live',
       });
     }
@@ -172,25 +224,17 @@ export default function GalleryDetailPage() {
       });
     });
 
-    if (!liveVideoSrc) {
-      livePhotos.forEach((src, idx) => {
-        slides.push({
-          key: `live-frame-${idx}`,
-          type: 'image',
-          label: `Live Frame ${idx + 1}`,
-          src,
-          downloadName: `live-frame-${id}-${idx + 1}.png`,
-          downloadLabel: 'Download Frame',
-        });
-      });
-    }
-
     return slides;
-  }, [capturePhotos, gifSrc, id, imagePreview, item?.imageUrl, item?.stripDataUrl, livePhotos, liveVideoSrc]);
+  }, [capturePhotos, gifSrc, id, imagePreview, item?.imageUrl, item?.stripDataUrl, liveVideoSrc]);
 
   useEffect(() => {
     setMediaIndex(0);
   }, [mediaSlides.length]);
+
+  useEffect(() => {
+    setGeneratedGifDataUrl(null);
+    setMediaIndex(0);
+  }, [item?.id]);
 
   const createGifFromFrames = async (frames: string[]): Promise<string | null> => {
     if (frames.length === 0) return null;
@@ -253,106 +297,6 @@ export default function GalleryDetailPage() {
     }
   };
 
-  const createLiveVideoFromFrames = async (frames: string[]): Promise<string | null> => {
-    if (frames.length === 0 || typeof MediaRecorder === 'undefined') return null;
-
-    const candidateTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
-    const supportedType = candidateTypes.find(type =>
-      typeof MediaRecorder.isTypeSupported === 'function' ? MediaRecorder.isTypeSupported(type) : false
-    );
-
-    try {
-      const firstImg = new window.Image();
-      firstImg.src = frames[0];
-      await new Promise(resolve => {
-        firstImg.onload = resolve;
-      });
-
-      const baseWidth = firstImg.naturalWidth || 640;
-      const baseHeight = firstImg.naturalHeight || 480;
-      const minTargetWidth = 960;
-      const maxTargetWidth = 1280;
-
-      let width = baseWidth;
-      let height = baseHeight;
-
-      if (width < minTargetWidth) {
-        const upscale = minTargetWidth / width;
-        width = Math.round(width * upscale);
-        height = Math.round(height * upscale);
-      }
-
-      if (width > maxTargetWidth) {
-        const downscale = maxTargetWidth / width;
-        width = Math.round(width * downscale);
-        height = Math.round(height * downscale);
-      }
-
-      width = width % 2 === 0 ? width : width - 1;
-      height = height % 2 === 0 ? height : height - 1;
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return null;
-
-      const stream = canvas.captureStream(30);
-      const chunks: BlobPart[] = [];
-      const recorder = new MediaRecorder(
-        stream,
-        supportedType ? { mimeType: supportedType, videoBitsPerSecond: 6_000_000 } : undefined
-      );
-
-      recorder.ondataavailable = event => {
-        if (event.data && event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
-
-      const stopped = new Promise<void>(resolve => {
-        recorder.onstop = () => resolve();
-      });
-
-      recorder.start(200);
-      const sequence = frames.length > 1 ? [...frames, ...frames.slice().reverse()] : [...frames];
-      const frameHoldMs = 450;
-      const minDurationMs = 9000;
-      const loopCount = Math.min(5, Math.max(2, Math.ceil(minDurationMs / (sequence.length * frameHoldMs))));
-
-      for (let loop = 0; loop < loopCount; loop++) {
-        for (const src of sequence) {
-          const image = new window.Image();
-          image.src = src;
-          await new Promise(resolve => {
-            image.onload = resolve;
-          });
-          ctx.clearRect(0, 0, width, height);
-          ctx.drawImage(image, 0, 0, width, height);
-          await new Promise(resolve => setTimeout(resolve, frameHoldMs));
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 250));
-
-      recorder.stop();
-      await stopped;
-
-      const blob = new Blob(chunks, { type: supportedType || 'video/webm' });
-      if (blob.size === 0) return null;
-
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(blob);
-      });
-
-      return dataUrl;
-    } catch {
-      return null;
-    }
-  };
 
   const handleDownload = async (url: string | null | undefined, filename: string) => {
     if (!url) return;
@@ -398,23 +342,12 @@ export default function GalleryDetailPage() {
       }
     };
 
-    const ensureLiveVideo = async () => {
-      if (!item || item.liveVideoDataUrl || livePhotos.length === 0 || generatedLiveVideoDataUrl) return;
-      setIsGeneratingLiveVideo(true);
-      const generated = await createLiveVideoFromFrames(livePhotos);
-      if (isMounted) {
-        setGeneratedLiveVideoDataUrl(generated);
-        setIsGeneratingLiveVideo(false);
-      }
-    };
-
     ensureGif();
-    ensureLiveVideo();
 
     return () => {
       isMounted = false;
     };
-  }, [capturePhotos, generatedGifDataUrl, generatedLiveVideoDataUrl, item, livePhotos]);
+  }, [capturePhotos, generatedGifDataUrl, item]);
 
   const copyLink = async () => {
     try {
@@ -439,6 +372,56 @@ export default function GalleryDetailPage() {
       await copyLink();
     } catch {
       // Ignore aborted share
+    }
+  };
+
+  const handleEditInEditor = async () => {
+    if (!item) return;
+
+    setIsPreparingEditor(true);
+    try {
+      const sourcePhotos = [
+        ...(Array.isArray(item.photoFrames) ? item.photoFrames : []),
+      ];
+
+      if (sourcePhotos.length === 0 && Array.isArray(item.livePhotos)) {
+        sourcePhotos.push(...item.livePhotos);
+      }
+
+      if (sourcePhotos.length === 0) {
+        if (item.stripDataUrl) sourcePhotos.push(item.stripDataUrl);
+        else if (item.previewDataUrl) sourcePhotos.push(item.previewDataUrl);
+        else if (item.imageUrl) sourcePhotos.push(item.imageUrl);
+      }
+
+      const normalizedPhotos = sourcePhotos
+        .map(normalizeEditorImageSource)
+        .filter((v): v is string => Boolean(v));
+      if (normalizedPhotos.length === 0) {
+        alert('Foto untuk item ini tidak tersedia untuk editor.');
+        return;
+      }
+
+      saveTempPhotosToSessionStorage(normalizedPhotos);
+      if (isIndexedDBSupported()) {
+        await savePhotosToIndexedDB(normalizedPhotos);
+      }
+
+      if (item.liveVideoDataUrl && typeof item.liveVideoDataUrl === 'string') {
+        saveTempLiveVideoUrlToSessionStorage(item.liveVideoDataUrl);
+      } else {
+        clearTempLiveVideoUrlFromSessionStorage();
+      }
+
+      const nextLayout = Number.isFinite(Number(item.layout))
+        ? Number(item.layout)
+        : Math.max(1, normalizedPhotos.length);
+
+      router.push(`/photo/edit?layout=${nextLayout}&source=gallery&id=${item.id}`);
+    } catch {
+      alert('Terjadi kesalahan saat menyiapkan editor.');
+    } finally {
+      setIsPreparingEditor(false);
     }
   };
 
@@ -586,12 +569,19 @@ export default function GalleryDetailPage() {
                                       />
                                     </div>
                                   ) : isStripSlide ? (
-                                    <div className="w-full h-[62vh] max-h-[70vh] rounded-xl border border-pink-100 bg-[#fafafa] p-3 flex items-center justify-center overflow-hidden">
+                                    <div
+                                      className="w-full rounded-xl border border-pink-100 bg-white flex items-center justify-center overflow-hidden"
+                                      style={{
+                                        aspectRatio: stripAspectRatio ?? undefined,
+                                        minHeight: stripAspectRatio ? '320px' : undefined,
+                                        maxHeight: '70vh',
+                                      }}
+                                    >
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
                                       <img
                                         src={slide.src}
                                         alt={slide.label}
-                                        className="max-w-full max-h-full object-contain object-center"
+                                        className="w-full h-full object-contain object-center"
                                       />
                                     </div>
                                   ) : (
@@ -750,7 +740,16 @@ export default function GalleryDetailPage() {
 
                     <div className="rounded-xl border border-[#f3b7d1] bg-white p-3">
                       <p className="text-[11px] uppercase tracking-wide font-semibold text-[#a13d70]">Quick Actions</p>
-                      <div className="mt-2 grid grid-cols-3 gap-2">
+                      <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <button
+                          onClick={handleEditInEditor}
+                          disabled={isPreparingEditor}
+                          className="gallery-detail-action-btn w-full inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-[#f8bfd7] bg-white text-[#d72688] hover:bg-[#fff7fb] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ImageIcon className="w-4 h-4" />
+                          {isPreparingEditor ? 'Menyiapkan...' : 'Edit Editor'}
+                        </button>
+
                         <button
                           onClick={() => setShowQrPopup(true)}
                           className="gallery-detail-action-btn w-full inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-pink-200 bg-white text-[#d72688] hover:bg-[#fff7fb] transition"

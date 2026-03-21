@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Camera from '@/components/Camera';
 import { 
@@ -12,7 +12,6 @@ import {
 import {
   clearTempPhotosFromSessionStorage,
   clearTempLiveVideoUrlFromSessionStorage,
-  loadTempLiveVideoUrlFromSessionStorage,
   loadTempPhotosFromSessionStorage,
   saveTempLiveVideoUrlToSessionStorage,
   saveTempPhotosToSessionStorage,
@@ -23,6 +22,7 @@ export default function Page() {
   const mainRef = useRef<HTMLElement | null>(null);
   const photosRef = useRef<string[]>([]);
   const isRedirectingRef = useRef(false);
+  const awaitingLiveVideoRef = useRef(false);
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploadPhotos, setUploadPhotos] = useState<string[]>([]);
@@ -37,6 +37,7 @@ export default function Page() {
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [, setCapturedLiveVideoUrl] = useState<string | null>(null);
   const [awaitingLiveVideo, setAwaitingLiveVideo] = useState(false);
+  const [liveWaitSeconds, setLiveWaitSeconds] = useState(0);
   
   const [liveMode, setLiveMode] = useState(true);
 
@@ -106,21 +107,29 @@ export default function Page() {
         return;
       }
 
+      // Default entry to /photo should always start a fresh capture session.
       if (isIndexedDBSupported()) {
         try {
-          const savedPhotos = await loadPhotosFromIndexedDB();
-          const validPhotos = savedPhotos.filter(isValidPhotoData);
-          if (validPhotos.length > 0) {
-            setPhotos(validPhotos);
-            photosRef.current = validPhotos;
-          }
+          await clearPhotosFromIndexedDB();
         } catch (error) {
-          console.error('❌ Failed to load photos from IndexedDB:', error);
+          console.error('❌ Failed to clear stale photos on fresh capture start:', error);
         }
       }
 
-      const savedLiveUrl = loadTempLiveVideoUrlFromSessionStorage();
-      setCapturedLiveVideoUrl(savedLiveUrl);
+      clearTempPhotosFromSessionStorage();
+      clearTempLiveVideoUrlFromSessionStorage();
+      sessionStorage.removeItem('photobooth-retake-reset');
+      sessionStorage.removeItem('photobooth-retake-single');
+      sessionStorage.removeItem('photobooth-retake-index');
+
+      setPhotos([]);
+      setUploadPhotos([]);
+      photosRef.current = [];
+      setRetakePhotoIndex(null);
+      setCapturedLiveVideoUrl(null);
+      setAwaitingLiveVideo(false);
+      awaitingLiveVideoRef.current = false;
+      setShowCamera(true);
     };
     loadSavedPhotos();
   }, []);
@@ -157,6 +166,7 @@ export default function Page() {
 
   const handleLayoutChange = (n: number) => {
     isRedirectingRef.current = false;
+    awaitingLiveVideoRef.current = false;
     setLayout(n);
     setPhotos([]);
     setUploadPhotos([]);
@@ -172,33 +182,50 @@ export default function Page() {
 
   const handleStartCapture = () => {
     isRedirectingRef.current = false;
+    awaitingLiveVideoRef.current = false;
     setShowCamera(true);
   };
 
   const uploadLiveVideoBlobToCloud = async (blob: Blob): Promise<string | null> => {
-    try {
-      const file = new File([blob], `live-${Date.now()}.webm`, {
-        type: blob.type || 'video/webm',
-      });
+    const mimeType = blob.type || 'video/webm';
+    const extension = mimeType.includes('mp4')
+      ? 'mp4'
+      : mimeType.includes('quicktime')
+        ? 'mov'
+        : 'webm';
 
-      const formData = new FormData();
-      formData.append('media', file);
-      formData.append('kind', 'live');
+    const file = new File([blob], `live-${Date.now()}.${extension}`, {
+      type: mimeType,
+    });
 
-      const res = await fetch('/api/upload-strip', {
-        method: 'POST',
-        body: formData,
-      });
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const formData = new FormData();
+        formData.append('media', file);
+        formData.append('kind', 'live');
 
-      if (!res.ok) return null;
-      const data = await res.json();
-      return typeof data?.url === 'string' ? data.url : null;
-    } catch {
-      return null;
+        const res = await fetch('/api/upload-strip', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          return typeof data?.url === 'string' ? data.url : null;
+        }
+      } catch {
+        // Retry transient upload failure.
+      }
+
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 350 * attempt));
+      }
     }
+
+    return null;
   };
 
-  const finalizeRedirectToEditor = async () => {
+  const finalizeRedirectToEditor = useCallback(async () => {
     if (isRedirectingRef.current) return;
     if (photosRef.current.length < layout) return;
 
@@ -213,7 +240,38 @@ export default function Page() {
     }
 
     router.push('/photo/edit?layout=' + layout);
-  };
+  }, [layout, router]);
+
+  useEffect(() => {
+    if (!awaitingLiveVideo || photosRef.current.length < layout || isRedirectingRef.current) return;
+
+    const timeoutId = window.setTimeout(() => {
+      // Fallback: avoid getting stuck if recorder callback is delayed or skipped by browser.
+      awaitingLiveVideoRef.current = false;
+      setAwaitingLiveVideo(false);
+      void finalizeRedirectToEditor();
+    }, 7000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [awaitingLiveVideo, layout, finalizeRedirectToEditor]);
+
+  useEffect(() => {
+    if (!awaitingLiveVideo) {
+      setLiveWaitSeconds(0);
+      return;
+    }
+
+    setLiveWaitSeconds(1);
+    const intervalId = window.setInterval(() => {
+      setLiveWaitSeconds(prev => prev + 1);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [awaitingLiveVideo]);
 
   const handleCapture = async (photoDataUrl: string) => {
     if (!isValidPhotoData(photoDataUrl)) {
@@ -240,13 +298,18 @@ export default function Page() {
 
     if (updatedPhotos.length >= layout && !isRedirectingRef.current) {
       if (liveMode) {
+        // Wait for onLiveVideoCapture so redirect happens after recording is fully finalized.
+        awaitingLiveVideoRef.current = true;
         setAwaitingLiveVideo(true);
+        return;
       }
+
       await finalizeRedirectToEditor();
     }
   };
 
   const handleLiveVideoCapture = async (blob: Blob | null) => {
+    const shouldFinalizeAfterLive = awaitingLiveVideoRef.current && photosRef.current.length >= layout && !isRedirectingRef.current;
     let uploadedLiveUrl: string | null = null;
 
     if (blob && blob.size > 0) {
@@ -261,8 +324,11 @@ export default function Page() {
       clearTempLiveVideoUrlFromSessionStorage();
     }
 
-    if (awaitingLiveVideo) {
-      setAwaitingLiveVideo(false);
+    awaitingLiveVideoRef.current = false;
+    setAwaitingLiveVideo(false);
+
+    if (shouldFinalizeAfterLive) {
+      await finalizeRedirectToEditor();
     }
   };
 
@@ -297,6 +363,7 @@ export default function Page() {
       setShowCamera(false);
       setCapturedLiveVideoUrl(null);
       setAwaitingLiveVideo(false);
+      awaitingLiveVideoRef.current = false;
       clearTempLiveVideoUrlFromSessionStorage();
 
       if (combined.length >= layout && !isRedirectingRef.current) {
@@ -314,30 +381,6 @@ export default function Page() {
     });
 
     e.target.value = '';
-  };
-
-  const handleStartFreshCapture = async () => {
-    if (isIndexedDBSupported()) {
-      try {
-        await clearPhotosFromIndexedDB();
-      } catch (error) {
-        console.error('❌ Failed to clear cached photos for fresh capture:', error);
-      }
-    }
-
-    clearTempPhotosFromSessionStorage();
-    clearTempLiveVideoUrlFromSessionStorage();
-    sessionStorage.removeItem('photobooth-retake-single');
-    sessionStorage.removeItem('photobooth-retake-index');
-
-    isRedirectingRef.current = false;
-    photosRef.current = [];
-    setPhotos([]);
-    setUploadPhotos([]);
-    setRetakePhotoIndex(null);
-    setCapturedLiveVideoUrl(null);
-    setAwaitingLiveVideo(false);
-    setShowCamera(true);
   };
 
   const toggleFullscreen = async () => {
@@ -380,12 +423,11 @@ export default function Page() {
     }
   };
 
-  const hasCompletedCapture = photos.length >= layout && retakePhotoIndex === null;
   const isCaptureMode = showCamera && (photos.length < layout || retakePhotoIndex !== null);
 
   return (
     <>
-      <main ref={mainRef} className="pb-page-bg min-h-screen flex flex-col items-center justify-center gap-6 py-8 px-4">
+      <main ref={mainRef} className="pb-page-bg min-h-screen w-full flex flex-col items-center justify-center gap-6 py-8 px-4 sm:px-6 lg:px-8">
         {!isFullscreen && (
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#d72688] tracking-wide text-center">
             Photo Booth
@@ -404,7 +446,7 @@ export default function Page() {
         )}
 
         {fullscreenError && (
-          <div className="w-full max-w-2xl mx-auto px-4">
+          <div className="w-full max-w-4xl mx-auto px-2 sm:px-4">
             <div className="text-sm text-[#8c295c] bg-[#fff4fa] border border-[#f3b7d1] rounded-xl px-3 py-2 text-center">
               {fullscreenError}
             </div>
@@ -433,36 +475,24 @@ export default function Page() {
           </div>
         )}
 
-        {!isFullscreen && hasCompletedCapture && (
-          <div className="w-full max-w-2xl mx-auto px-4">
+        {awaitingLiveVideo && (
+          <div className="w-full max-w-4xl mx-auto px-2 sm:px-4">
             <div className="bg-white/95 border border-pink-200 rounded-2xl shadow-sm p-4 sm:p-5">
               <p className="text-sm sm:text-base text-[#d72688] font-semibold text-center">
-                Foto untuk {layout} pose sudah tersedia.
+                Menyimpan hasil live video...
               </p>
               <p className="text-xs sm:text-sm text-gray-600 text-center mt-1">
-                Lanjutkan edit atau mulai sesi capture baru.
+                Mohon tunggu, Anda akan otomatis lanjut ke editor.
               </p>
-
-              <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                <button
-                  onClick={() => router.push(`/photo/edit?layout=${layout}`)}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-[#fa75aa] text-white hover:bg-[#d72688] transition font-semibold"
-                >
-                  Lanjut ke Editor
-                </button>
-                <button
-                  onClick={handleStartFreshCapture}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#fa75aa] text-[#d72688] bg-white hover:bg-pink-50 transition font-semibold"
-                >
-                  Capture Ulang
-                </button>
-              </div>
+              <p className="text-xs sm:text-sm text-[#d72688] text-center mt-2 font-semibold">
+                Proses berjalan: {liveWaitSeconds} detik
+              </p>
             </div>
           </div>
         )}
 
         {showCamera && (photos.length < layout || retakePhotoIndex !== null) && (
-          <div className={isFullscreen ? 'fixed inset-0 z-[60] bg-black' : 'w-full max-w-2xl mx-auto px-4'}>
+          <div className={isFullscreen ? 'fixed inset-0 z-[60] bg-black' : 'w-full max-w-4xl mx-auto px-2 sm:px-4'}>
             <Camera
               onCapture={handleCapture}
               photosToTake={retakePhotoIndex !== null ? 1 : layout - photos.length}

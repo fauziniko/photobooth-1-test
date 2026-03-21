@@ -69,6 +69,7 @@ export default function Camera({
     const bestQuality = {
       width: { ideal: 4096 },
       height: { ideal: 4096 },
+      frameRate: { ideal: 60, max: 60 },
     };
 
     if (isMobile) {
@@ -129,14 +130,20 @@ export default function Camera({
     try {
       const stream = videoRef.current?.srcObject;
       if (liveMode && stream instanceof MediaStream && typeof MediaRecorder !== 'undefined') {
-        const candidateTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+        const candidateTypes = [
+          'video/mp4;codecs=h264',
+          'video/mp4',
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm',
+        ];
         const supportedType = candidateTypes.find(type =>
           typeof MediaRecorder.isTypeSupported === 'function' ? MediaRecorder.isTypeSupported(type) : false
         );
 
         recorder = new MediaRecorder(
           stream,
-          supportedType ? { mimeType: supportedType, videoBitsPerSecond: 4_000_000 } : undefined
+          supportedType ? { mimeType: supportedType, videoBitsPerSecond: 12_000_000 } : undefined
         );
 
         recorder.ondataavailable = event => {
@@ -223,7 +230,9 @@ export default function Camera({
 
       await stopRecorderSafely();
       if (onLiveVideoCapture) {
-        const liveBlob = recordChunks.length > 0 ? new Blob(recordChunks, { type: 'video/webm' }) : null;
+        const liveBlob = recordChunks.length > 0
+          ? new Blob(recordChunks, { type: recorder?.mimeType || 'video/webm' })
+          : null;
         await onLiveVideoCapture(liveBlob && liveBlob.size > 0 ? liveBlob : null);
       }
     } finally {

@@ -40,6 +40,20 @@ type FrameTemplate = { name: string; frameUrl: string; stickerUrl: string; setti
 type FrameTemplateForUI = { name: string; label: string; src: string; sticker?: string; settings?: TemplateSettings | null };
 type PersistedGallery = { id: string };
 
+type PersistedTemplateSettings = {
+  canvasWidth: number;
+  canvasHeight: number;
+  padding: number;
+  gap: number;
+  bottomSpace: number;
+  frameBorderRadius: number;
+  photoBorderRadius: number;
+  photoWidth: number;
+  photoHeight: number;
+  slotCount: number;
+  photoSlots: TemplateSlot[];
+};
+
 const toFiniteNumber = (value: unknown, fallback: number) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -105,6 +119,7 @@ export default function PhotoEditPage() {
   const [photoResultGifUrl, setPhotoResultGifUrl] = useState<string | undefined>(undefined);
   const [isLoadingResult, setIsLoadingResult] = useState(false);
   const [isSavingGallery, setIsSavingGallery] = useState(false);
+  const [processingSeconds, setProcessingSeconds] = useState(0);
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [cropImageUrl, setCropImageUrl] = useState('');
   const [cropPhotoIndex, setCropPhotoIndex] = useState(0);
@@ -128,8 +143,33 @@ export default function PhotoEditPage() {
     return selectedTemplate?.settings ?? null;
   }, [frameTemplates, selectedFrameTemplate]);
 
-  const isValidPhotoData = (value: string) =>
-    typeof value === 'string' && value.startsWith('data:image/') && value.length > 1000;
+  const normalizeEditablePhotoSource = (value: string): string | null => {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    if (trimmed.startsWith('data:image/') && trimmed.length > 1000) {
+      return trimmed;
+    }
+
+    if (trimmed.startsWith('/api/image-proxy?url=')) {
+      return trimmed;
+    }
+
+    if (trimmed.startsWith('/')) {
+      return trimmed;
+    }
+
+    if (trimmed.startsWith('blob:')) {
+      return trimmed;
+    }
+
+    if (/^https?:\/\//i.test(trimmed)) {
+      return `/api/image-proxy?url=${encodeURIComponent(trimmed)}`;
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -178,14 +218,18 @@ export default function PhotoEditPage() {
 
       try {
         const cachedPhotos = await loadPhotosFromIndexedDB();
-        const validCachedPhotos = cachedPhotos.filter(isValidPhotoData);
+        const validCachedPhotos = cachedPhotos
+          .map(normalizeEditablePhotoSource)
+          .filter((value): value is string => Boolean(value));
 
         if (validCachedPhotos.length > 0) {
           setPhotos(validCachedPhotos);
           return;
         }
 
-        const tempPhotos = loadTempPhotosFromSessionStorage().filter(isValidPhotoData);
+        const tempPhotos = loadTempPhotosFromSessionStorage()
+          .map(normalizeEditablePhotoSource)
+          .filter((value): value is string => Boolean(value));
         if (tempPhotos.length > 0) {
           setPhotos(tempPhotos);
           await savePhotosToIndexedDB(tempPhotos);
@@ -250,6 +294,22 @@ export default function PhotoEditPage() {
     }
 
   }, [photos]);
+
+  useEffect(() => {
+    if (!isLoadingResult) {
+      setProcessingSeconds(0);
+      return;
+    }
+
+    setProcessingSeconds(1);
+    const intervalId = window.setInterval(() => {
+      setProcessingSeconds(prev => prev + 1);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isLoadingResult]);
 
   const handleRetakePhoto = async (index: number) => {
     if (index < 0 || index >= photos.length) return;
@@ -348,53 +408,85 @@ export default function PhotoEditPage() {
     const node = document.getElementById('strip');
     if (!node) return null;
 
-    const renderWidth = Number(node.getAttribute('data-render-width')) || 0;
-    const renderHeight = Number(node.getAttribute('data-render-height')) || 0;
     const nodeRect = node.getBoundingClientRect();
-    const widthScale = renderWidth > 0 && nodeRect.width > 0 ? renderWidth / nodeRect.width : 1;
-    const heightScale = renderHeight > 0 && nodeRect.height > 0 ? renderHeight / nodeRect.height : 1;
-    const targetScale = Math.max(1, widthScale, heightScale);
+    const renderWidth = Number(node.getAttribute('data-render-width')) || Math.round(nodeRect.width);
+    const renderHeight = Number(node.getAttribute('data-render-height')) || Math.round(nodeRect.height);
 
-    if (applyActiveFilter && filter && filter !== 'none') {
-      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
+    const captureNode = node.cloneNode(true) as HTMLElement;
+    captureNode.id = 'strip-capture-clone';
+    captureNode.style.position = 'fixed';
+    captureNode.style.left = '-10000px';
+    captureNode.style.top = '0';
+    captureNode.style.width = `${Math.max(1, renderWidth)}px`;
+    captureNode.style.height = `${Math.max(1, renderHeight)}px`;
+    captureNode.style.maxWidth = 'none';
+    captureNode.style.margin = '0';
+    captureNode.style.transform = 'none';
+    captureNode.style.zIndex = '-1';
+    captureNode.classList.add('hide-resize-handle');
+    captureNode.classList.add('hide-editor-overlay-controls');
+
+    document.body.appendChild(captureNode);
+
+    try {
+      if (applyActiveFilter && filter && filter !== 'none') {
+        const imgEls = captureNode.querySelectorAll('img[alt^="photo-"]');
+        await Promise.all(
+          Array.from(imgEls).map(async (img, idx) => {
+            const filtered = await applyFilterToDataUrl(photos[idx], filter);
+            img.setAttribute('src', filtered);
+          })
+        );
+      }
+
+      const images = Array.from(captureNode.querySelectorAll('img'));
       await Promise.all(
-        Array.from(imgEls).map(async (img, idx) => {
-          const filtered = await applyFilterToDataUrl(photos[idx], filter);
-          img.setAttribute('src', filtered);
-        })
+        images.map(
+          img =>
+            img.complete
+              ? Promise.resolve()
+              : new Promise(resolve => {
+                  img.onload = img.onerror = resolve;
+                })
+        )
       );
-    }
 
-    const images = Array.from(node.querySelectorAll('img'));
-    await Promise.all(
-      images.map(
-        img =>
-          img.complete
-            ? Promise.resolve()
-            : new Promise(resolve => {
-                img.onload = img.onerror = resolve;
-              })
-      )
-    );
-
-    node.classList.add('hide-resize-handle');
-    node.classList.add('hide-editor-overlay-controls');
-    const canvas = await html2canvas(node, {
-      useCORS: true,
-      backgroundColor: null,
-      scale: (window.devicePixelRatio || 1) * targetScale,
-    });
-    node.classList.remove('hide-resize-handle');
-    node.classList.remove('hide-editor-overlay-controls');
-
-    if (applyActiveFilter && filter && filter !== 'none') {
-      const imgEls = node.querySelectorAll('img[alt^="photo-"]');
-      imgEls.forEach((img, idx) => {
-        img.setAttribute('src', photos[idx]);
+      const canvas = await html2canvas(captureNode, {
+        useCORS: true,
+        backgroundColor: null,
+        scale: window.devicePixelRatio || 1,
+        width: Math.max(1, renderWidth),
+        height: Math.max(1, renderHeight),
       });
+
+      return canvas.toDataURL('image/png');
+    } finally {
+      captureNode.remove();
+    }
+  };
+
+  const getStripRenderSize = (): { canvasWidth: number; canvasHeight: number } | null => {
+    const node = document.getElementById('strip');
+    if (!node) return null;
+
+    const width = Number(node.getAttribute('data-render-width'));
+    const height = Number(node.getAttribute('data-render-height'));
+
+    if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+      return {
+        canvasWidth: Math.round(width),
+        canvasHeight: Math.round(height),
+      };
     }
 
-    return canvas.toDataURL('image/png');
+    if (selectedTemplateSettings?.canvasWidth && selectedTemplateSettings?.canvasHeight) {
+      return {
+        canvasWidth: Math.round(selectedTemplateSettings.canvasWidth),
+        canvasHeight: Math.round(selectedTemplateSettings.canvasHeight),
+      };
+    }
+
+    return null;
   };
 
   const uploadStripToCloud = async (imageDataUrl: string): Promise<string | null> => {
@@ -525,102 +617,6 @@ export default function PhotoEditPage() {
     return { objectUrl, blob };
   };
 
-  const createLiveVideoAssets = async (): Promise<{ objectUrl: string; blob: Blob } | null> => {
-    if (photos.length === 0 || typeof MediaRecorder === 'undefined') return null;
-
-    const candidateTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
-    const supportedType = candidateTypes.find(type =>
-      typeof MediaRecorder.isTypeSupported === 'function' ? MediaRecorder.isTypeSupported(type) : false
-    );
-
-    try {
-      const firstImg = new window.Image();
-      firstImg.src = photos[0];
-      await new Promise(resolve => {
-        firstImg.onload = resolve;
-      });
-
-      const baseWidth = firstImg.naturalWidth || 640;
-      const baseHeight = firstImg.naturalHeight || 480;
-      const minTargetWidth = 960;
-      const maxTargetWidth = 1280;
-
-      let width = baseWidth;
-      let height = baseHeight;
-
-      if (width < minTargetWidth) {
-        const upscale = minTargetWidth / width;
-        width = Math.round(width * upscale);
-        height = Math.round(height * upscale);
-      }
-
-      if (width > maxTargetWidth) {
-        const downscale = maxTargetWidth / width;
-        width = Math.round(width * downscale);
-        height = Math.round(height * downscale);
-      }
-
-      width = width % 2 === 0 ? width : width - 1;
-      height = height % 2 === 0 ? height : height - 1;
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return null;
-
-      const stream = canvas.captureStream(30);
-      const chunks: BlobPart[] = [];
-      const recorder = new MediaRecorder(
-        stream,
-        supportedType ? { mimeType: supportedType, videoBitsPerSecond: 6_000_000 } : undefined
-      );
-
-      recorder.ondataavailable = event => {
-        if (event.data && event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
-
-      const stopped = new Promise<void>(resolve => {
-        recorder.onstop = () => resolve();
-      });
-
-      recorder.start(200);
-
-      const baseSequence = photos.length > 1 ? [...photos, ...photos.slice().reverse()] : [...photos];
-      const frameHoldMs = 450;
-      const minDurationMs = 9000;
-      const loopCount = Math.min(5, Math.max(2, Math.ceil(minDurationMs / (baseSequence.length * frameHoldMs))));
-
-      for (let loop = 0; loop < loopCount; loop++) {
-        for (const src of baseSequence) {
-          const frame = new window.Image();
-          frame.src = src;
-          await new Promise(resolve => {
-            frame.onload = resolve;
-          });
-          ctx.clearRect(0, 0, width, height);
-          ctx.drawImage(frame, 0, 0, width, height);
-          await new Promise(resolve => setTimeout(resolve, frameHoldMs));
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 250));
-
-      recorder.stop();
-      await stopped;
-
-      const blob = new Blob(chunks, { type: supportedType || 'video/webm' });
-      if (blob.size === 0) return null;
-
-      const objectUrl = URL.createObjectURL(blob);
-      return { objectUrl, blob };
-    } catch {
-      return null;
-    }
-  };
-
   const saveStripToGallery = (stripDataUrl: string, publicUrl?: string): string => {
     const signature = `${stripDataUrl.length}-${stripDataUrl.slice(0, 120)}`;
 
@@ -644,11 +640,19 @@ export default function PhotoEditPage() {
 
   const persistStripToGalleryDatabase = async (params: {
     imageUrl: string;
+    stripDataUrl?: string | null;
+    canvasWidth?: number | null;
+    canvasHeight?: number | null;
     previewDataUrl?: string | null;
     gifDataUrl?: string | null;
     liveVideoDataUrl?: string | null;
     photoFrames?: string[];
     livePhotos?: string[];
+    selectedFrameTemplate?: string;
+    templateSettings?: PersistedTemplateSettings | null;
+    frameTemplateUrl?: string | null;
+    frameStickerUrl?: string | null;
+    frameColor?: string | null;
     title?: string;
   }): Promise<PersistedGallery | null> => {
     if (!params.imageUrl || params.imageUrl.startsWith('data:image/')) {
@@ -666,11 +670,19 @@ export default function PhotoEditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: params.imageUrl,
+          stripDataUrl: params.stripDataUrl ?? null,
+          canvasWidth: params.canvasWidth ?? null,
+          canvasHeight: params.canvasHeight ?? null,
           previewDataUrl: params.previewDataUrl ?? null,
           gifDataUrl: params.gifDataUrl ?? null,
           liveVideoDataUrl: params.liveVideoDataUrl ?? null,
           photoFrames: params.photoFrames ?? [],
           livePhotos: params.livePhotos ?? [],
+          selectedFrameTemplate: params.selectedFrameTemplate ?? 'none',
+          templateSettings: params.templateSettings ?? null,
+          frameTemplateUrl: params.frameTemplateUrl ?? null,
+          frameStickerUrl: params.frameStickerUrl ?? null,
+          frameColor: params.frameColor ?? null,
           title: params.title ?? 'Photo Strip',
           layout,
           filter,
@@ -696,23 +708,28 @@ export default function PhotoEditPage() {
       const uploadedUrl = await uploadStripToCloud(dataUrl);
       saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
       const gifAssets = await createGifAssets();
-      const liveVideoAssets = capturedLiveVideoUrl ? null : await createLiveVideoAssets();
       const uploadedGifUrl = gifAssets?.blob ? await uploadMediaBlobToCloud(gifAssets.blob, 'gif') : null;
-      const uploadedLiveUrl = capturedLiveVideoUrl ?? (liveVideoAssets?.blob ? await uploadMediaBlobToCloud(liveVideoAssets.blob, 'live') : null);
+          const uploadedLiveUrl = capturedLiveVideoUrl || loadTempLiveVideoUrlFromSessionStorage();
       const uploadedFrameUrls = await uploadCaptureFramesToCloud(photos);
+      const renderSize = getStripRenderSize();
+          const selectedTemplate = frameTemplates.find(template => template.name === selectedFrameTemplate);
 
       await persistStripToGalleryDatabase({
         imageUrl: uploadedUrl ?? dataUrl,
+        stripDataUrl: dataUrl,
+        canvasWidth: renderSize?.canvasWidth ?? null,
+        canvasHeight: renderSize?.canvasHeight ?? null,
         previewDataUrl: uploadedUrl ?? null,
         gifDataUrl: uploadedGifUrl,
         liveVideoDataUrl: uploadedLiveUrl,
         photoFrames: uploadedFrameUrls,
         livePhotos: uploadedFrameUrls,
+        selectedFrameTemplate,
+        templateSettings: selectedTemplateSettings,
+        frameTemplateUrl: selectedTemplate?.src ?? null,
+        frameStickerUrl: selectedTemplate?.sticker ?? null,
+        frameColor,
       });
-
-      if (liveVideoAssets?.objectUrl) {
-        URL.revokeObjectURL(liveVideoAssets.objectUrl);
-      }
 
       setPhotoResultData(dataUrl);
       setPhotoResultGifUrl(gifAssets?.objectUrl);
@@ -734,26 +751,31 @@ export default function PhotoEditPage() {
       saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
 
       const gifAssets = await createGifAssets();
-      const liveVideoAssets = capturedLiveVideoUrl ? null : await createLiveVideoAssets();
       const uploadedGifUrl = gifAssets?.blob ? await uploadMediaBlobToCloud(gifAssets.blob, 'gif') : null;
-      const uploadedLiveUrl = capturedLiveVideoUrl ?? (liveVideoAssets?.blob ? await uploadMediaBlobToCloud(liveVideoAssets.blob, 'live') : null);
+          const uploadedLiveUrl = capturedLiveVideoUrl || loadTempLiveVideoUrlFromSessionStorage();
       const uploadedFrameUrls = await uploadCaptureFramesToCloud(photos);
+      const renderSize = getStripRenderSize();
+          const selectedTemplate = frameTemplates.find(template => template.name === selectedFrameTemplate);
 
       const persisted = await persistStripToGalleryDatabase({
         imageUrl: uploadedUrl ?? dataUrl,
+        stripDataUrl: dataUrl,
+        canvasWidth: renderSize?.canvasWidth ?? null,
+        canvasHeight: renderSize?.canvasHeight ?? null,
         previewDataUrl: uploadedUrl ?? null,
         gifDataUrl: uploadedGifUrl,
         liveVideoDataUrl: uploadedLiveUrl,
         photoFrames: uploadedFrameUrls,
         livePhotos: uploadedFrameUrls,
+        selectedFrameTemplate,
+        templateSettings: selectedTemplateSettings,
+        frameTemplateUrl: selectedTemplate?.src ?? null,
+        frameStickerUrl: selectedTemplate?.sticker ?? null,
+        frameColor,
       });
 
       if (gifAssets?.objectUrl) {
         URL.revokeObjectURL(gifAssets.objectUrl);
-      }
-
-      if (liveVideoAssets?.objectUrl) {
-        URL.revokeObjectURL(liveVideoAssets.objectUrl);
       }
 
       if (persisted?.id) {
@@ -991,6 +1013,9 @@ export default function PhotoEditPage() {
             }}
           >
             <span style={{ color: '#d72688', fontWeight: 600, fontSize: 18 }}>Processing...</span>
+            <span style={{ color: '#b84f84', fontWeight: 600, fontSize: 14 }}>
+              {processingSeconds} detik berjalan
+            </span>
           </div>
         </div>
       )}
