@@ -33,6 +33,8 @@ export default function Page() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
+  const [isNarrowMobileViewport, setIsNarrowMobileViewport] = useState(false);
+  const [mobileCaptureFullscreen, setMobileCaptureFullscreen] = useState(true);
   const [, setCapturedLiveVideoUrl] = useState<string | null>(null);
   const [awaitingLiveVideo, setAwaitingLiveVideo] = useState(false);
   const [liveWaitSeconds, setLiveWaitSeconds] = useState(0);
@@ -130,6 +132,26 @@ export default function Page() {
       setShowCamera(true);
     };
     loadSavedPhotos();
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const apply = () => {
+      const isNarrow = media.matches;
+      setIsNarrowMobileViewport(isNarrow);
+      if (isNarrow) {
+        setMobileCaptureFullscreen(true);
+      }
+    };
+    apply();
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', apply);
+      return () => media.removeEventListener('change', apply);
+    }
+
+    media.addListener(apply);
+    return () => media.removeListener(apply);
   }, []);
 
   useEffect(() => {
@@ -371,6 +393,11 @@ export default function Page() {
   };
 
   const isCaptureMode = showCamera && (photos.length < layout || retakePhotoIndex !== null);
+  const fullscreenCaptureMode =
+    isCaptureMode && (effectiveFullscreen || (isNarrowMobileViewport && mobileCaptureFullscreen));
+  const fullscreenToggleHandler = isNarrowMobileViewport
+    ? () => setMobileCaptureFullscreen(prev => !prev)
+    : toggleFullscreen;
 
   return (
     <main
@@ -387,7 +414,7 @@ export default function Page() {
 
       <div className="min-h-[calc(100dvh-1rem)] md:h-full max-w-[1100px] mx-auto grid grid-cols-1 gap-3 sm:gap-4">
         <section className="md:h-full p-2 sm:p-4 flex flex-col overflow-visible md:overflow-hidden">
-          {!effectiveFullscreen && (
+          {!fullscreenCaptureMode && (
             <div className="text-center mb-2">
               <p className="text-sm text-gray-600">
                 <span className="font-semibold text-[#d72688]">
@@ -414,7 +441,7 @@ export default function Page() {
 
           <div className="w-full flex md:flex-1 md:min-h-0 items-start md:items-center justify-center overflow-visible md:overflow-hidden">
             {showCamera && (photos.length < layout || retakePhotoIndex !== null) && (
-              <div className={effectiveFullscreen ? 'fixed inset-0 z-[60] bg-black' : 'w-full md:h-full flex items-start md:items-center justify-center'}>
+              <div className={fullscreenCaptureMode ? 'fixed inset-0 z-[60] bg-black' : 'w-full md:h-full flex items-start md:items-center justify-center'}>
                 <Camera
                   onCapture={handleCapture}
                   photosToTake={retakePhotoIndex !== null ? 1 : layout - photos.length}
@@ -426,15 +453,15 @@ export default function Page() {
                   liveMode={liveMode}
                   onToggleLiveMode={() => setLiveMode(!liveMode)}
                   onLiveVideoCapture={handleLiveVideoCapture}
-                  isFullscreen={effectiveFullscreen}
-                  onToggleFullscreen={toggleFullscreen}
-                  fullscreenMode={effectiveFullscreen && isCaptureMode}
+                  isFullscreen={fullscreenCaptureMode}
+                  onToggleFullscreen={fullscreenToggleHandler}
+                  fullscreenMode={fullscreenCaptureMode}
                 />
               </div>
             )}
           </div>
 
-          {!effectiveFullscreen && photos.length > 0 && photos.length < layout && (
+          {!fullscreenCaptureMode && photos.length > 0 && photos.length < layout && (
             <div className="mt-2 rounded-lg border border-[#f3b7d1] px-3 py-2 text-xs text-[#d72688] text-center font-medium max-w-md mx-auto">
               {`${photos.length} of ${layout} photos uploaded. Need ${layout - photos.length} more.`}
             </div>

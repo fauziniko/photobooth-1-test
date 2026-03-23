@@ -36,6 +36,7 @@ export default function Camera({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTabletViewport, setIsTabletViewport] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -49,11 +50,23 @@ export default function Camera({
     const mobileCheck = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     setIsMobile(mobileCheck);
 
+    const iPadLike = /iPad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsTabletViewport(iPadLike || window.innerWidth >= 768);
+
     if (mobileCheck) {
       setCameraMode('user');
     } else {
       setCameraMode('environment');
     }
+
+    const onResize = () => {
+      setIsTabletViewport(window.innerWidth >= 768);
+    };
+
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -484,7 +497,7 @@ export default function Camera({
         style={{
           position: 'relative',
           width: fullscreenMode ? '100vw' : isMobile ? '100%' : 640,
-          height: fullscreenMode ? '100vh' : isMobile ? 'auto' : 480,
+          height: fullscreenMode ? '100dvh' : isMobile ? 'auto' : 480,
           maxWidth: '100%',
           aspectRatio: fullscreenMode ? undefined : '4/3',
           background: frameColor,
@@ -501,10 +514,10 @@ export default function Camera({
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            objectFit: fullscreenMode && isTabletViewport ? 'contain' : 'cover',
             borderRadius: fullscreenMode ? 0 : 8,
             transform: isMirrored ? 'scaleX(-1)' : undefined,
-            background: 'transparent',
+            background: '#000',
             filter: filter,
           }}
         />

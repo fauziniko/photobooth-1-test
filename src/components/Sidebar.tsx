@@ -29,6 +29,7 @@ export default function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isDesktopOpen, setIsDesktopOpen] = useState(true)
   const [isDesktopStateReady, setIsDesktopStateReady] = useState(false)
+  const [isNarrowMobileViewport, setIsNarrowMobileViewport] = useState(false)
 
   // Load and sync sidebar state from localStorage
   useEffect(() => {
@@ -45,8 +46,22 @@ export default function Sidebar() {
     window.dispatchEvent(new CustomEvent(SIDEBAR_EVENT_NAME, { detail: { open: isDesktopOpen } }))
   }, [isDesktopOpen, isDesktopStateReady])
 
-  // Keep capture page immersive on mobile/tablet and hide sidebar on auth/share detail pages
-  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/') || pathname === '/photo') {
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)')
+    const apply = () => setIsNarrowMobileViewport(media.matches)
+    apply()
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', apply)
+      return () => media.removeEventListener('change', apply)
+    }
+
+    media.addListener(apply)
+    return () => media.removeListener(apply)
+  }, [])
+
+  // Hide sidebar on auth and shared gallery detail pages
+  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/') || (pathname === '/photo' && isNarrowMobileViewport)) {
     return null
   }
 
