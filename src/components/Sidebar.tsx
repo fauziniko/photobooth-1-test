@@ -131,6 +131,7 @@ export default function Sidebar() {
                       <Link
                         key={item.name}
                         href={item.href}
+                        prefetch={false}
                         className={`flex items-center space-x-2 px-3 py-2 rounded-md transition text-sm ${
                           isActive(item.href)
                             ? 'bg-[#fa75aa] text-white font-medium'
@@ -156,6 +157,7 @@ export default function Sidebar() {
                         <Link
                           key={item.name}
                           href={item.href}
+                          prefetch={false}
                           className={`flex items-center space-x-2 px-3 py-2 rounded-md transition text-sm ${
                             isActive(item.href)
                               ? 'bg-[#fa75aa] text-white font-medium'
@@ -238,6 +240,7 @@ export default function Sidebar() {
                     <Link
                       key={item.name}
                       href={item.href}
+                      prefetch={false}
                       onClick={() => setIsMobileOpen(false)}
                       className={`flex items-center space-x-2 px-3 py-2 rounded-md transition active:scale-95 text-sm ${
                         isActive(item.href)
@@ -264,6 +267,7 @@ export default function Sidebar() {
                       <Link
                         key={item.name}
                         href={item.href}
+                        prefetch={false}
                         onClick={() => setIsMobileOpen(false)}
                         className={`flex items-center space-x-2 px-3 py-3 rounded-md transition active:scale-95 ${
                           isActive(item.href)
