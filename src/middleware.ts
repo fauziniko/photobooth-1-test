@@ -19,6 +19,14 @@ const withNoStore = (response: NextResponse) => {
   return response
 }
 
+const isPrefetchRequest = (request: NextRequest) => {
+  const purpose = request.headers.get('purpose')
+  const secPurpose = request.headers.get('sec-purpose')
+  const nextPrefetch = request.headers.get('next-router-prefetch')
+
+  return purpose === 'prefetch' || secPurpose === 'prefetch' || nextPrefetch === '1'
+}
+
 export async function middleware(request: NextRequest) {
   const token = await readAuthToken(request)
 
@@ -27,6 +35,10 @@ export async function middleware(request: NextRequest) {
   // Protect all PhotoBooth pages.
   if (pathname.startsWith('/photo') || pathname.startsWith('/photo-result')) {
     if (!token) {
+      if (isPrefetchRequest(request)) {
+        return withNoStore(NextResponse.json({ error: 'Prefetch blocked for unauthenticated request.' }, { status: 401 }))
+      }
+
       const url = new URL('/auth/signin', request.url)
       url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
       return withNoStore(NextResponse.redirect(url))
@@ -36,6 +48,10 @@ export async function middleware(request: NextRequest) {
   // Protect /admin route - requires ADMIN role (registered users)
   if (pathname.startsWith('/admin')) {
     if (!token) {
+      if (isPrefetchRequest(request)) {
+        return withNoStore(NextResponse.json({ error: 'Prefetch blocked for unauthenticated request.' }, { status: 401 }))
+      }
+
       const url = new URL('/auth/signin', request.url)
       url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
       return withNoStore(NextResponse.redirect(url))
