@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { ReactNode } from 'react'
+import { useSession } from 'next-auth/react'
 
 const SIDEBAR_STORAGE_KEY = 'photobooth-sidebar-open'
 const SIDEBAR_EVENT_NAME = 'photobooth-sidebar-change'
 
 export default function MainContent({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const { data: session, status } = useSession()
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true)
 
   useEffect(() => {
@@ -43,14 +45,18 @@ export default function MainContent({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const showSidebar = !pathname?.startsWith('/auth') && !pathname?.startsWith('/photo/gallery/')
+  const showSidebar =
+    status !== 'loading' &&
+    !!session?.user &&
+    !pathname?.startsWith('/auth') &&
+    !pathname?.startsWith('/photo/gallery/')
   
   return (
     <main
       className={showSidebar
         ? isDesktopSidebarOpen
-          ? 'w-full box-border md:pl-56 transition-[padding] duration-300'
-          : 'w-full box-border md:pl-0 transition-[padding] duration-300'
+          ? 'w-full box-border lg:pl-56 transition-[padding] duration-300'
+          : 'w-full box-border lg:pl-0 transition-[padding] duration-300'
         : 'w-full box-border transition-[padding] duration-300'}
     >
       {children}

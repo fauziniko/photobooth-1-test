@@ -25,8 +25,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = null;
-
   return (
     <html lang="en">
       <head>
@@ -36,7 +34,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Providers session={session}>
+        <Providers>
           <Navbar />
           <Sidebar />
           <MainContent>

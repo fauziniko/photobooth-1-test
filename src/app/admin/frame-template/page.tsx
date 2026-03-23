@@ -229,6 +229,13 @@ function FrameTemplatePageContent() {
   const [backgroundImageFile, setBackgroundImageFile] = useState<File | null>(null)
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
   const [backgroundImageInputUrl, setBackgroundImageInputUrl] = useState('')
+  const [existingTemplateStickerUrl, setExistingTemplateStickerUrl] = useState<string | null>(null)
+  const [existingTemplateStickerOriginalUrl, setExistingTemplateStickerOriginalUrl] = useState<string | null>(null)
+  const [existingStickerOffset, setExistingStickerOffset] = useState({ x: 0, y: 0 })
+  const [existingStickerScale, setExistingStickerScale] = useState(1)
+  const [existingStickerRotate, setExistingStickerRotate] = useState(0)
+  const [isExistingStickerSelected, setIsExistingStickerSelected] = useState(false)
+  const [isDraggingExistingSticker, setIsDraggingExistingSticker] = useState(false)
   const [stickers, setStickers] = useState<StickerItem[]>([])
   const [loadingStickers, setLoadingStickers] = useState(true)
   const [refreshingStickers, setRefreshingStickers] = useState(false)
@@ -240,6 +247,14 @@ function FrameTemplatePageContent() {
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const dragStateRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null)
+  const existingStickerDragRef = useRef<{ offsetX: number; offsetY: number } | null>(null)
+  const existingStickerResizeRef = useRef<{ startX: number; startY: number; startScale: number } | null>(null)
+  const existingStickerRotateRef = useRef<{
+    centerX: number
+    centerY: number
+    startAngle: number
+    startRotate: number
+  } | null>(null)
   const slotDragStateRef = useRef<{ index: number; offsetX: number; offsetY: number } | null>(null)
   const resizeStateRef = useRef<{ id: string; startX: number; startY: number; startSize: number } | null>(null)
   const rotateStateRef = useRef<{ id: string; centerX: number; centerY: number; startAngle: number; startRotate: number } | null>(null)
@@ -303,6 +318,12 @@ function FrameTemplatePageContent() {
     const loadTemplateForEdit = async () => {
       if (!editTemplateQuery) {
         setEditingTemplateName(null)
+        setExistingTemplateStickerUrl(null)
+        setExistingTemplateStickerOriginalUrl(null)
+        setExistingStickerOffset({ x: 0, y: 0 })
+        setExistingStickerScale(1)
+        setExistingStickerRotate(0)
+        setIsExistingStickerSelected(false)
         return
       }
 
@@ -323,6 +344,15 @@ function FrameTemplatePageContent() {
 
         setEditingTemplateName(target.name)
         setTemplateName(target.name)
+        setExistingStickerOffset({ x: 0, y: 0 })
+        setExistingStickerScale(1)
+        setExistingStickerRotate(0)
+        setIsExistingStickerSelected(false)
+
+        const targetStickerUrl = typeof target?.stickerUrl === 'string' ? target.stickerUrl : ''
+        const normalizedStickerUrl = normalizeExternalImageUrl(targetStickerUrl)
+        setExistingTemplateStickerOriginalUrl(targetStickerUrl || null)
+        setExistingTemplateStickerUrl(normalizedStickerUrl || targetStickerUrl || null)
 
         if (target?.frameUrl) {
           setBackgroundImageFile(null)
@@ -468,6 +498,125 @@ function FrameTemplatePageContent() {
     window.removeEventListener('pointercancel', stopDrag)
   }, [handlePointerMove])
 
+  const handleExistingStickerPointerMove = useCallback((event: PointerEvent) => {
+    const dragState = existingStickerDragRef.current
+    const canvas = canvasRef.current
+    if (!dragState || !canvas) return
+
+    const bounds = canvas.getBoundingClientRect()
+    const nextX = event.clientX - bounds.left - dragState.offsetX
+    const nextY = event.clientY - bounds.top - dragState.offsetY
+    const minX = -canvasSize.width
+    const maxX = canvasSize.width
+    const minY = -canvasSize.height
+    const maxY = canvasSize.height
+
+    setExistingStickerOffset({
+      x: clamp(nextX, minX, maxX),
+      y: clamp(nextY, minY, maxY),
+    })
+  }, [canvasSize.height, canvasSize.width])
+
+  const stopExistingStickerDrag = useCallback(() => {
+    existingStickerDragRef.current = null
+    setIsDraggingExistingSticker(false)
+    window.removeEventListener('pointermove', handleExistingStickerPointerMove)
+    window.removeEventListener('pointerup', stopExistingStickerDrag)
+    window.removeEventListener('pointercancel', stopExistingStickerDrag)
+  }, [handleExistingStickerPointerMove])
+
+  const startExistingStickerDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas || !(existingTemplateStickerUrl || existingTemplateStickerOriginalUrl)) return
+
+    event.preventDefault()
+    const bounds = canvas.getBoundingClientRect()
+    existingStickerDragRef.current = {
+      offsetX: event.clientX - bounds.left - existingStickerOffset.x,
+      offsetY: event.clientY - bounds.top - existingStickerOffset.y,
+    }
+
+    setIsDraggingExistingSticker(true)
+    setIsExistingStickerSelected(true)
+    window.addEventListener('pointermove', handleExistingStickerPointerMove)
+    window.addEventListener('pointerup', stopExistingStickerDrag)
+    window.addEventListener('pointercancel', stopExistingStickerDrag)
+  }
+
+  const handleExistingStickerResizePointerMove = useCallback((event: PointerEvent) => {
+    const state = existingStickerResizeRef.current
+    if (!state) return
+
+    const dx = event.clientX - state.startX
+    const dy = event.clientY - state.startY
+    const delta = Math.max(dx, dy)
+    const nextScale = clamp(state.startScale + delta / 200, 0.2, 3)
+    setExistingStickerScale(nextScale)
+  }, [])
+
+  const stopExistingStickerResize = useCallback(() => {
+    existingStickerResizeRef.current = null
+    window.removeEventListener('pointermove', handleExistingStickerResizePointerMove)
+    window.removeEventListener('pointerup', stopExistingStickerResize)
+    window.removeEventListener('pointercancel', stopExistingStickerResize)
+  }, [handleExistingStickerResizePointerMove])
+
+  const startExistingStickerResize = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    existingStickerResizeRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      startScale: existingStickerScale,
+    }
+
+    setIsExistingStickerSelected(true)
+    window.addEventListener('pointermove', handleExistingStickerResizePointerMove)
+    window.addEventListener('pointerup', stopExistingStickerResize)
+    window.addEventListener('pointercancel', stopExistingStickerResize)
+  }
+
+  const handleExistingStickerRotatePointerMove = useCallback((event: PointerEvent) => {
+    const state = existingStickerRotateRef.current
+    if (!state) return
+
+    const currentAngle = Math.atan2(event.clientY - state.centerY, event.clientX - state.centerX)
+    const deltaDeg = ((currentAngle - state.startAngle) * 180) / Math.PI
+    setExistingStickerRotate(state.startRotate + deltaDeg)
+  }, [])
+
+  const stopExistingStickerRotate = useCallback(() => {
+    existingStickerRotateRef.current = null
+    window.removeEventListener('pointermove', handleExistingStickerRotatePointerMove)
+    window.removeEventListener('pointerup', stopExistingStickerRotate)
+    window.removeEventListener('pointercancel', stopExistingStickerRotate)
+  }, [handleExistingStickerRotatePointerMove])
+
+  const startExistingStickerRotate = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const bounds = canvasRef.current?.getBoundingClientRect()
+    if (!bounds) return
+
+    const centerX = bounds.left + canvasSize.width / 2 + existingStickerOffset.x
+    const centerY = bounds.top + canvasSize.height / 2 + existingStickerOffset.y
+    const startAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX)
+
+    existingStickerRotateRef.current = {
+      centerX,
+      centerY,
+      startAngle,
+      startRotate: existingStickerRotate,
+    }
+
+    setIsExistingStickerSelected(true)
+    window.addEventListener('pointermove', handleExistingStickerRotatePointerMove)
+    window.addEventListener('pointerup', stopExistingStickerRotate)
+    window.addEventListener('pointercancel', stopExistingStickerRotate)
+  }
+
   const handleSlotPointerMove = useCallback((event: PointerEvent) => {
     const dragState = slotDragStateRef.current
     const canvas = canvasRef.current
@@ -565,6 +714,7 @@ function FrameTemplatePageContent() {
       offsetY: event.clientY - bounds.top - sticker.y,
     }
 
+    setIsExistingStickerSelected(false)
     setSelectedStickerId(stickerId)
     window.addEventListener('pointermove', handlePointerMove)
     window.addEventListener('pointerup', stopDrag)
@@ -586,6 +736,7 @@ function FrameTemplatePageContent() {
     }
 
     setHasCustomSlots(true)
+    setIsExistingStickerSelected(false)
     setSelectedSlotIndex(slotIndex)
     window.addEventListener('pointermove', handleSlotPointerMove)
     window.addEventListener('pointerup', stopSlotDrag)
@@ -595,11 +746,22 @@ function FrameTemplatePageContent() {
   useEffect(() => {
     return () => {
       stopDrag()
+      stopExistingStickerDrag()
+      stopExistingStickerResize()
+      stopExistingStickerRotate()
       stopSlotDrag()
       stopResize()
       stopRotate()
     }
-  }, [stopDrag, stopRotate, stopResize, stopSlotDrag])
+  }, [
+    stopDrag,
+    stopExistingStickerDrag,
+    stopExistingStickerResize,
+    stopExistingStickerRotate,
+    stopRotate,
+    stopResize,
+    stopSlotDrag,
+  ])
 
   useEffect(() => {
     setCanvasStickers(prev =>
@@ -630,6 +792,7 @@ function FrameTemplatePageContent() {
     }
 
     setCanvasStickers(prev => [...prev, newSticker])
+    setIsExistingStickerSelected(false)
     setSelectedStickerId(newSticker.id)
   }
 
@@ -873,7 +1036,7 @@ function FrameTemplatePageContent() {
     setMessage(null)
   }
 
-  const exportTemplateImages = async () => {
+  const exportTemplateImages = async (includeStickerLayer: boolean) => {
     const scale = 2
     const width = canvasSize.width * scale
     const height = canvasSize.height * scale
@@ -895,30 +1058,47 @@ function FrameTemplatePageContent() {
 
     // Slot guides are editor-only visual helpers and must not be baked into exported frame image.
 
-    const stickerCanvas = document.createElement('canvas')
-    stickerCanvas.width = width
-    stickerCanvas.height = height
-    const stickerCtx = stickerCanvas.getContext('2d')
-    if (!stickerCtx) throw new Error('Failed to create sticker canvas.')
-    stickerCtx.scale(scale, scale)
-
-    for (const sticker of [...canvasStickers].sort((a, b) => a.z - b.z)) {
-      const stickerImage = await loadImage(sticker.src)
-      const cx = sticker.x + sticker.size / 2
-      const cy = sticker.y + sticker.size / 2
-
-      stickerCtx.save()
-      stickerCtx.translate(cx, cy)
-      stickerCtx.rotate((sticker.rotate * Math.PI) / 180)
-      stickerCtx.drawImage(stickerImage, -sticker.size / 2, -sticker.size / 2, sticker.size, sticker.size)
-      stickerCtx.restore()
+    const frameBlob = await new Promise<Blob | null>(resolve => frameCanvas.toBlob(resolve, 'image/png'))
+    if (!frameBlob) {
+      throw new Error('Failed to export frame image.')
     }
 
-    const frameBlob = await new Promise<Blob | null>(resolve => frameCanvas.toBlob(resolve, 'image/png'))
-    const stickerBlob = await new Promise<Blob | null>(resolve => stickerCanvas.toBlob(resolve, 'image/png'))
+    let stickerBlob: Blob | null = null
+    if (includeStickerLayer) {
+      const stickerCanvas = document.createElement('canvas')
+      stickerCanvas.width = width
+      stickerCanvas.height = height
+      const stickerCtx = stickerCanvas.getContext('2d')
+      if (!stickerCtx) throw new Error('Failed to create sticker canvas.')
+      stickerCtx.scale(scale, scale)
 
-    if (!frameBlob || !stickerBlob) {
-      throw new Error('Failed to export template images.')
+      const existingStickerSource = existingTemplateStickerUrl || existingTemplateStickerOriginalUrl
+      if (existingStickerSource) {
+        const existingStickerImage = await loadImage(existingStickerSource)
+        stickerCtx.save()
+        stickerCtx.translate(canvasSize.width / 2 + existingStickerOffset.x, canvasSize.height / 2 + existingStickerOffset.y)
+        stickerCtx.rotate((existingStickerRotate * Math.PI) / 180)
+        stickerCtx.scale(existingStickerScale, existingStickerScale)
+        stickerCtx.drawImage(existingStickerImage, -canvasSize.width / 2, -canvasSize.height / 2, canvasSize.width, canvasSize.height)
+        stickerCtx.restore()
+      }
+
+      for (const sticker of [...canvasStickers].sort((a, b) => a.z - b.z)) {
+        const stickerImage = await loadImage(sticker.src)
+        const cx = sticker.x + sticker.size / 2
+        const cy = sticker.y + sticker.size / 2
+
+        stickerCtx.save()
+        stickerCtx.translate(cx, cy)
+        stickerCtx.rotate((sticker.rotate * Math.PI) / 180)
+        stickerCtx.drawImage(stickerImage, -sticker.size / 2, -sticker.size / 2, sticker.size, sticker.size)
+        stickerCtx.restore()
+      }
+
+      stickerBlob = await new Promise<Blob | null>(resolve => stickerCanvas.toBlob(resolve, 'image/png'))
+      if (!stickerBlob) {
+        throw new Error('Failed to export sticker image.')
+      }
     }
 
     return { frameBlob, stickerBlob }
@@ -930,7 +1110,10 @@ function FrameTemplatePageContent() {
 
     try {
       const name = templateName.trim() || `template-${Date.now()}`
-      const { frameBlob, stickerBlob } = await exportTemplateImages()
+      const isEditing = Boolean(editingTemplateName)
+      const hasExistingSticker = Boolean(existingTemplateStickerUrl || existingTemplateStickerOriginalUrl)
+      const shouldUploadSticker = !isEditing || canvasStickers.length > 0 || !hasExistingSticker
+      const { frameBlob, stickerBlob } = await exportTemplateImages(shouldUploadSticker)
 
       const templateSettings: TemplateSettings = {
         canvasWidth: canvasSize.width,
@@ -954,10 +1137,11 @@ function FrameTemplatePageContent() {
       const formData = new FormData()
       formData.append('name', name)
       formData.append('frame', new File([frameBlob], `${name}-frame.png`, { type: 'image/png' }))
-      formData.append('sticker', new File([stickerBlob], `${name}-sticker.png`, { type: 'image/png' }))
+      if (stickerBlob) {
+        formData.append('sticker', new File([stickerBlob], `${name}-sticker.png`, { type: 'image/png' }))
+      }
       formData.append('settings', JSON.stringify(templateSettings))
 
-      const isEditing = Boolean(editingTemplateName)
       if (isEditing && editingTemplateName) {
         formData.append('currentName', editingTemplateName)
       }
@@ -1046,6 +1230,12 @@ function FrameTemplatePageContent() {
               Drag stickers directly on canvas to set position. These elements will be used as template overlay.
             </p>
 
+            {editingTemplateName && (existingTemplateStickerUrl || existingTemplateStickerOriginalUrl) && (
+              <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+                Existing sticker layer loaded. Sticker lama bisa drag, rotate, dan resize.
+              </div>
+            )}
+
             <div className="w-full overflow-auto rounded-xl border border-[#ecd4e1] bg-[#fff7fb] p-3 flex justify-center">
               <div
                 ref={canvasRef}
@@ -1084,6 +1274,58 @@ function FrameTemplatePageContent() {
                     </div>
                   )
                 })}
+
+                {existingTemplateStickerUrl && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      zIndex: 4,
+                      transform: `translate(${existingStickerOffset.x}px, ${existingStickerOffset.y}px) rotate(${existingStickerRotate}deg) scale(${existingStickerScale})`,
+                      transformOrigin: 'center',
+                    }}
+                    onPointerDown={startExistingStickerDrag}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={existingTemplateStickerUrl}
+                      alt="Existing template sticker"
+                      className={`w-full h-full object-fill select-none ${
+                        isDraggingExistingSticker ? 'cursor-grabbing' : 'cursor-grab'
+                      }`}
+                      draggable={false}
+                      onError={() => {
+                        if (
+                          existingTemplateStickerOriginalUrl &&
+                          existingTemplateStickerOriginalUrl !== existingTemplateStickerUrl
+                        ) {
+                          setExistingTemplateStickerUrl(existingTemplateStickerOriginalUrl)
+                        }
+                      }}
+                    />
+
+                    {isExistingStickerSelected && (
+                      <div className="absolute -top-3 -right-3 flex items-center gap-1">
+                        <button
+                          type="button"
+                          className="h-6 w-6 rounded-full bg-white border border-[#f3b7d1] text-[#d72688] text-[10px] font-bold shadow"
+                          onPointerDown={startExistingStickerRotate}
+                          title="Rotate existing sticker"
+                        >
+                          ⟳
+                        </button>
+
+                        <button
+                          type="button"
+                          className="h-6 w-6 rounded-full bg-white border border-[#f3b7d1] text-[#d72688] text-[10px] font-bold shadow"
+                          onPointerDown={startExistingStickerResize}
+                          title="Resize existing sticker"
+                        >
+                          ↘
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {[...canvasStickers].sort((a, b) => a.z - b.z).map(sticker => (
                   <div key={sticker.id} style={{ position: 'absolute', left: sticker.x, top: sticker.y, zIndex: 5 }}>
@@ -1202,7 +1444,7 @@ function FrameTemplatePageContent() {
                     type="text"
                     value={templateName}
                     onChange={event => setTemplateName(event.target.value)}
-                    placeholder="example: garlet-pink"
+                    placeholder="example: photobooth-pink"
                     className="w-full rounded-lg border border-[#d9c8d1] bg-white px-3 py-2 text-sm text-[#4a2337] placeholder:text-[#a48394] focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"
                   />
                 </div>

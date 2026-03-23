@@ -2,27 +2,13 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
-const AUTH_COOKIE_CANDIDATES = [
-  "__Secure-authjs.session-token",
-  "authjs.session-token",
-  "__Secure-next-auth.session-token",
-  "next-auth.session-token",
-]
+const AUTH_SECRET = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
 
 const readAuthToken = async (request: NextRequest) => {
-  for (const cookieName of AUTH_COOKIE_CANDIDATES) {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      cookieName,
-    })
-
-    if (token) {
-      return token
-    }
-  }
-
-  return null
+  return getToken({
+    req: request,
+    secret: AUTH_SECRET,
+  })
 }
 
 export async function middleware(request: NextRequest) {
@@ -30,14 +16,20 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // /photo route is now PUBLIC - no authentication required
-  // Anyone can use the photobooth without login
+  // Protect all PhotoBooth pages.
+  if (pathname.startsWith('/photo') || pathname.startsWith('/photo-result')) {
+    if (!token) {
+      const url = new URL('/auth/signin', request.url)
+      url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
+      return NextResponse.redirect(url)
+    }
+  }
 
   // Protect /admin route - requires ADMIN role (registered users)
   if (pathname.startsWith('/admin')) {
     if (!token) {
       const url = new URL('/auth/signin', request.url)
-      url.searchParams.set('callbackUrl', pathname)
+      url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
       return NextResponse.redirect(url)
     }
     
@@ -63,15 +55,6 @@ export async function middleware(request: NextRequest) {
     // Any registered user can upload, not just ADMIN
   }
 
-  // Gallery listing page is protected, but shared detail links are public.
-  if (pathname === '/photo/gallery' || pathname === '/photo/gallery/') {
-    if (!token) {
-      const url = new URL('/auth/signin', request.url)
-      url.searchParams.set('callbackUrl', pathname)
-      return NextResponse.redirect(url)
-    }
-  }
-
   // Gallery APIs: allow public GET for /api/gallery/:id shared links.
   if (pathname.startsWith('/api/gallery')) {
     const isDetailApiPath = /^\/api\/gallery\/[^/]+$/.test(pathname)
@@ -90,8 +73,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/photo/:path*',
+    '/photo-result/:path*',
     '/admin/:path*',
-    '/photo/gallery/:path*',
     '/api/gallery/:path*',
     '/api/upload-frame-template/:path*',
     '/api/upload-sticker/:path*',

@@ -1,17 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react'
 
-export default function SignInPage() {
+function SignInPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const requestedCallback = searchParams.get('callbackUrl')
+  const callbackUrl = requestedCallback && requestedCallback.startsWith('/')
+    ? requestedCallback
+    : '/photo'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,13 +28,14 @@ export default function SignInPage() {
       const result = await signIn('credentials', {
         email,
         password,
+        callbackUrl,
         redirect: false,
       })
 
       if (result?.error) {
         setError('Invalid email or password. Please try again.')
       } else if (result?.ok) {
-        router.push('/')
+        router.push(result.url ?? callbackUrl)
         router.refresh()
       }
     } catch {
@@ -161,5 +168,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="pb-page-bg min-h-screen" />}>
+      <SignInPageContent />
+    </Suspense>
   )
 }

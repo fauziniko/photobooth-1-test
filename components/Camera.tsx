@@ -3,6 +3,8 @@
 import { useRef, useEffect, useState } from 'react';
 import { Copy, Camera as CameraIcon, Maximize2, Minimize2 } from 'lucide-react';
 
+const CAPTURE_ASPECT_RATIO = 4 / 3;
+
 interface Props {
   onCapture: (dataUrl: string) => void;
   onLiveVideoCapture?: (blob: Blob | null) => void | Promise<void>;
@@ -37,6 +39,7 @@ export default function Camera({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isTabletViewport, setIsTabletViewport] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -44,6 +47,17 @@ export default function Camera({
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
   const [isMirrored, setIsMirrored] = useState(true);
   const [countdown, setCountdown] = useState(3);
+  const [strictAspectLock, setStrictAspectLock] = useState(true);
+
+  const stopCurrentStream = () => {
+    const media = videoRef.current?.srcObject;
+    if (media instanceof MediaStream) {
+      media.getTracks().forEach(track => track.stop());
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    }
+  };
 
   useEffect(() => {
     const userAgent = navigator.userAgent;
@@ -52,6 +66,7 @@ export default function Camera({
 
     const iPadLike = /iPad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setIsTabletViewport(iPadLike || window.innerWidth >= 768);
+    setIsCompactViewport(window.innerWidth <= 1024 || window.innerHeight <= 900);
 
     if (mobileCheck) {
       setCameraMode('user');
@@ -61,6 +76,7 @@ export default function Camera({
 
     const onResize = () => {
       setIsTabletViewport(window.innerWidth >= 768);
+      setIsCompactViewport(window.innerWidth <= 1024 || window.innerHeight <= 900);
     };
 
     window.addEventListener('resize', onResize);
@@ -82,40 +98,83 @@ export default function Camera({
   useEffect(() => {
     if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
 
-    let constraints: MediaStreamConstraints;
-    const bestQuality = {
-      width: { ideal: 4096 },
-      height: { ideal: 4096 },
+    let cancelled = false;
+
+    const strictQuality = {
+      aspectRatio: { ideal: CAPTURE_ASPECT_RATIO },
+      width: { ideal: 1920 },
+      height: { ideal: 1440 },
       frameRate: { ideal: 60, max: 60 },
     };
 
-    if (isMobile) {
-      constraints = {
-        video: {
-          facingMode: cameraMode,
-          ...bestQuality,
-        },
-      };
-    } else if (selectedDeviceId) {
-      constraints = {
-        video: {
-          deviceId: { exact: selectedDeviceId },
-          ...bestQuality,
-        },
-      };
-    } else {
-      constraints = { video: bestQuality };
-    }
+    const relaxedQuality = {
+      width: { ideal: 1600 },
+      height: { ideal: 1200 },
+      frameRate: { ideal: 30, max: 60 },
+    };
 
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then(stream => {
+    const buildConstraints = (strictMode: boolean): MediaStreamConstraints => {
+      const quality = strictMode ? strictQuality : relaxedQuality;
+      if (isMobile) {
+        return {
+          video: {
+            facingMode: cameraMode,
+            ...quality,
+          },
+        };
+      }
+
+      if (selectedDeviceId) {
+        return {
+          video: {
+            deviceId: { exact: selectedDeviceId },
+            ...quality,
+          },
+        };
+      }
+
+      return { video: quality };
+    };
+
+    const startCamera = async () => {
+      stopCurrentStream();
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(buildConstraints(strictAspectLock));
+        if (cancelled) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
         if (videoRef.current) videoRef.current.srcObject = stream;
-      })
-      .catch(err => {
+        return;
+      } catch (error) {
+        if (!strictAspectLock) {
+          const err = error as Error;
+          alert('Cannot access camera: ' + err.name + ' - ' + err.message);
+          return;
+        }
+      }
+
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia(buildConstraints(false));
+        if (cancelled) {
+          fallbackStream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        if (videoRef.current) videoRef.current.srcObject = fallbackStream;
+      } catch (error) {
+        const err = error as Error;
         alert('Cannot access camera: ' + err.name + ' - ' + err.message);
-      });
-  }, [selectedDeviceId, cameraMode, isMobile]);
+      }
+    };
+
+    void startCamera();
+
+    return () => {
+      cancelled = true;
+      stopCurrentStream();
+    };
+  }, [selectedDeviceId, cameraMode, isMobile, strictAspectLock]);
 
   const handleDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedDeviceId(e.target.value);
@@ -264,11 +323,19 @@ export default function Camera({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: fullscreenMode ? '0px' : '16px',
+        gap: fullscreenMode ? '0px' : isCompactViewport ? '10px' : '16px',
         position: 'relative',
         width: fullscreenMode ? '100vw' : '100%',
         maxWidth: fullscreenMode ? 'none' : '640px',
-        height: fullscreenMode ? '100vh' : 'auto',
+        height: fullscreenMode ? '100dvh' : 'auto',
+        maxHeight: fullscreenMode ? '100dvh' : isCompactViewport ? '100dvh' : 'none',
+        boxSizing: 'border-box',
+        paddingTop: fullscreenMode ? 'env(safe-area-inset-top, 0px)' : 0,
+        paddingBottom: fullscreenMode
+          ? 'calc(env(safe-area-inset-bottom, 0px) + 8px)'
+          : isCompactViewport
+            ? '8px'
+            : 0,
         margin: '0 auto',
       }}
     >
@@ -278,7 +345,7 @@ export default function Camera({
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 16px',
+            padding: isCompactViewport ? '6px 12px' : '8px 16px',
             background: '#fff2f8',
             borderRadius: 12,
             border: '1px solid #f3bfd7',
@@ -327,11 +394,11 @@ export default function Camera({
       {!fullscreenMode && (
         <div
           style={{
-            marginBottom: 12,
+            marginBottom: isCompactViewport ? 6 : 12,
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 10,
+            gap: isCompactViewport ? 8 : 10,
             width: '100%',
             padding: '0 8px',
             flexWrap: 'wrap',
@@ -464,6 +531,28 @@ export default function Camera({
             <option value={5}>5s</option>
           </select>
 
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={() => setStrictAspectLock(prev => !prev)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 12,
+                border: '1px solid #fa75aa',
+                color: strictAspectLock ? '#fff' : '#d72688',
+                fontWeight: 600,
+                fontSize: 13,
+                background: strictAspectLock ? '#fa75aa' : '#fff',
+                outline: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+              title="Lock rasio 4:3 agar framing desktop lebih stabil"
+            >
+              {strictAspectLock ? '4:3 Locked' : '4:3 Unlocked'}
+            </button>
+          )}
+
           {typeof poseCount === 'number' && onPoseCountChange && (
             <select
               value={poseCount}
@@ -498,12 +587,17 @@ export default function Camera({
           position: 'relative',
           width: fullscreenMode ? '100vw' : isMobile ? '100%' : 640,
           height: fullscreenMode ? '100dvh' : isMobile ? 'auto' : 480,
+          maxHeight: fullscreenMode
+            ? 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))'
+            : isCompactViewport
+              ? '58dvh'
+              : 'none',
           maxWidth: '100%',
           aspectRatio: fullscreenMode ? undefined : '4/3',
           background: frameColor,
           borderRadius: fullscreenMode ? 0 : 8,
           overflow: 'hidden',
-          marginBottom: fullscreenMode ? 0 : 12,
+          marginBottom: fullscreenMode ? 0 : isCompactViewport ? 6 : 12,
         }}
       >
         <video
@@ -521,6 +615,21 @@ export default function Camera({
             filter: filter,
           }}
         />
+
+        {/* Guide area to make desktop framing match final capture area more reliably. */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            border: '2px solid rgba(255,255,255,0.35)',
+            borderRadius: fullscreenMode ? 0 : 8,
+            pointerEvents: 'none',
+            zIndex: 1,
+            boxSizing: 'border-box',
+          }}
+          aria-hidden="true"
+        />
+
         {count !== null && (
           <div
             style={{
@@ -553,11 +662,12 @@ export default function Camera({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 10,
+          gap: isCompactViewport ? 8 : 10,
           zIndex: 4,
           width: fullscreenMode ? 'auto' : isMobile ? '100%' : 'auto',
           maxWidth: fullscreenMode ? 'none' : '420px',
           padding: fullscreenMode ? 0 : isMobile ? '0 8px' : 0,
+          flexShrink: 0,
         }}
       >
         {onToggleFullscreen && (

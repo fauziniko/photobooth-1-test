@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-type Provider = 'iconify' | 'openmoji'
+type Provider = 'iconify' | 'openmoji' | 'emojihub'
 
 type StickerSearchItem = {
   id: string
@@ -11,14 +11,37 @@ type StickerSearchItem = {
 }
 
 const DEFAULT_LIMIT = 24
-const MAX_LIMIT = 50
+const MAX_LIMIT = 120
 const MAX_QUERY_LENGTH = 80
+const OPENMOJI_DATASET_URL = 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/data/openmoji.json'
+const EMOJIHUB_DATASET_URL = 'https://emojihub.yurace.pro/api/all'
+const DATASET_TTL_MS = 1000 * 60 * 60 * 6
 
 type OpenMojiEntry = {
   emoji: string
   name: string
   keywords: string[]
 }
+
+type OpenMojiApiEntry = {
+  annotation?: string
+  tags?: string[]
+  group?: string
+  subgroups?: string[]
+  emoji?: string
+  hexcode?: string
+}
+
+type EmojiHubEntry = {
+  name?: string
+  category?: string
+  group?: string
+  htmlCode?: string[]
+  unicode?: string[]
+}
+
+let openMojiApiCache: { expiresAt: number; data: OpenMojiApiEntry[] } | null = null
+let emojiHubCache: { expiresAt: number; data: EmojiHubEntry[] } | null = null
 
 const OPENMOJI_CATALOG: OpenMojiEntry[] = [
   { emoji: '😀', name: 'grinning face', keywords: ['smile', 'happy', 'emoji'] },
@@ -63,7 +86,7 @@ const clampLimit = (value: string | null) => {
 
 const parseProvider = (value: string | null): Provider | null => {
   const normalized = (value || 'iconify').toLowerCase().trim()
-  if (normalized === 'iconify' || normalized === 'openmoji') {
+  if (normalized === 'iconify' || normalized === 'openmoji' || normalized === 'emojihub') {
     return normalized
   }
   return null
@@ -78,6 +101,73 @@ const emojiToCodepoint = (emoji: string) =>
     .map(char => char.codePointAt(0)?.toString(16).toUpperCase() || '')
     .filter(Boolean)
     .join('-')
+
+const unicodeToCodepoint = (unicode: string) =>
+  unicode
+    .replace(/^U\+/i, '')
+    .replace(/\s+/g, '')
+    .toUpperCase()
+
+const normalizeTerms = (...terms: Array<string | string[] | undefined>) => {
+  const out: string[] = []
+  for (const term of terms) {
+    if (!term) continue
+    if (Array.isArray(term)) {
+      term.forEach(entry => {
+        if (typeof entry === 'string' && entry.trim()) out.push(entry.trim().toLowerCase())
+      })
+      continue
+    }
+    if (typeof term === 'string' && term.trim()) out.push(term.trim().toLowerCase())
+  }
+  return out.join(' ')
+}
+
+const fetchOpenMojiApiDataset = async (): Promise<OpenMojiApiEntry[]> => {
+  const now = Date.now()
+  if (openMojiApiCache && openMojiApiCache.expiresAt > now) {
+    return openMojiApiCache.data
+  }
+
+  const response = await fetch(OPENMOJI_DATASET_URL, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(7000),
+  })
+  if (!response.ok) {
+    throw new Error(`OpenMoji dataset request failed with status ${response.status}`)
+  }
+
+  const payload = await response.json()
+  const data = Array.isArray(payload) ? payload : []
+  openMojiApiCache = {
+    data,
+    expiresAt: now + DATASET_TTL_MS,
+  }
+  return data
+}
+
+const fetchEmojiHubDataset = async (): Promise<EmojiHubEntry[]> => {
+  const now = Date.now()
+  if (emojiHubCache && emojiHubCache.expiresAt > now) {
+    return emojiHubCache.data
+  }
+
+  const response = await fetch(EMOJIHUB_DATASET_URL, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(7000),
+  })
+  if (!response.ok) {
+    throw new Error(`EmojiHub dataset request failed with status ${response.status}`)
+  }
+
+  const payload = await response.json()
+  const data = Array.isArray(payload) ? payload : []
+  emojiHubCache = {
+    data,
+    expiresAt: now + DATASET_TTL_MS,
+  }
+  return data
+}
 
 const searchOpenMoji = (query: string, limit: number): StickerSearchItem[] => {
   const normalizedQuery = normalize(query)
@@ -100,6 +190,75 @@ const searchOpenMoji = (query: string, limit: number): StickerSearchItem[] => {
       sourceUrl,
     }
   })
+}
+
+const searchOpenMojiApi = async (query: string, limit: number): Promise<StickerSearchItem[]> => {
+  const dataset = await fetchOpenMojiApiDataset()
+  const normalizedQuery = normalize(query)
+
+  const filtered = dataset
+    .filter(entry => {
+      if (!entry?.hexcode) return false
+      if (!normalizedQuery) return true
+
+      const haystack = normalizeTerms(
+        entry.annotation,
+        entry.tags,
+        entry.group,
+        entry.subgroups
+      )
+      return haystack.includes(normalizedQuery)
+    })
+    .slice(0, limit)
+
+  return filtered.map(entry => {
+    const normalizedCodepoint = String(entry.hexcode || '').toUpperCase()
+    const sourceUrl = `https://cdn.jsdelivr.net/npm/openmoji@14.0.0/color/svg/${normalizedCodepoint}.svg`
+
+    return {
+      id: `openmoji:${normalizedCodepoint}`,
+      provider: 'openmoji' as const,
+      name: entry.annotation || entry.emoji || normalizedCodepoint,
+      previewUrl: sourceUrl,
+      sourceUrl,
+    }
+  })
+}
+
+const searchEmojiHub = async (query: string, limit: number): Promise<StickerSearchItem[]> => {
+  const dataset = await fetchEmojiHubDataset()
+  const normalizedQuery = normalize(query)
+
+  const filtered = dataset
+    .filter(entry => {
+      const code = entry?.unicode?.[0]
+      if (!code) return false
+      if (!normalizedQuery) return true
+
+      const haystack = normalizeTerms(entry.name, entry.category, entry.group)
+      return haystack.includes(normalizedQuery)
+    })
+    .slice(0, limit)
+
+  const mapped: Array<StickerSearchItem | null> = filtered
+    .map(entry => {
+      const code = entry?.unicode?.[0]
+      if (!code) return null
+
+      const codepoint = unicodeToCodepoint(code).toLowerCase()
+      if (!codepoint) return null
+
+      const sourceUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoint}.svg`
+      return {
+        id: `emojihub:${codepoint}`,
+        provider: 'emojihub' as const,
+        name: entry.name || codepoint,
+        previewUrl: sourceUrl,
+        sourceUrl,
+      }
+    })
+
+  return mapped.filter((item): item is StickerSearchItem => item !== null)
 }
 
 const searchIconify = async (query: string, limit: number): Promise<StickerSearchItem[]> => {
@@ -139,7 +298,7 @@ export async function GET(request: Request) {
     const limit = clampLimit(searchParams.get('limit'))
 
     if (!provider) {
-      return NextResponse.json({ error: 'Unsupported provider. Use iconify or openmoji.' }, { status: 400 })
+      return NextResponse.json({ error: 'Unsupported provider. Use iconify, openmoji, or emojihub.' }, { status: 400 })
     }
 
     let items: StickerSearchItem[] = []
@@ -152,8 +311,20 @@ export async function GET(request: Request) {
         items = searchOpenMoji(query, limit)
         fallbackUsed = true
       }
+    } else if (provider === 'openmoji') {
+      try {
+        items = await searchOpenMojiApi(query, limit)
+      } catch {
+        items = searchOpenMoji(query, limit)
+        fallbackUsed = true
+      }
     } else {
-      items = searchOpenMoji(query, limit)
+      try {
+        items = await searchEmojiHub(query, limit)
+      } catch {
+        items = await searchOpenMojiApi(query, limit)
+        fallbackUsed = true
+      }
     }
 
     return NextResponse.json(

@@ -24,10 +24,7 @@ export default function Navbar() {
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#fa75aa] to-[#d72688] flex items-center justify-center shadow">
             <Zap size={ICON_SIZE} className="text-white fill-white" />
           </div>
-          <div className="hidden sm:block">
-            <h1 className="text-sm font-bold text-[#d72688] leading-tight">Garlet Upgrade</h1>
-            <p className="text-xs text-[#8d5a73]">PhotoBooth</p>
-          </div>
+          <h1 className="hidden sm:block text-sm font-bold text-[#d72688] leading-tight">PhotoBooth</h1>
         </Link>
 
         {/* Navigation Links */}

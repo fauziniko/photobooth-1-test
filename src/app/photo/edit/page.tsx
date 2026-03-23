@@ -843,7 +843,11 @@ export default function PhotoEditPage() {
       const dataUrl = await buildStripDataUrl(true);
       if (!dataUrl) return;
 
-      const uploadedUrl = await uploadStripToCloud(dataUrl);
+      const uploadedUrl = await withTimeout(
+        uploadStripToCloud(dataUrl),
+        EXPORT_STEP_TIMEOUT_MS,
+        'Timeout while uploading strip image.'
+      );
       if (!uploadedUrl) {
         setSaveGalleryError('Strip upload failed. On iPad mode, use a lighter template and save again.');
         return;
@@ -851,29 +855,41 @@ export default function PhotoEditPage() {
 
       saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
 
-      const gifAssets = await createGifAssets();
+      const gifAssets = await withTimeout(
+        createGifAssets(),
+        EXPORT_STEP_TIMEOUT_MS * 2,
+        'Timeout while generating GIF assets.'
+      );
       const uploadedGifUrl = gifAssets?.blob ? await uploadMediaBlobToCloud(gifAssets.blob, 'gif') : null;
-          const uploadedLiveUrl = capturedLiveVideoUrl || loadTempLiveVideoUrlFromSessionStorage();
-      const uploadedFrameUrls = await uploadCaptureFramesToCloud(photos);
+      const uploadedLiveUrl = capturedLiveVideoUrl || loadTempLiveVideoUrlFromSessionStorage();
+      const uploadedFrameUrls = await withTimeout(
+        uploadCaptureFramesToCloud(photos),
+        EXPORT_STEP_TIMEOUT_MS * 2,
+        'Timeout while uploading captured frames.'
+      );
       const renderSize = getStripRenderSize();
-          const selectedTemplate = frameTemplates.find(template => template.name === selectedFrameTemplate);
+      const selectedTemplate = frameTemplates.find(template => template.name === selectedFrameTemplate);
 
-      const persisted = await persistStripToGalleryDatabase({
-        imageUrl: uploadedUrl,
-        stripDataUrl: null,
-        canvasWidth: renderSize?.canvasWidth ?? null,
-        canvasHeight: renderSize?.canvasHeight ?? null,
-        previewDataUrl: uploadedUrl ?? null,
-        gifDataUrl: uploadedGifUrl,
-        liveVideoDataUrl: uploadedLiveUrl,
-        photoFrames: uploadedFrameUrls,
-        livePhotos: uploadedFrameUrls,
-        selectedFrameTemplate,
-        templateSettings: selectedTemplateSettings,
-        frameTemplateUrl: selectedTemplate?.src ?? null,
-        frameStickerUrl: selectedTemplate?.sticker ?? null,
-        frameColor,
-      });
+      const persisted = await withTimeout(
+        persistStripToGalleryDatabase({
+          imageUrl: uploadedUrl,
+          stripDataUrl: null,
+          canvasWidth: renderSize?.canvasWidth ?? null,
+          canvasHeight: renderSize?.canvasHeight ?? null,
+          previewDataUrl: uploadedUrl ?? null,
+          gifDataUrl: uploadedGifUrl,
+          liveVideoDataUrl: uploadedLiveUrl,
+          photoFrames: uploadedFrameUrls,
+          livePhotos: uploadedFrameUrls,
+          selectedFrameTemplate,
+          templateSettings: selectedTemplateSettings,
+          frameTemplateUrl: selectedTemplate?.src ?? null,
+          frameStickerUrl: selectedTemplate?.sticker ?? null,
+          frameColor,
+        }),
+        EXPORT_STEP_TIMEOUT_MS,
+        'Timeout while saving gallery metadata.'
+      );
 
       if (gifAssets?.objectUrl) {
         URL.revokeObjectURL(gifAssets.objectUrl);
@@ -883,8 +899,11 @@ export default function PhotoEditPage() {
         clearTempLiveVideoUrlFromSessionStorage();
         router.push(`/photo/gallery/${persisted.id}`);
       } else {
-        setSaveGalleryError('Gallery is not saved yet. Strip was processed, but gallery metadata creation failed.');
+        router.push('/photo/gallery');
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save gallery.';
+      setSaveGalleryError(errorMessage);
     } finally {
       setIsSavingGallery(false);
       setIsLoadingResult(false);

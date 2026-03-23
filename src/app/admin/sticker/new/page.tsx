@@ -34,7 +34,7 @@ type CanvasShape = {
   color: string
 }
 
-type StickerSearchProvider = 'iconify' | 'openmoji'
+type StickerSearchProvider = 'iconify' | 'openmoji' | 'emojihub'
 
 type StickerSearchItem = {
   id: string
@@ -237,6 +237,7 @@ export default function NewStickerPage() {
   const [emojiQuery, setEmojiQuery] = useState('party')
   const [iconItems, setIconItems] = useState<StickerSearchItem[]>([])
   const [emojiItems, setEmojiItems] = useState<StickerSearchItem[]>([])
+  const [emojiProvider, setEmojiProvider] = useState<'openmoji' | 'emojihub'>('openmoji')
   const [searchingIcons, setSearchingIcons] = useState(false)
   const [searchingEmoji, setSearchingEmoji] = useState(false)
   const [importingRemoteId, setImportingRemoteId] = useState<string | null>(null)
@@ -385,8 +386,8 @@ export default function NewStickerPage() {
     setStickerFile(importedFile, 'picker')
   }
 
-  const searchStickerProvider = useCallback(async (provider: StickerSearchProvider, query: string) => {
-    const params = new URLSearchParams({ provider, q: query, limit: '24' })
+  const searchStickerProvider = useCallback(async (provider: StickerSearchProvider, query: string, limit = 24) => {
+    const params = new URLSearchParams({ provider, q: query, limit: String(limit) })
     const response = await fetch(`/api/sticker-search?${params.toString()}`, { cache: 'no-store' })
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}))
@@ -429,7 +430,7 @@ export default function NewStickerPage() {
   const handleSearchIcons = useCallback(async () => {
     setSearchingIcons(true)
     try {
-      const items = await searchStickerProvider('iconify', iconQuery.trim() || 'sparkle')
+      const items = await searchStickerProvider('iconify', iconQuery.trim() || 'sparkle', 36)
       setIconItems(items)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to search icons.'
@@ -442,7 +443,7 @@ export default function NewStickerPage() {
   const handleSearchEmoji = useCallback(async () => {
     setSearchingEmoji(true)
     try {
-      const items = await searchStickerProvider('openmoji', emojiQuery.trim() || 'party')
+      const items = await searchStickerProvider(emojiProvider, emojiQuery.trim() || 'party', 72)
       setEmojiItems(items)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to search emoji stickers.'
@@ -450,7 +451,7 @@ export default function NewStickerPage() {
     } finally {
       setSearchingEmoji(false)
     }
-  }, [emojiQuery, searchStickerProvider])
+  }, [emojiProvider, emojiQuery, searchStickerProvider])
 
   useEffect(() => {
     if (sourceTab === 'icon' && iconItems.length === 0 && !searchingIcons) {
@@ -463,6 +464,12 @@ export default function NewStickerPage() {
       void handleSearchEmoji()
     }
   }, [sourceTab, emojiItems.length, searchingEmoji, handleSearchEmoji])
+
+  useEffect(() => {
+    if (sourceTab !== 'emoji') return
+    setEmojiItems([])
+    void handleSearchEmoji()
+  }, [emojiProvider, sourceTab, handleSearchEmoji])
 
   const handleImportProviderItem = async (item: StickerSearchItem) => {
     setImportingRemoteId(item.id)
@@ -570,6 +577,21 @@ export default function NewStickerPage() {
     ctx.lineTo(point.x, point.y)
     ctx.stroke()
   }
+
+  const hasCanvasInk = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return false
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return false
+
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] > 0) return true
+    }
+    return false
+  }
+
+  const hasEditorContent = () => hasCanvasInk() || shapes.length > 0
 
   const handleCanvasPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -834,8 +856,8 @@ export default function NewStickerPage() {
     event.preventDefault()
     setMessage(null)
 
-    if (!file) {
-      setMessage({ type: 'error', text: 'Sticker file is required.' })
+    if (!file && !hasEditorContent()) {
+      setMessage({ type: 'error', text: 'Please upload/import an image or draw on canvas first.' })
       return
     }
 
@@ -846,11 +868,6 @@ export default function NewStickerPage() {
     const formElement = uploadFormRef.current
     if (!formElement) {
       setMessage({ type: 'error', text: 'Upload form is not ready.' })
-      return
-    }
-
-    if (!file) {
-      setMessage({ type: 'error', text: 'Sticker file is required.' })
       return
     }
 
@@ -865,6 +882,11 @@ export default function NewStickerPage() {
 
       if (!editorFile) {
         setMessage({ type: 'error', text: 'Failed to export editor output.' })
+        return
+      }
+
+      if (!hasEditorContent()) {
+        setMessage({ type: 'error', text: 'Editor is still empty. Add image, drawing, or shape first.' })
         return
       }
 
@@ -1004,14 +1026,14 @@ export default function NewStickerPage() {
                   className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
                 />
 
-                <div className="absolute inset-0">
+                <div className="absolute inset-0 pointer-events-none">
                   {shapes.map(shape => {
                     const isSelected = shape.id === selectedShapeId
                     return (
                       <div
                         key={shape.id}
                         onPointerDown={handleShapePointerDown(shape.id)}
-                        className={`absolute touch-none cursor-move select-none ${isSelected ? 'ring-2 ring-[#fa75aa]' : ''}`}
+                        className={`absolute pointer-events-auto touch-none cursor-move select-none ${isSelected ? 'ring-2 ring-[#fa75aa]' : ''}`}
                         style={{
                           left: `${(shape.x / CANVAS_SIZE) * 100}%`,
                           top: `${(shape.y / CANVAS_SIZE) * 100}%`,
@@ -1041,6 +1063,18 @@ export default function NewStickerPage() {
             <form ref={uploadFormRef} onSubmit={handleUpload} className="space-y-4">
               <div className="rounded-xl border border-[#ecd4e1] bg-[#fff9fd] p-3 space-y-3">
                 <p className="text-sm font-semibold text-[#5d4150]">Editor Controls</p>
+                <div className="rounded-lg border border-[#edd2df] bg-white px-3 py-2 text-xs text-[#6d4a5b]">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <span>
+                      Canvas status:{' '}
+                      <span className={hasEditorContent() ? 'text-green-700 font-semibold' : 'text-amber-700 font-semibold'}>
+                        {hasEditorContent() ? 'Ready' : 'Empty'}
+                      </span>
+                    </span>
+                    <span>Shapes: {shapes.length}</span>
+                    <span>File: {file ? 'Attached' : 'None'}</span>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <label className="text-sm text-[#5d4150] font-medium">
                     Drawing Color
@@ -1052,7 +1086,7 @@ export default function NewStickerPage() {
                     />
                   </label>
                   <label className="text-sm text-[#5d4150] font-medium">
-                    Brush Size
+                    Brush Size ({brushSize}px)
                     <input
                       type="range"
                       min={1}
@@ -1063,7 +1097,7 @@ export default function NewStickerPage() {
                     />
                   </label>
                   <label className="text-sm text-[#5d4150] font-medium">
-                    Shape Size
+                    Shape Size ({shapeSize}px)
                     <input
                       type="range"
                       min={40}
@@ -1363,6 +1397,24 @@ export default function NewStickerPage() {
 
                 {sourceTab === 'emoji' && (
                   <div className="rounded-xl border border-[#ecd4e1] bg-[#fff9fd] p-3 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className="text-xs text-[#5d4150] font-medium">
+                        Emoji Provider
+                        <select
+                          value={emojiProvider}
+                          onChange={event => setEmojiProvider(event.target.value as 'openmoji' | 'emojihub')}
+                          className="mt-1 w-full rounded-lg border border-[#d9c8d1] bg-white px-3 py-2 text-sm text-[#4a2337] focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"
+                        >
+                          <option value="openmoji">OpenMoji API (Free)</option>
+                          <option value="emojihub">EmojiHub + Twemoji (Free)</option>
+                        </select>
+                      </label>
+                      <div className="text-[11px] text-[#8d6f7d] self-end rounded-lg border border-[#edd2df] bg-white px-3 py-2">
+                        {emojiProvider === 'openmoji'
+                          ? 'Open source emoji from OpenMoji dataset API'
+                          : 'EmojiHub API data with Twemoji SVG assets'}
+                      </div>
+                    </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
@@ -1415,7 +1467,14 @@ export default function NewStickerPage() {
               </div>
 
               <div className="text-[11px] text-[#8d6f7d]">
-                Source provider: {sourceTab === 'icon' ? 'Iconify' : sourceTab === 'emoji' ? 'OpenMoji' : 'Manual import'}
+                Source provider:{' '}
+                {sourceTab === 'icon'
+                  ? 'Iconify (free)'
+                  : sourceTab === 'emoji'
+                    ? emojiProvider === 'openmoji'
+                      ? 'OpenMoji API (free)'
+                      : 'EmojiHub + Twemoji (free)'
+                    : 'Manual import'}
               </div>
 
               <div>
@@ -1444,6 +1503,9 @@ export default function NewStickerPage() {
                 <Upload className="w-4 h-4 mr-2" />
                 {uploading ? 'Uploading...' : 'Save Sticker'}
               </button>
+              <p className="text-[11px] text-[#8d6f7d] text-center">
+                You can save from drawing-only canvas, imported image, or a combination of both.
+              </p>
             </form>
           </div>
         </div>

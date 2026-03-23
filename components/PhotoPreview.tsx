@@ -433,28 +433,30 @@ export default function PhotoPreview({
       >
         {/* Frame template di belakang */}
         {selectedFrameTemplate !== 'none' && (
-          <Image
-            src={selectedTemplate?.src || ''}
-            alt="Frame Template"
-            fill
+          <div
             style={{
-              objectFit: 'contain',
+              position: 'absolute',
+              inset: 0,
               pointerEvents: 'none',
-              zIndex: 1,
+              zIndex: 0,
             }}
-          />
-        )}                {/* Sticker PNG di atas foto dan frame */}
-        {stickerUrl && (
-          <Image
-            src={stickerUrl}
-            alt="Sticker"
-            fill
-            style={{
-              objectFit: 'contain',
-              pointerEvents: 'none',
-              zIndex: 2,
-            }}
-          />
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={selectedTemplate?.src || ''}
+              alt="Frame Template"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+              draggable={false}
+            />
+          </div>
         )}
 
         {/* Foto-foto di atas frame dan sticker */}
@@ -591,6 +593,34 @@ export default function PhotoPreview({
             </div>
           )})}
         </div>
+
+        {/* Sticker PNG harus berada di atas foto agar hasil konsisten lintas device */}
+        {stickerUrl && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 3,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={stickerUrl}
+              alt="Sticker"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+              draggable={false}
+            />
+          </div>
+        )}
         {/* 3. Stiker di atas foto */}
         {stickers.map((sticker, idx) => (
           <React.Fragment key={idx}>

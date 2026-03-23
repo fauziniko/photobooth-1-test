@@ -3,6 +3,22 @@ import { Client } from 'minio';
 
 const STICKER_FOLDER = 'sticker/';
 
+const buildObjectUrl = ({ endPoint, port, useSSL, bucket, objectName }) => {
+  const publicEndpoint = process.env.MINIO_PUBLIC_ENDPOINT;
+  const protocol = useSSL ? 'https' : 'http';
+
+  if (publicEndpoint) {
+    const normalizedBase = publicEndpoint.startsWith('http')
+      ? publicEndpoint
+      : `${protocol}://${publicEndpoint}`;
+    return `${normalizedBase.replace(/\/$/, '')}/${bucket}/${objectName}`;
+  }
+
+  const isDefaultPort = (useSSL && port === 443) || (!useSSL && port === 80);
+  const host = isDefaultPort ? endPoint : `${endPoint}:${port}`;
+  return `${protocol}://${host}/${bucket}/${objectName}`;
+};
+
 const getMinioConfig = () => {
   const endPoint = process.env.MINIO_ENDPOINT;
   const accessKey = process.env.MINIO_ACCESS_KEY;
@@ -16,13 +32,17 @@ const getMinioConfig = () => {
 
   const parsedPort = Number.parseInt(portRaw || '9000', 10);
   const port = Number.isFinite(parsedPort) ? parsedPort : 9000;
+  const useSSL = process.env.MINIO_USE_SSL === 'true';
 
   return {
+    endPoint,
+    port,
+    useSSL,
     bucket,
     client: new Client({
       endPoint,
       port,
-      useSSL: process.env.MINIO_USE_SSL === 'true',
+      useSSL,
       accessKey,
       secretKey,
     }),
@@ -31,7 +51,7 @@ const getMinioConfig = () => {
 
 export async function GET() {
   try {
-    const { client, bucket } = getMinioConfig();
+    const { client, bucket, endPoint, port, useSSL } = getMinioConfig();
     const stickerItems = [];
     const stream = client.listObjectsV2(bucket, STICKER_FOLDER, true);
 
@@ -41,7 +61,7 @@ export async function GET() {
       const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(obj.name);
       if (!isImage) continue;
 
-      const url = `https://${process.env.MINIO_ENDPOINT}/${BUCKET}/${obj.name}`;
+      const url = buildObjectUrl({ endPoint, port, useSSL, bucket, objectName: obj.name });
       const rawName = obj.name.split('/').pop() || obj.name;
       const name = rawName.replace(/\.[^.]+$/, '');
 

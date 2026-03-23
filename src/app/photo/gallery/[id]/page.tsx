@@ -527,7 +527,7 @@ export default function GalleryDetailPage() {
         ) : (
           <div className="space-y-5">
             <div className="bg-white rounded-2xl border border-pink-100 shadow-md overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-2">
+              <div className="grid grid-cols-1">
                 <div className="bg-pink-50 p-4 flex items-center justify-center">
                   {mediaSlides.length === 0 ? (
                     <p className="text-sm text-gray-500">Media is not available for this item yet.</p>

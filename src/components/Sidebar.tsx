@@ -29,7 +29,6 @@ export default function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isDesktopOpen, setIsDesktopOpen] = useState(true)
   const [isDesktopStateReady, setIsDesktopStateReady] = useState(false)
-  const [isNarrowMobileViewport, setIsNarrowMobileViewport] = useState(false)
 
   // Load and sync sidebar state from localStorage
   useEffect(() => {
@@ -46,22 +45,8 @@ export default function Sidebar() {
     window.dispatchEvent(new CustomEvent(SIDEBAR_EVENT_NAME, { detail: { open: isDesktopOpen } }))
   }, [isDesktopOpen, isDesktopStateReady])
 
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 767px)')
-    const apply = () => setIsNarrowMobileViewport(media.matches)
-    apply()
-
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', apply)
-      return () => media.removeEventListener('change', apply)
-    }
-
-    media.addListener(apply)
-    return () => media.removeListener(apply)
-  }, [])
-
-  // Hide sidebar on auth and shared gallery detail pages
-  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/') || (pathname === '/photo' && isNarrowMobileViewport)) {
+  // Hide sidebar only on auth and shared gallery detail pages
+  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/')) {
     return null
   }
 
@@ -70,9 +55,14 @@ export default function Sidebar() {
     return null
   }
 
+  // Sidebar is available only for authenticated users.
+  if (!session?.user) {
+    return null
+  }
+
   // User navigation
   const userNavigation = [
-    { name: 'Photobooth', href: '/photo', icon: Camera },
+    { name: 'PhotoBooth', href: '/photo', icon: Camera },
     { name: 'Photo Gallery', href: '/photo/gallery', icon: Images },
     { name: 'Uploaded Photos', href: '/photo/uploaded', icon: Images },
   ]
@@ -94,7 +84,7 @@ export default function Sidebar() {
       {/* Desktop Toggle Button */}
       <button
         onClick={() => setIsDesktopOpen(prev => !prev)}
-        className="hidden md:flex fixed top-4 z-50 h-10 w-10 items-center justify-center rounded-lg bg-[#ffeaf3] text-[#d72688] border border-[#f3b7d1] hover:bg-[#fa75aa] hover:text-white active:scale-95 transition shadow-lg"
+        className="hidden lg:flex fixed top-4 z-50 h-10 w-10 items-center justify-center rounded-lg bg-[#ffeaf3] text-[#d72688] border border-[#f3b7d1] hover:bg-[#fa75aa] hover:text-white active:scale-95 transition shadow-lg"
         style={{ left: isDesktopOpen ? '14.5rem' : '1rem' }}
         aria-label={isDesktopOpen ? "Close sidebar" : "Open sidebar"}
         title={isDesktopOpen ? 'Close sidebar' : 'Open sidebar'}
@@ -105,7 +95,7 @@ export default function Sidebar() {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setIsMobileOpen(prev => !prev)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2.5 rounded-lg bg-[#fa75aa] text-white hover:bg-[#d72688] active:scale-95 transition shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 rounded-lg bg-[#fa75aa] text-white hover:bg-[#d72688] active:scale-95 transition shadow-lg"
         aria-label={isMobileOpen ? "Close menu" : "Open menu"}
       >
         {isMobileOpen ? <X size={ICON_SIZE} /> : <Menu size={ICON_SIZE} />}
@@ -113,7 +103,7 @@ export default function Sidebar() {
 
       {/* Desktop Sidebar - Collapsible */}
       <aside 
-        className={`hidden md:flex md:flex-col fixed top-0 left-0 z-40 h-screen bg-[#fff7fb] border-r border-[#f3b7d1] overflow-y-auto transition-all duration-300 ${
+        className={`hidden lg:flex lg:flex-col fixed top-0 left-0 z-40 h-screen bg-[#fff7fb] border-r border-[#f3b7d1] overflow-y-auto transition-all duration-300 ${
           isDesktopOpen ? 'w-56' : 'w-0'
         }`}
       >
@@ -223,7 +213,7 @@ export default function Sidebar() {
       <aside
         className={`fixed top-0 left-0 z-40 h-screen w-[280px] bg-[#fff7fb] border-r border-[#f3b7d1] shadow-xl transition-transform duration-300 ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:hidden overflow-y-auto`}
+        } lg:hidden overflow-y-auto`}
       >
         <div className="flex flex-col h-full">
           {/* Logo - Mobile */}

@@ -33,7 +33,7 @@ export default function Page() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
-  const [isNarrowMobileViewport, setIsNarrowMobileViewport] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
   const [mobileCaptureFullscreen, setMobileCaptureFullscreen] = useState(true);
   const [, setCapturedLiveVideoUrl] = useState<string | null>(null);
   const [awaitingLiveVideo, setAwaitingLiveVideo] = useState(false);
@@ -137,9 +137,9 @@ export default function Page() {
   useEffect(() => {
     const media = window.matchMedia('(max-width: 767px)');
     const apply = () => {
-      const isNarrow = media.matches;
-      setIsNarrowMobileViewport(isNarrow);
-      if (isNarrow) {
+      const isCompact = media.matches;
+      setIsCompactViewport(isCompact);
+      if (isCompact) {
         setMobileCaptureFullscreen(true);
       }
     };
@@ -394,15 +394,22 @@ export default function Page() {
 
   const isCaptureMode = showCamera && (photos.length < layout || retakePhotoIndex !== null);
   const fullscreenCaptureMode =
-    isCaptureMode && (effectiveFullscreen || (isNarrowMobileViewport && mobileCaptureFullscreen));
-  const fullscreenToggleHandler = isNarrowMobileViewport
+    isCaptureMode && (effectiveFullscreen || (isCompactViewport && mobileCaptureFullscreen));
+  const fullscreenToggleHandler = isCompactViewport
     ? () => setMobileCaptureFullscreen(prev => !prev)
     : toggleFullscreen;
+  const pagePaddingClass = isCompactViewport ? 'px-1 sm:px-2 lg:px-5 py-1 sm:py-2 lg:py-4' : 'px-2 sm:px-4 lg:px-5 py-2 sm:py-4';
+  const pageGridClass = isCompactViewport
+    ? 'min-h-[calc(100dvh-0.5rem)] lg:h-full max-w-none mx-auto grid grid-cols-1 gap-2'
+    : 'min-h-[calc(100dvh-1rem)] lg:h-full max-w-[1100px] mx-auto grid grid-cols-1 gap-3 sm:gap-4';
+  const sectionClass = isCompactViewport
+    ? 'lg:h-full p-1 sm:p-2 flex flex-col overflow-visible lg:overflow-hidden'
+    : 'lg:h-full p-2 sm:p-4 flex flex-col overflow-visible lg:overflow-hidden';
 
   return (
     <main
       ref={mainRef}
-      className="pb-page-bg w-full min-h-dvh md:h-dvh overflow-x-hidden overflow-y-auto md:overflow-hidden px-2 sm:px-4 md:px-5 py-2 sm:py-4"
+      className={`pb-page-bg w-full min-h-dvh lg:h-dvh overflow-x-hidden overflow-y-auto lg:overflow-hidden ${pagePaddingClass}`}
     >
       {fullscreenError && (
         <div className="w-full max-w-5xl mx-auto mb-2">
@@ -412,8 +419,8 @@ export default function Page() {
         </div>
       )}
 
-      <div className="min-h-[calc(100dvh-1rem)] md:h-full max-w-[1100px] mx-auto grid grid-cols-1 gap-3 sm:gap-4">
-        <section className="md:h-full p-2 sm:p-4 flex flex-col overflow-visible md:overflow-hidden">
+      <div className={pageGridClass}>
+        <section className={sectionClass}>
           {!fullscreenCaptureMode && (
             <div className="text-center mb-2">
               <p className="text-sm text-gray-600">
@@ -426,22 +433,25 @@ export default function Page() {
           )}
 
           {awaitingLiveVideo && (
-            <div className="mb-3 bg-white/95 border border-pink-200 rounded-2xl shadow-sm p-3 sm:p-4">
-              <p className="text-sm sm:text-base text-[#d72688] font-semibold text-center">
-                Saving live video result...
-              </p>
-              <p className="text-xs sm:text-sm text-gray-600 text-center mt-1">
-                Please wait, you will continue to editor automatically.
-              </p>
-              <p className="text-xs sm:text-sm text-[#d72688] text-center mt-2 font-semibold">
-                Running: {liveWaitSeconds}s
-              </p>
+            <div className="fixed inset-0 z-[80] bg-[#1f0012]/45 backdrop-blur-[2px] flex items-center justify-center px-4">
+              <div className="w-full max-w-sm rounded-2xl border border-pink-200 bg-white shadow-xl p-5 sm:p-6" role="status" aria-live="polite">
+                <div className="mx-auto h-11 w-11 rounded-full border-4 border-pink-200 border-t-[#d72688] animate-spin" />
+                <p className="text-base sm:text-lg text-[#d72688] font-semibold text-center mt-4">
+                  Saving live video result...
+                </p>
+                <p className="text-xs sm:text-sm text-gray-600 text-center mt-1">
+                  Please wait, you will continue to editor automatically.
+                </p>
+                <p className="text-xs sm:text-sm text-[#d72688] text-center mt-3 font-semibold">
+                  Running: {liveWaitSeconds}s
+                </p>
+              </div>
             </div>
           )}
 
-          <div className="w-full flex md:flex-1 md:min-h-0 items-start md:items-center justify-center overflow-visible md:overflow-hidden">
+          <div className="w-full flex lg:flex-1 lg:min-h-0 items-start lg:items-center justify-center overflow-visible lg:overflow-hidden">
             {showCamera && (photos.length < layout || retakePhotoIndex !== null) && (
-              <div className={fullscreenCaptureMode ? 'fixed inset-0 z-[60] bg-black' : 'w-full md:h-full flex items-start md:items-center justify-center'}>
+              <div className={fullscreenCaptureMode ? 'fixed inset-0 z-[60] bg-black' : 'w-full lg:h-full flex items-start lg:items-center justify-center'}>
                 <Camera
                   onCapture={handleCapture}
                   photosToTake={retakePhotoIndex !== null ? 1 : layout - photos.length}

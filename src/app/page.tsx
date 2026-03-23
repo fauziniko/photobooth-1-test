@@ -70,7 +70,7 @@ export default function HomePage() {
             <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-[#fff0f7] rounded-full mb-6 border border-[#f3b7d1]">
               <Zap className="w-4 h-4 text-[#d72688] mr-2 flex-shrink-0" />
               <span className="text-xs sm:text-sm font-medium text-[#d72688]">
-                Garlet Upgrade - PhotoBooth
+                PhotoBooth
               </span>
             </div>
 
@@ -79,7 +79,7 @@ export default function HomePage() {
               <span className="text-[#4a2337]">Capture Moments</span>
               <br />
               <span className="text-[#d72688]">
-                With Garlet Upgrade
+                With PhotoBooth
               </span>
             </h1>
 
@@ -90,7 +90,7 @@ export default function HomePage() {
 
             {/* CTA Button */}
             <Link
-              href="/photo"
+              href="/auth/signin?callbackUrl=%2Fphoto"
               className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#d72688] to-[#fa75aa] text-white text-base sm:text-lg font-semibold rounded-full hover:brightness-95 active:scale-95 transition duration-300 shadow-xl hover:shadow-2xl"
             >
               <Camera className="w-5 h-5 mr-2 flex-shrink-0" />
@@ -124,7 +124,7 @@ export default function HomePage() {
           <div className="text-center mb-12 sm:mb-16 px-2">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
               Why Choose 
-              <span className="text-[#d72688]"> Garlet Upgrade?</span>
+              <span className="text-[#d72688]"> PhotoBooth?</span>
             </h2>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Everything you need to create amazing photo memories in one place
@@ -163,12 +163,12 @@ export default function HomePage() {
             Ready to Create Amazing Photos?
           </h2>
           <p className="text-base sm:text-lg text-pink-100 mb-6 sm:mb-8 max-w-2xl mx-auto">
-            Join thousands of users who are already creating beautiful photo memories with Garlet Upgrade
+            Join thousands of users who are already creating beautiful photo memories with PhotoBooth
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Link
-              href="/photo"
+              href="/auth/signin?callbackUrl=%2Fphoto"
               className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-white text-[#d72688] text-base sm:text-lg font-semibold rounded-full hover:brightness-95 active:scale-95 transition shadow-xl"
             >
               <Camera className="w-5 h-5 mr-2 flex-shrink-0" />
@@ -199,8 +199,7 @@ export default function HomePage() {
                   <Zap className="w-6 h-6 text-white fill-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Garlet Upgrade</h3>
-                  <p className="text-xs text-pink-200">PhotoBooth</p>
+                  <h3 className="text-lg font-bold text-white">PhotoBooth</h3>
                 </div>
               </div>
               <p className="text-sm text-pink-200 ml-13">Create memories that last forever</p>
@@ -217,7 +216,7 @@ export default function HomePage() {
           </div>
           
           <div className="mt-8 pt-8 border-t border-[#8b4b66] text-center text-xs sm:text-sm text-pink-200">
-            <p>&copy; 2025 Garlet Upgrade. All rights reserved.</p>
+            <p>&copy; 2025 PhotoBooth. All rights reserved.</p>
           </div>
         </div>
       </footer>
