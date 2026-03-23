@@ -16,15 +16,17 @@ const withNoStore = (response: NextResponse) => {
   response.headers.set('Pragma', 'no-cache')
   response.headers.set('Expires', '0')
   response.headers.set('x-middleware-cache', 'no-cache')
+  response.headers.set('Vary', 'Cookie, Next-Router-Prefetch, Purpose, Sec-Purpose, RSC')
   return response
 }
 
-const isPrefetchRequest = (request: NextRequest) => {
+const isPrefetchLikeRequest = (request: NextRequest) => {
   const purpose = request.headers.get('purpose')
   const secPurpose = request.headers.get('sec-purpose')
   const nextPrefetch = request.headers.get('next-router-prefetch')
+  const isRsc = request.nextUrl.searchParams.has('_rsc') || request.headers.has('rsc')
 
-  return purpose === 'prefetch' || secPurpose === 'prefetch' || nextPrefetch === '1'
+  return purpose === 'prefetch' || secPurpose === 'prefetch' || nextPrefetch === '1' || isRsc
 }
 
 export async function middleware(request: NextRequest) {
@@ -35,8 +37,8 @@ export async function middleware(request: NextRequest) {
   // Protect all PhotoBooth pages.
   if (pathname.startsWith('/photo') || pathname.startsWith('/photo-result')) {
     if (!token) {
-      if (isPrefetchRequest(request)) {
-        return withNoStore(NextResponse.json({ error: 'Prefetch blocked for unauthenticated request.' }, { status: 401 }))
+      if (isPrefetchLikeRequest(request)) {
+        return withNoStore(new NextResponse(null, { status: 204 }))
       }
 
       const url = new URL('/auth/signin', request.url)
@@ -48,8 +50,8 @@ export async function middleware(request: NextRequest) {
   // Protect /admin route - requires ADMIN role (registered users)
   if (pathname.startsWith('/admin')) {
     if (!token) {
-      if (isPrefetchRequest(request)) {
-        return withNoStore(NextResponse.json({ error: 'Prefetch blocked for unauthenticated request.' }, { status: 401 }))
+      if (isPrefetchLikeRequest(request)) {
+        return withNoStore(new NextResponse(null, { status: 204 }))
       }
 
       const url = new URL('/auth/signin', request.url)
