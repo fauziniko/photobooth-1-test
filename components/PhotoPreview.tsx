@@ -114,6 +114,15 @@ export default function PhotoPreview({
     onDeleteSticker(idx);
   };
 
+  const getLogicalScale = (rect: DOMRect) => {
+    const scaleX = rect.width > 0 ? effectiveStripWidth / rect.width : 1;
+    const scaleY = rect.height > 0 ? effectiveStripHeight / rect.height : 1;
+    return {
+      scaleX: Number.isFinite(scaleX) && scaleX > 0 ? scaleX : 1,
+      scaleY: Number.isFinite(scaleY) && scaleY > 0 ? scaleY : 1,
+    };
+  };
+
   // Mouse resize
   const handleResizeMouseDown = (idx: number) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -161,17 +170,19 @@ export default function PhotoPreview({
       if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
+      const { scaleX, scaleY } = getLogicalScale(rect);
+      const deltaScale = (scaleX + scaleY) / 2;
       const dx = e.clientX - resizeStart.startX;
       const dy = e.clientY - resizeStart.startY;
       const delta = Math.max(dx, dy);
-      let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
+      let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta * deltaScale));
       const sticker = stickers[resizeIdx];
       if (sticker) {
         // Batasi agar stiker tidak keluar frame
         newSize = Math.min(
           newSize,
-          rect.width - sticker.x,
-          rect.height - sticker.y
+          effectiveStripWidth - sticker.x,
+          effectiveStripHeight - sticker.y
         );
       }
       onResizeSticker(resizeIdx, newSize);
@@ -180,12 +191,13 @@ export default function PhotoPreview({
     if (dragIdx !== null && onMoveSticker) {
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
+      const { scaleX, scaleY } = getLogicalScale(rect);
       const size = stickers[dragIdx]?.size ?? 48;
-      let x = e.clientX - rect.left - size / 2;
-      let y = e.clientY - rect.top - size / 2;
+      let x = (e.clientX - rect.left) * scaleX - size / 2;
+      let y = (e.clientY - rect.top) * scaleY - size / 2;
       // Batasi agar stiker tidak keluar frame (tidak boleh negatif, tidak boleh lebih dari sisi frame)
-      x = Math.max(0, Math.min(x, rect.width - size));
-      y = Math.max(0, Math.min(y, rect.height - size));
+      x = Math.max(0, Math.min(x, effectiveStripWidth - size));
+      y = Math.max(0, Math.min(y, effectiveStripHeight - size));
       onMoveSticker(dragIdx, x, y);
     }
   };
@@ -196,18 +208,20 @@ export default function PhotoPreview({
       if (longPressTimeout.current) clearTimeout(longPressTimeout.current);
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
+      const { scaleX, scaleY } = getLogicalScale(rect);
+      const deltaScale = (scaleX + scaleY) / 2;
       const touch = e.touches[0];
       const dx = touch.clientX - resizeStart.startX;
       const dy = touch.clientY - resizeStart.startY;
       const delta = Math.max(dx, dy);
-      let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta));
+      let newSize = Math.max(24, Math.min(200, resizeStart.startSize + delta * deltaScale));
       const sticker = stickers[resizeIdx];
       if (sticker) {
         // Batasi agar stiker tidak keluar frame
         newSize = Math.min(
           newSize,
-          rect.width - sticker.x,
-          rect.height - sticker.y
+          effectiveStripWidth - sticker.x,
+          effectiveStripHeight - sticker.y
         );
       }
       onResizeSticker(resizeIdx, newSize);
@@ -216,13 +230,14 @@ export default function PhotoPreview({
     if (dragIdx !== null && onMoveSticker && touchOffset) {
       const rect = (e.currentTarget as HTMLElement).querySelector('#strip')?.getBoundingClientRect();
       if (!rect) return;
+      const { scaleX, scaleY } = getLogicalScale(rect);
       const touch = e.touches[0];
       const size = stickers[dragIdx]?.size ?? 48;
-      let x = touch.clientX - rect.left - touchOffset.x;
-      let y = touch.clientY - rect.top - touchOffset.y;
+      let x = (touch.clientX - rect.left) * scaleX - touchOffset.x;
+      let y = (touch.clientY - rect.top) * scaleY - touchOffset.y;
       // Batasi agar stiker tidak keluar frame (tidak boleh negatif, tidak boleh lebih dari sisi frame)
-      x = Math.max(0, Math.min(x, rect.width - size));
-      y = Math.max(0, Math.min(y, rect.height - size));
+      x = Math.max(0, Math.min(x, effectiveStripWidth - size));
+      y = Math.max(0, Math.min(y, effectiveStripHeight - size));
       onMoveSticker(dragIdx, x, y);
     }
   };
@@ -312,11 +327,12 @@ export default function PhotoPreview({
     setDragIdx(idx);
     const rect = (e.target as HTMLElement).closest('#strip')?.getBoundingClientRect();
     if (!rect) return;
+    const { scaleX, scaleY } = getLogicalScale(rect);
     const touch = e.touches[0];
     const sticker = stickers[idx];
     setTouchOffset({
-      x: touch.clientX - rect.left - sticker.x,
-      y: touch.clientY - rect.top - sticker.y,
+      x: (touch.clientX - rect.left) * scaleX - sticker.x,
+      y: (touch.clientY - rect.top) * scaleY - sticker.y,
     });
   };
 
@@ -676,7 +692,7 @@ export default function PhotoPreview({
                   padding: 0,
                   zIndex: 1002,
                 }}
-                title="Hapus"
+                title="Delete"
                 tabIndex={-1}
                 onClick={e => {
                   e.stopPropagation();

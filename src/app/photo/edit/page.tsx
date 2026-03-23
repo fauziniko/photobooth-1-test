@@ -54,9 +54,73 @@ type PersistedTemplateSettings = {
   photoSlots: TemplateSlot[];
 };
 
+const INLINE_GALLERY_STRIP_MAX_LENGTH = 1_200_000;
+const EXPORT_STEP_TIMEOUT_MS = 20_000;
+const MOBILE_EXPORT_MAX_PIXELS = 2_400_000;
+const DEFAULT_EXPORT_MAX_PIXELS = 5_000_000;
+
 const toFiniteNumber = (value: unknown, fallback: number) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+};
+
+const isIPadLikeDevice = () => {
+  if (typeof navigator === 'undefined') return false;
+
+  const ua = navigator.userAgent || '';
+  return /iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+const isLowMemoryMobileDevice = () => {
+  if (typeof navigator === 'undefined') return false;
+
+  const ua = navigator.userAgent || '';
+  return isIPadLikeDevice() || /iPhone|iPod|Android|Mobile/i.test(ua);
+};
+
+const getSafeExportScale = (renderWidth: number, renderHeight: number) => {
+  if (typeof window === 'undefined') return 1;
+
+  const width = Math.max(1, renderWidth);
+  const height = Math.max(1, renderHeight);
+  const nativeScale = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+  const maxPixels = isLowMemoryMobileDevice() ? MOBILE_EXPORT_MAX_PIXELS : DEFAULT_EXPORT_MAX_PIXELS;
+  const safeScaleByPixels = Math.sqrt(maxPixels / (width * height));
+  const nextScale = Math.min(nativeScale, safeScaleByPixels);
+
+  if (!Number.isFinite(nextScale) || nextScale <= 0) {
+    return 1;
+  }
+
+  return Math.max(0.85, nextScale);
+};
+
+const loadImageElement = (src: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed loading image: ${src.slice(0, 120)}`));
+    img.src = src;
+  });
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: number | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error(message));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (typeof timeoutId === 'number') {
+      window.clearTimeout(timeoutId);
+    }
+  }
 };
 
 const normalizeTemplateSettings = (value: unknown): TemplateSettings | null => {
@@ -136,6 +200,7 @@ export default function PhotoEditPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saveGalleryError, setSaveGalleryError] = useState<string | null>(null);
 
   const selectedTemplateSettings = useMemo(() => {
     if (selectedFrameTemplate === 'none') return null;
@@ -235,7 +300,7 @@ export default function PhotoEditPage() {
           await savePhotosToIndexedDB(tempPhotos);
         }
       } catch {
-        setError('Gagal memuat foto dari penyimpanan lokal.');
+        setError('Failed to load photos from local storage.');
       } finally {
         setIsLoading(false);
       }
@@ -409,8 +474,10 @@ export default function PhotoEditPage() {
     if (!node) return null;
 
     const nodeRect = node.getBoundingClientRect();
-    const renderWidth = Number(node.getAttribute('data-render-width')) || Math.round(nodeRect.width);
-    const renderHeight = Number(node.getAttribute('data-render-height')) || Math.round(nodeRect.height);
+    // Export using the exact visible size so saved result matches editor layout 1:1.
+    const renderWidth = Math.max(1, Math.round(nodeRect.width));
+    const renderHeight = Math.max(1, Math.round(nodeRect.height));
+    const exportScale = getSafeExportScale(renderWidth, renderHeight);
 
     const captureNode = node.cloneNode(true) as HTMLElement;
     captureNode.id = 'strip-capture-clone';
@@ -454,7 +521,7 @@ export default function PhotoEditPage() {
       const canvas = await html2canvas(captureNode, {
         useCORS: true,
         backgroundColor: null,
-        scale: window.devicePixelRatio || 1,
+        scale: exportScale,
         width: Math.max(1, renderWidth),
         height: Math.max(1, renderHeight),
       });
@@ -469,20 +536,14 @@ export default function PhotoEditPage() {
     const node = document.getElementById('strip');
     if (!node) return null;
 
-    const width = Number(node.getAttribute('data-render-width'));
-    const height = Number(node.getAttribute('data-render-height'));
+    const rect = node.getBoundingClientRect();
+    const width = Math.round(rect.width);
+    const height = Math.round(rect.height);
 
     if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
       return {
         canvasWidth: Math.round(width),
         canvasHeight: Math.round(height),
-      };
-    }
-
-    if (selectedTemplateSettings?.canvasWidth && selectedTemplateSettings?.canvasHeight) {
-      return {
-        canvasWidth: Math.round(selectedTemplateSettings.canvasWidth),
-        canvasHeight: Math.round(selectedTemplateSettings.canvasHeight),
       };
     }
 
@@ -570,51 +631,74 @@ export default function PhotoEditPage() {
   const createGifAssets = async (): Promise<{ objectUrl: string; blob: Blob } | null> => {
     if (photos.length === 0) return null;
 
-    const GIF = (await import('gif.js')).default;
-    const firstImg = new window.Image();
-    firstImg.src = photos[0];
-    await new Promise(resolve => {
-      firstImg.onload = resolve;
-    });
+    try {
+      const GIF = (await import('gif.js')).default;
+      const firstImg = await withTimeout(
+        loadImageElement(photos[0]),
+        8_000,
+        'Timeout while loading the first GIF frame.'
+      );
 
-    const width = firstImg.naturalWidth;
-    const height = firstImg.naturalHeight;
-    const gif = new GIF({
-      workers: 2,
-      quality: 10,
-      width,
-      height,
-      workerScript: '/gif.worker.js',
-    });
-
-    for (let i = 0; i < photos.length; i++) {
-      const img = new window.Image();
-      img.src = photos[i];
-      await new Promise(resolve => {
-        img.onload = resolve;
+      const width = firstImg.naturalWidth || 640;
+      const height = firstImg.naturalHeight || 480;
+      const gif = new GIF({
+        workers: isLowMemoryMobileDevice() ? 1 : 2,
+        quality: isLowMemoryMobileDevice() ? 14 : 10,
+        width,
+        height,
+        workerScript: '/gif.worker.js',
       });
 
-      const gifCanvas = document.createElement('canvas');
-      gifCanvas.width = width;
-      gifCanvas.height = height;
-      const ctx = gifCanvas.getContext('2d');
-      if (!ctx) continue;
+      for (let i = 0; i < photos.length; i++) {
+        const img = await withTimeout(
+          loadImageElement(photos[i]),
+          8_000,
+          `Timeout while loading GIF frame ${i + 1}.`
+        );
 
-      ctx.fillStyle = frameColor;
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      gif.addFrame(gifCanvas, { delay: 800 });
+        const gifCanvas = document.createElement('canvas');
+        gifCanvas.width = width;
+        gifCanvas.height = height;
+        const ctx = gifCanvas.getContext('2d');
+        if (!ctx) continue;
+
+        ctx.fillStyle = frameColor;
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        gif.addFrame(gifCanvas, { delay: 800 });
+      }
+
+      const blob = await withTimeout(
+        new Promise<Blob>((resolve, reject) => {
+          gif.on('finished', generatedBlob => {
+            if (generatedBlob instanceof Blob && generatedBlob.size > 0) {
+              resolve(generatedBlob);
+              return;
+            }
+
+            reject(new Error('GIF is empty or failed to generate.'));
+          });
+
+          gif.on('abort', () => {
+            reject(new Error('GIF process was aborted.'));
+          });
+
+          try {
+            gif.render();
+          } catch (error) {
+            reject(error instanceof Error ? error : new Error('Failed to run GIF rendering.'));
+          }
+        }),
+        EXPORT_STEP_TIMEOUT_MS,
+        'GIF generation took too long and was stopped.'
+      );
+
+      const objectUrl = URL.createObjectURL(blob);
+      return { objectUrl, blob };
+    } catch (error) {
+      console.error('Failed to generate GIF assets:', error);
+      return null;
     }
-
-    const blob = await new Promise<Blob>(resolve => {
-      gif.on('finished', function(generatedBlob: Blob) {
-        resolve(generatedBlob);
-      });
-      gif.render();
-    });
-
-    const objectUrl = URL.createObjectURL(blob);
-    return { objectUrl, blob };
   };
 
   const saveStripToGallery = (stripDataUrl: string, publicUrl?: string): string => {
@@ -670,7 +754,12 @@ export default function PhotoEditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: params.imageUrl,
-          stripDataUrl: params.stripDataUrl ?? null,
+          stripDataUrl:
+            typeof params.stripDataUrl === 'string' &&
+            params.stripDataUrl.length <= INLINE_GALLERY_STRIP_MAX_LENGTH &&
+            params.imageUrl.startsWith('data:image/')
+              ? params.stripDataUrl
+              : null,
           canvasWidth: params.canvasWidth ?? null,
           canvasHeight: params.canvasHeight ?? null,
           previewDataUrl: params.previewDataUrl ?? null,
@@ -700,12 +789,18 @@ export default function PhotoEditPage() {
   };
 
   const handleDownloadStrip = async () => {
+    setSaveGalleryError(null);
     setIsLoadingResult(true);
     try {
       const dataUrl = await buildStripDataUrl(true);
       if (!dataUrl) return;
 
       const uploadedUrl = await uploadStripToCloud(dataUrl);
+      if (!uploadedUrl) {
+        setSaveGalleryError('Strip upload failed. Try download again or use a lighter template.');
+        return;
+      }
+
       saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
       const gifAssets = await createGifAssets();
       const uploadedGifUrl = gifAssets?.blob ? await uploadMediaBlobToCloud(gifAssets.blob, 'gif') : null;
@@ -715,8 +810,8 @@ export default function PhotoEditPage() {
           const selectedTemplate = frameTemplates.find(template => template.name === selectedFrameTemplate);
 
       await persistStripToGalleryDatabase({
-        imageUrl: uploadedUrl ?? dataUrl,
-        stripDataUrl: dataUrl,
+        imageUrl: uploadedUrl,
+        stripDataUrl: null,
         canvasWidth: renderSize?.canvasWidth ?? null,
         canvasHeight: renderSize?.canvasHeight ?? null,
         previewDataUrl: uploadedUrl ?? null,
@@ -740,6 +835,7 @@ export default function PhotoEditPage() {
   };
 
   const handleSaveGallery = async () => {
+    setSaveGalleryError(null);
     setIsSavingGallery(true);
     setIsLoadingResult(true);
 
@@ -748,6 +844,11 @@ export default function PhotoEditPage() {
       if (!dataUrl) return;
 
       const uploadedUrl = await uploadStripToCloud(dataUrl);
+      if (!uploadedUrl) {
+        setSaveGalleryError('Strip upload failed. On iPad mode, use a lighter template and save again.');
+        return;
+      }
+
       saveStripToGallery(dataUrl, uploadedUrl ?? undefined);
 
       const gifAssets = await createGifAssets();
@@ -758,8 +859,8 @@ export default function PhotoEditPage() {
           const selectedTemplate = frameTemplates.find(template => template.name === selectedFrameTemplate);
 
       const persisted = await persistStripToGalleryDatabase({
-        imageUrl: uploadedUrl ?? dataUrl,
-        stripDataUrl: dataUrl,
+        imageUrl: uploadedUrl,
+        stripDataUrl: null,
         canvasWidth: renderSize?.canvasWidth ?? null,
         canvasHeight: renderSize?.canvasHeight ?? null,
         previewDataUrl: uploadedUrl ?? null,
@@ -782,8 +883,7 @@ export default function PhotoEditPage() {
         clearTempLiveVideoUrlFromSessionStorage();
         router.push(`/photo/gallery/${persisted.id}`);
       } else {
-        alert('Gagal membuat ID gallery. Silakan coba lagi.');
-        router.push('/photo/gallery');
+        setSaveGalleryError('Gallery is not saved yet. Strip was processed, but gallery metadata creation failed.');
       }
     } finally {
       setIsSavingGallery(false);
@@ -794,7 +894,7 @@ export default function PhotoEditPage() {
   if (isLoading) {
     return (
       <main className="pb-page-bg min-h-screen flex items-center justify-center px-4">
-        <p className="text-[#d72688] font-semibold">Memuat editor...</p>
+        <p className="text-[#d72688] font-semibold">Loading editor...</p>
       </main>
     );
   }
@@ -807,7 +907,7 @@ export default function PhotoEditPage() {
           onClick={() => router.push('/photo')}
           className="px-5 py-2 rounded-xl bg-[#fa75aa] text-white hover:bg-[#e35d95] transition"
         >
-          Kembali ke Capture
+          Back to Capture
         </button>
       </main>
     );
@@ -817,16 +917,16 @@ export default function PhotoEditPage() {
     <>
       <main className="pb-page-bg min-h-screen flex flex-col items-center justify-center gap-6 py-8 px-4">
         <h1 className="text-3xl sm:text-4xl font-bold text-[#d72688] text-center">PhotoBooth Editor</h1>
-        <p className="text-gray-600 text-sm">{photos.length}/{layout} foto siap untuk diedit</p>
+        <p className="text-gray-600 text-sm">{photos.length}/{layout} photos ready to edit</p>
 
         {photos.length === 0 ? (
           <div className="w-full max-w-5xl bg-white rounded-2xl p-10 shadow-md text-center">
-            <p className="text-gray-600 mb-4">Belum ada foto. Kembali ke halaman capture.</p>
+            <p className="text-gray-600 mb-4">No photos available yet. Return to capture page.</p>
             <button
               onClick={() => router.push('/photo')}
               className="px-6 py-2 rounded-xl bg-[#fa75aa] text-white hover:bg-[#e35d95] transition"
             >
-              Kembali ke Capture
+              Back to Capture
             </button>
           </div>
         ) : (
@@ -932,9 +1032,27 @@ export default function PhotoEditPage() {
                     opacity: isSavingGallery ? 0.6 : 1,
                   }}
                 >
-                  {isSavingGallery ? 'Menyimpan...' : 'Simpan Gallery'}
+                  {isSavingGallery ? 'Saving...' : 'Save Gallery'}
                 </button>
               </div>
+
+              {saveGalleryError && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '10px 14px',
+                    backgroundColor: '#fff4fa',
+                    color: '#8c295c',
+                    borderRadius: 12,
+                    border: '1px solid #f3b7d1',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {saveGalleryError}
+                </div>
+              )}
             </div>
 
             {showPhotoResult && photoResultData && (

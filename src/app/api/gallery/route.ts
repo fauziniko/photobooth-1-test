@@ -139,7 +139,7 @@ export async function GET() {
 
     const rows = await prisma.photoStrip.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 500,
+      take: 120,
     });
 
     const items = rows
@@ -159,7 +159,6 @@ export async function GET() {
           title: typeof metadata.title === 'string' ? metadata.title : 'Photo Strip',
           layout: toSafeNumber(metadata.layout, 4),
           filter: typeof metadata.filter === 'string' ? metadata.filter : 'none',
-          previewDataUrl: typeof metadata.previewDataUrl === 'string' ? metadata.previewDataUrl : null,
         };
       });
 

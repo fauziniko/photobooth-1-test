@@ -22,6 +22,8 @@ import {
 const ICON_SIZE = 18
 const SIDEBAR_STORAGE_KEY = 'photobooth-sidebar-open'
 const SIDEBAR_EVENT_NAME = 'photobooth-sidebar-change'
+const PHOTO_UPLOAD_SELECTED_EVENT = 'photobooth-upload-selected'
+const PHOTO_UPLOAD_PREVIEW_EVENT = 'photobooth-upload-preview'
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -39,15 +41,14 @@ export default function Sidebar() {
     setIsDesktopStateReady(true)
   }, [])
 
-  // Save sidebar state to localStorage when it changes
   useEffect(() => {
     if (!isDesktopStateReady) return
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, isDesktopOpen ? 'true' : 'false')
     window.dispatchEvent(new CustomEvent(SIDEBAR_EVENT_NAME, { detail: { open: isDesktopOpen } }))
   }, [isDesktopOpen, isDesktopStateReady])
 
-  // Don't show sidebar on auth pages and gallery detail share pages
-  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/')) {
+  // Keep capture page immersive on mobile/tablet and hide sidebar on auth/share detail pages
+  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/') || pathname === '/photo') {
     return null
   }
 
@@ -60,14 +61,15 @@ export default function Sidebar() {
   const userNavigation = [
     { name: 'Photobooth', href: '/photo', icon: Camera },
     { name: 'Photo Gallery', href: '/photo/gallery', icon: Images },
+    { name: 'Uploaded Photos', href: '/photo/uploaded', icon: Images },
   ]
 
   // Admin navigation
   const adminNavigation = [
-    { name: 'Buat Template', href: '/admin/frame-template', icon: Image },
-    { name: 'Daftar Template', href: '/admin/frame-template/list', icon: Images },
-    { name: 'Buat Sticker Baru', href: '/admin/sticker/new', icon: Sticker },
-    { name: 'Daftar Sticker', href: '/admin/sticker/list', icon: Images },
+    { name: 'Create Template', href: '/admin/frame-template', icon: Image },
+    { name: 'Template List', href: '/admin/frame-template/list', icon: Images },
+    { name: 'Create Sticker', href: '/admin/sticker/new', icon: Sticker },
+    { name: 'Sticker List', href: '/admin/sticker/list', icon: Images },
   ]
 
   const isActive = (path: string) => {
@@ -82,7 +84,7 @@ export default function Sidebar() {
         className="hidden md:flex fixed top-4 z-50 h-10 w-10 items-center justify-center rounded-lg bg-[#ffeaf3] text-[#d72688] border border-[#f3b7d1] hover:bg-[#fa75aa] hover:text-white active:scale-95 transition shadow-lg"
         style={{ left: isDesktopOpen ? '14.5rem' : '1rem' }}
         aria-label={isDesktopOpen ? "Close sidebar" : "Open sidebar"}
-        title={isDesktopOpen ? 'Tutup sidebar' : 'Buka sidebar'}
+        title={isDesktopOpen ? 'Close sidebar' : 'Open sidebar'}
       >
         {isDesktopOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
       </button>
@@ -118,7 +120,7 @@ export default function Sidebar() {
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               {/* User Menu Section */}
               <div className="mb-3">
-                <p className="px-3 py-2 text-xs font-semibold text-[#8d5a73] uppercase tracking-wide">Menu Utama</p>
+                <p className="px-3 py-2 text-xs font-semibold text-[#8d5a73] uppercase tracking-wide">Main Menu</p>
                 <div className="space-y-1">
                   {userNavigation.map((item) => {
                     const Icon = item.icon
@@ -225,7 +227,7 @@ export default function Sidebar() {
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {/* User Menu Section */}
             <div className="mb-3">
-              <p className="px-3 py-2 text-xs font-semibold text-[#8d5a73] uppercase tracking-wide">Menu Utama</p>
+              <p className="px-3 py-2 text-xs font-semibold text-[#8d5a73] uppercase tracking-wide">Main Menu</p>
               <div className="space-y-1">
                 {userNavigation.map((item) => {
                   const Icon = item.icon
@@ -234,14 +236,14 @@ export default function Sidebar() {
                       key={item.name}
                       href={item.href}
                       onClick={() => setIsMobileOpen(false)}
-                      className={`flex items-center space-x-2 px-3 py-3 rounded-md transition active:scale-95 ${
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-md transition active:scale-95 text-sm ${
                         isActive(item.href)
                           ? 'bg-[#fa75aa] text-white font-medium'
                           : 'text-[#5a2a42] hover:bg-[#ffeaf3]'
                       }`}
                     >
                       <Icon size={ICON_SIZE} className="flex-shrink-0" />
-                      <span className="text-sm">{item.name}</span>
+                      <span>{item.name}</span>
                     </Link>
                   )
                 })}

@@ -25,21 +25,21 @@ export default function Page() {
   const awaitingLiveVideoRef = useRef(false);
 
   const [photos, setPhotos] = useState<string[]>([]);
-  const [uploadPhotos, setUploadPhotos] = useState<string[]>([]);
   const [showCamera, setShowCamera] = useState(true);
   const [layout, setLayout] = useState(4);
   const [filter] = useState('none');
   const [retakePhotoIndex, setRetakePhotoIndex] = useState<number | null>(null);
-  
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [, setCapturedLiveVideoUrl] = useState<string | null>(null);
   const [awaitingLiveVideo, setAwaitingLiveVideo] = useState(false);
   const [liveWaitSeconds, setLiveWaitSeconds] = useState(0);
   
   const [liveMode, setLiveMode] = useState(true);
+
+  const effectiveFullscreen = isFullscreen || isPseudoFullscreen;
 
   const isValidPhotoData = (value: string) =>
     typeof value === 'string' && value.startsWith('data:image/') && value.length > 1000;
@@ -66,7 +66,6 @@ export default function Page() {
         }
 
         setPhotos([]);
-        setUploadPhotos([]);
         photosRef.current = [];
         clearTempPhotosFromSessionStorage();
         clearTempLiveVideoUrlFromSessionStorage();
@@ -123,7 +122,6 @@ export default function Page() {
       sessionStorage.removeItem('photobooth-retake-index');
 
       setPhotos([]);
-      setUploadPhotos([]);
       photosRef.current = [];
       setRetakePhotoIndex(null);
       setCapturedLiveVideoUrl(null);
@@ -142,12 +140,6 @@ export default function Page() {
       });
     }
   }, [photos]);
-
-  useEffect(() => {
-    const userAgent = navigator.userAgent;
-    const mobileCheck = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    setIsMobile(mobileCheck);
-  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -169,7 +161,6 @@ export default function Page() {
     awaitingLiveVideoRef.current = false;
     setLayout(n);
     setPhotos([]);
-    setUploadPhotos([]);
     setRetakePhotoIndex(null);
     setCapturedLiveVideoUrl(null);
     setAwaitingLiveVideo(false);
@@ -332,57 +323,6 @@ export default function Page() {
     }
   };
 
-  const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploadError(null);
-
-    if (files.length > layout - uploadPhotos.length) {
-      setUploadError(`You can only upload ${layout - uploadPhotos.length} more photo${layout - uploadPhotos.length > 1 ? 's' : ''}. Please try again.`);
-      e.target.value = '';
-      return;
-    }
-
-    const fileArr = Array.from(files);
-    const readers = fileArr.map(file => {
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readers).then(async imgs => {
-      const validImgs = imgs.filter(isValidPhotoData);
-      const combined = [...uploadPhotos, ...validImgs].slice(0, layout);
-      setUploadPhotos(combined);
-      setPhotos(combined);
-      photosRef.current = combined;
-      setShowCamera(false);
-      setCapturedLiveVideoUrl(null);
-      setAwaitingLiveVideo(false);
-      awaitingLiveVideoRef.current = false;
-      clearTempLiveVideoUrlFromSessionStorage();
-
-      if (combined.length >= layout && !isRedirectingRef.current) {
-        isRedirectingRef.current = true;
-        try {
-          if (isIndexedDBSupported()) {
-            await savePhotosToIndexedDB(combined);
-          }
-          saveTempPhotosToSessionStorage(combined);
-        } catch (error) {
-          console.error('❌ Failed to persist uploaded photos before redirect:', error);
-        }
-        router.push('/photo/edit?layout=' + layout);
-      }
-    });
-
-    e.target.value = '';
-  };
-
   const toggleFullscreen = async () => {
     const doc = document as Document & {
       webkitExitFullscreen?: () => Promise<void>;
@@ -407,279 +347,100 @@ export default function Page() {
         }
       }
 
+      if (isPseudoFullscreen) {
+        setIsPseudoFullscreen(false);
+        return;
+      }
+
       const requestFullscreen =
         currentMain.requestFullscreen ||
         ((currentMain as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen);
 
       if (!requestFullscreen) {
-        setFullscreenError('Browser ini belum mendukung mode full screen.');
+        // Safari/iPad fallback: emulate fullscreen without Fullscreen API.
+        setIsPseudoFullscreen(true);
         return;
       }
 
       await requestFullscreen.call(currentMain);
     } catch (error) {
       console.error('❌ Failed to toggle fullscreen mode:', error);
-      setFullscreenError('Gagal mengaktifkan mode full screen. Coba lagi.');
+      // Fallback mode for browsers with unstable Fullscreen API behavior.
+      setIsPseudoFullscreen(true);
     }
   };
 
   const isCaptureMode = showCamera && (photos.length < layout || retakePhotoIndex !== null);
 
   return (
-    <>
-      <main ref={mainRef} className="pb-page-bg min-h-screen w-full flex flex-col items-center justify-center gap-6 py-8 px-4 sm:px-6 lg:px-8">
-        {!isFullscreen && (
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#d72688] tracking-wide text-center">
-            Photo Booth
-          </h1>
-        )}
-        
-        {!isFullscreen && (
-          <div className="text-center mb-2">
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold text-[#d72688]">
-                {photos.length < layout || retakePhotoIndex !== null ? 'Step 1 of 3:' : 'Step 2 of 3:'}
-              </span>{' '}
-              {photos.length < layout || retakePhotoIndex !== null ? ' Capture Photos' : ' Review & Edit Photos'}
-            </p>
-          </div>
-        )}
-
-        {fullscreenError && (
-          <div className="w-full max-w-4xl mx-auto px-2 sm:px-4">
-            <div className="text-sm text-[#8c295c] bg-[#fff4fa] border border-[#f3b7d1] rounded-xl px-3 py-2 text-center">
-              {fullscreenError}
-            </div>
-          </div>
-        )}
-
-        {!isFullscreen && uploadPhotos.length > 0 && (
-          <div className="flex flex-col gap-3 items-center mb-4 w-full max-w-md sm:max-w-lg">
-            <div className="flex justify-start w-full mb-2 px-3 sm:px-4">
-              <h3 className="m-0 text-[#d72688] text-base sm:text-lg font-semibold">
-                Uploaded Photos
-              </h3>
-            </div>
-            <div className="flex flex-col gap-3 items-center w-full">
-              {uploadPhotos.map((src, idx) => (
-                <div key={idx} className="relative w-full max-w-xs sm:max-w-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={src}
-                    alt={`uploaded-${idx}`}
-                    className="w-full h-auto aspect-[4/3] object-cover rounded-xl shadow-md bg-white"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {awaitingLiveVideo && (
-          <div className="w-full max-w-4xl mx-auto px-2 sm:px-4">
-            <div className="bg-white/95 border border-pink-200 rounded-2xl shadow-sm p-4 sm:p-5">
-              <p className="text-sm sm:text-base text-[#d72688] font-semibold text-center">
-                Menyimpan hasil live video...
-              </p>
-              <p className="text-xs sm:text-sm text-gray-600 text-center mt-1">
-                Mohon tunggu, Anda akan otomatis lanjut ke editor.
-              </p>
-              <p className="text-xs sm:text-sm text-[#d72688] text-center mt-2 font-semibold">
-                Proses berjalan: {liveWaitSeconds} detik
-              </p>
-            </div>
-          </div>
-        )}
-
-        {showCamera && (photos.length < layout || retakePhotoIndex !== null) && (
-          <div className={isFullscreen ? 'fixed inset-0 z-[60] bg-black' : 'w-full max-w-4xl mx-auto px-2 sm:px-4'}>
-            <Camera
-              onCapture={handleCapture}
-              photosToTake={retakePhotoIndex !== null ? 1 : layout - photos.length}
-              onStartCapture={handleStartCapture}
-              filter={filter}
-              frameColor="white"
-              liveMode={liveMode}
-              onToggleLiveMode={() => setLiveMode(!liveMode)}
-              onLiveVideoCapture={handleLiveVideoCapture}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={toggleFullscreen}
-              fullscreenMode={isFullscreen && isCaptureMode}
-            />
-          </div>
-        )}
-
-        {!isFullscreen && (
-        <>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column', 
-            gap: '12px',
-            justifyContent: 'center',
-            marginTop: 16,
-            alignItems: 'stretch',
-            paddingLeft: isMobile ? 8 : 16,
-            paddingRight: isMobile ? 8 : 16,
-            boxSizing: 'border-box',
-            width: '100%',
-            maxWidth: isMobile ? '100%' : 500,
-          }}
-        >
-          <label
-            htmlFor="upload-image"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: 0,
-              margin: 0,
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              height: isMobile ? 44 : 48,
-              width: '100%',
-            }}
-          >
-            <span
-              style={{
-                padding: isMobile ? '8px 12px' : '8px 16px',
-                background: '#fff',
-                color: '#d72688',
-                borderRadius: 12,
-                border: '1px solid #fa75aa',
-                fontWeight: 500,
-                fontSize: isMobile ? 14 : 15,
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-                height: isMobile ? 44 : 48,
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              Upload Images ({layout} max)
-            </span>
-            <input
-              id="upload-image"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleUploadImage}
-              style={{ display: 'none' }}
-            />
-          </label>
-          
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              gap: '8px',
-              width: '100%',
-            }}
-          >
-            <div 
-              style={{ 
-                height: isMobile ? 44 : 48, 
-                display: 'flex', 
-                alignItems: 'center',
-                flex: 1,
-              }}
-            >
-              <select
-                value={layout}
-                onChange={e => handleLayoutChange(Number(e.target.value))}
-                style={{
-                  padding: isMobile ? '8px 4px' : '8px 16px',
-                  borderRadius: 12,
-                  border: '1px solid #fa75aa',
-                  color: '#d72688',
-                  fontWeight: 500,
-                  fontSize: isMobile ? 13 : 15,
-                  background: '#fff',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  height: isMobile ? 44 : 48,
-                  width: '100%',
-                }}
-              >
-                <option value={2}>2 Pose</option>
-                <option value={3}>3 Pose</option>
-                <option value={4}>4 Pose</option>
-              </select>
-            </div>
+    <main
+      ref={mainRef}
+      className="pb-page-bg w-full min-h-dvh md:h-dvh overflow-x-hidden overflow-y-auto md:overflow-hidden px-2 sm:px-4 md:px-5 py-2 sm:py-4"
+    >
+      {fullscreenError && (
+        <div className="w-full max-w-5xl mx-auto mb-2">
+          <div className="text-sm text-[#8c295c] bg-[#fff4fa] border border-[#f3b7d1] rounded-xl px-3 py-2 text-center">
+            {fullscreenError}
           </div>
         </div>
-
-        {uploadError && (
-          <div style={{
-            marginTop: 8,
-            padding: '8px 12px',
-            backgroundColor: '#fff4fa',
-            color: '#8c295c',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 500,
-            textAlign: 'center',
-            border: '1px solid #f3b7d1',
-          }}>
-            {uploadError}
-          </div>
-        )}
-
-        {photos.length > 0 && photos.length < layout && !uploadError && (
-          <div style={{
-            marginTop: 8,
-            fontSize: 14,
-            color: '#d72688',
-            textAlign: 'center',
-            fontWeight: 500,
-          }}>
-            {`${photos.length} of ${layout} photos uploaded. Need ${layout - photos.length} more.`}
-          </div>
-        )}
-        </>
-        )}
-      </main>
-
-      {!isFullscreen && (
-      <footer
-        style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          background: 'transparent',
-          marginTop: isMobile ? 24 : 48,
-          padding: isMobile ? '0 8px 16px' : undefined,
-        }}
-      >
-        <div
-          style={{
-            background: '#fff',
-            boxShadow: '0 2px 12px #fa75aa22',
-            padding: isMobile ? '12px 14px' : '14px 32px',
-            minWidth: isMobile ? 'auto' : 280,
-            width: '100%',
-            maxWidth: isMobile ? '100%' : 760,
-            textAlign: 'center',
-            fontSize: isMobile ? 12 : 13,
-            color: '#d72688',
-            fontWeight: 500,
-            borderRadius: 12,
-          }}
-        >
-          <span style={{ fontSize: isMobile ? 12 : 14, color: '#b95b8e' }}>
-            PhotoBooth - A digital photobooth app to capture, edit, and share photo strips.
-          </span>
-          <br />
-          <span style={{ fontSize: isMobile ? 14 : 16, color: '#d72688', fontWeight: 500 }}>
-            &copy; 2026 PhotoBooth
-          </span>
-        </div>
-      </footer>
       )}
 
-    </>
+      <div className="min-h-[calc(100dvh-1rem)] md:h-full max-w-[1100px] mx-auto grid grid-cols-1 gap-3 sm:gap-4">
+        <section className="md:h-full p-2 sm:p-4 flex flex-col overflow-visible md:overflow-hidden">
+          {!effectiveFullscreen && (
+            <div className="text-center mb-2">
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold text-[#d72688]">
+                  {photos.length < layout || retakePhotoIndex !== null ? 'Step 1 of 3:' : 'Step 2 of 3:'}
+                </span>{' '}
+                {photos.length < layout || retakePhotoIndex !== null ? 'Capture Photos' : 'Review & Edit Photos'}
+              </p>
+            </div>
+          )}
+
+          {awaitingLiveVideo && (
+            <div className="mb-3 bg-white/95 border border-pink-200 rounded-2xl shadow-sm p-3 sm:p-4">
+              <p className="text-sm sm:text-base text-[#d72688] font-semibold text-center">
+                Saving live video result...
+              </p>
+              <p className="text-xs sm:text-sm text-gray-600 text-center mt-1">
+                Please wait, you will continue to editor automatically.
+              </p>
+              <p className="text-xs sm:text-sm text-[#d72688] text-center mt-2 font-semibold">
+                Running: {liveWaitSeconds}s
+              </p>
+            </div>
+          )}
+
+          <div className="w-full flex md:flex-1 md:min-h-0 items-start md:items-center justify-center overflow-visible md:overflow-hidden">
+            {showCamera && (photos.length < layout || retakePhotoIndex !== null) && (
+              <div className={effectiveFullscreen ? 'fixed inset-0 z-[60] bg-black' : 'w-full md:h-full flex items-start md:items-center justify-center'}>
+                <Camera
+                  onCapture={handleCapture}
+                  photosToTake={retakePhotoIndex !== null ? 1 : layout - photos.length}
+                  poseCount={layout}
+                  onPoseCountChange={handleLayoutChange}
+                  onStartCapture={handleStartCapture}
+                  filter={filter}
+                  frameColor="white"
+                  liveMode={liveMode}
+                  onToggleLiveMode={() => setLiveMode(!liveMode)}
+                  onLiveVideoCapture={handleLiveVideoCapture}
+                  isFullscreen={effectiveFullscreen}
+                  onToggleFullscreen={toggleFullscreen}
+                  fullscreenMode={effectiveFullscreen && isCaptureMode}
+                />
+              </div>
+            )}
+          </div>
+
+          {!effectiveFullscreen && photos.length > 0 && photos.length < layout && (
+            <div className="mt-2 rounded-lg border border-[#f3b7d1] px-3 py-2 text-xs text-[#d72688] text-center font-medium max-w-md mx-auto">
+              {`${photos.length} of ${layout} photos uploaded. Need ${layout - photos.length} more.`}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }

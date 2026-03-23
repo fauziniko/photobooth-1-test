@@ -184,9 +184,9 @@ export default function PhotoEditor({
           }}
         >
           <h3 style={{ margin: 0, color: '#4a2337', fontWeight: 700, fontSize: 18 }}>
-            {openPicker === 'color' && 'Semua Opsi Color'}
-            {openPicker === 'frame' && 'Semua Opsi Frame'}
-            {openPicker === 'sticker' && 'Semua Opsi Sticker'}
+            {openPicker === 'color' && 'All Color Options'}
+            {openPicker === 'frame' && 'All Frame Options'}
+            {openPicker === 'sticker' && 'All Sticker Options'}
           </h3>
           <button
             onClick={() => setOpenPicker(null)}
@@ -200,14 +200,14 @@ export default function PhotoEditor({
               cursor: 'pointer',
             }}
           >
-            Tutup
+            Close
           </button>
         </div>
 
         <div style={{ padding: 16, overflowY: 'auto', maxHeight: 'calc(85vh - 64px)' }}>
           {openPicker === 'color' && (
             allColorOptions.length === 0 ? (
-              <p style={{ margin: 0, color: '#7a5b6d' }}>Belum ada opsi color tersedia.</p>
+              <p style={{ margin: 0, color: '#7a5b6d' }}>No color options available yet.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(6, minmax(0, 1fr))', gap: 12 }}>
                 {allColorOptions.map(option => (
@@ -251,7 +251,7 @@ export default function PhotoEditor({
 
           {openPicker === 'frame' && (
             frameTemplates.length === 0 ? (
-              <p style={{ margin: 0, color: '#7a5b6d' }}>Belum ada frame template tersedia.</p>
+              <p style={{ margin: 0, color: '#7a5b6d' }}>No frame templates available yet.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 12 }}>
                 {frameTemplates.map(template => (
@@ -290,7 +290,7 @@ export default function PhotoEditor({
 
           {openPicker === 'sticker' && (
             minioStickers.length === 0 ? (
-              <p style={{ margin: 0, color: '#7a5b6d' }}>Belum ada sticker tersedia.</p>
+              <p style={{ margin: 0, color: '#7a5b6d' }}>No stickers available yet.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 12 }}>
                 {minioStickers.map(sticker => (

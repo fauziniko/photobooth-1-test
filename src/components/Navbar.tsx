@@ -11,8 +11,8 @@ export default function Navbar() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
 
-  // Don't show navbar on auth pages and gallery detail share pages
-  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo/gallery/')) {
+  // Keep photo flow clean on mobile/iPad and hide navbar on auth/share detail pages.
+  if (pathname?.startsWith('/auth') || pathname?.startsWith('/photo')) {
     return null
   }
 

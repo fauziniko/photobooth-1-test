@@ -104,7 +104,7 @@ export default function GalleryDetailPage() {
   useEffect(() => {
     const fetchItem = async () => {
       if (!id) {
-        setError('ID gallery tidak valid.');
+        setError('Invalid gallery ID.');
         setIsLoading(false);
         return;
       }
@@ -112,13 +112,13 @@ export default function GalleryDetailPage() {
       try {
         const res = await fetch(`/api/gallery/${id}`, { cache: 'no-store' });
         if (res.status === 404) {
-          setError('Item gallery tidak ditemukan.');
+          setError('Gallery item not found.');
           setIsLoading(false);
           return;
         }
 
         if (!res.ok) {
-          setError('Gagal memuat detail gallery.');
+          setError('Failed to load gallery details.');
           setIsLoading(false);
           return;
         }
@@ -126,7 +126,7 @@ export default function GalleryDetailPage() {
         const data = await res.json();
         setItem(data?.item ?? null);
       } catch {
-        setError('Terjadi kesalahan saat memuat detail gallery.');
+        setError('An error occurred while loading gallery details.');
       } finally {
         setIsLoading(false);
       }
@@ -154,14 +154,6 @@ export default function GalleryDetailPage() {
   const gifSrc = isGifSource(rawGifCandidate)
     ? rawGifCandidate
     : (!liveVideoSrc && isGifSource(rawLiveCandidate) ? rawLiveCandidate : null);
-
-  const stripAspectRatio = useMemo(() => {
-    const canvasWidth = item?.templateSettings?.canvasWidth ?? item?.canvasWidth ?? null;
-    const canvasHeight = item?.templateSettings?.canvasHeight ?? item?.canvasHeight ?? null;
-    if (!canvasWidth || !canvasHeight) return null;
-    if (canvasWidth <= 0 || canvasHeight <= 0) return null;
-    return canvasWidth / canvasHeight;
-  }, [item?.canvasHeight, item?.canvasWidth, item?.templateSettings?.canvasHeight, item?.templateSettings?.canvasWidth]);
 
   const mediaSlides = useMemo(() => {
     const slides: Array<{
@@ -217,10 +209,10 @@ export default function GalleryDetailPage() {
       slides.push({
         key: `capture-${idx}`,
         type: 'image',
-        label: `Foto Capture ${idx + 1}`,
+        label: `Captured Photo ${idx + 1}`,
         src,
         downloadName: `capture-${id}-${idx + 1}.png`,
-        downloadLabel: 'Download Foto',
+        downloadLabel: 'Download Photo',
       });
     });
 
@@ -352,9 +344,9 @@ export default function GalleryDetailPage() {
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(detailLink);
-      alert('Link detail berhasil disalin');
+      alert('Detail link copied successfully');
     } catch {
-      alert('Gagal menyalin link detail');
+      alert('Failed to copy detail link');
     }
   };
 
@@ -363,7 +355,7 @@ export default function GalleryDetailPage() {
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         await navigator.share({
           title: 'Gallery Detail',
-          text: `Lihat hasil photobooth ID ${item?.id ?? ''}`,
+          text: `View photobooth result ID ${item?.id ?? ''}`,
           url: detailLink,
         });
         return;
@@ -398,7 +390,7 @@ export default function GalleryDetailPage() {
         .map(normalizeEditorImageSource)
         .filter((v): v is string => Boolean(v));
       if (normalizedPhotos.length === 0) {
-        alert('Foto untuk item ini tidak tersedia untuk editor.');
+        alert('Photos for this item are not available in the editor.');
         return;
       }
 
@@ -419,7 +411,7 @@ export default function GalleryDetailPage() {
 
       router.push(`/photo/edit?layout=${nextLayout}&source=gallery&id=${item.id}`);
     } catch {
-      alert('Terjadi kesalahan saat menyiapkan editor.');
+      alert('An error occurred while preparing the editor.');
     } finally {
       setIsPreparingEditor(false);
     }
@@ -431,13 +423,13 @@ export default function GalleryDetailPage() {
     const imageSlide = currentSlide?.type === 'image' ? currentSlide : fallbackImageSlide;
 
     if (!imageSlide) {
-      alert('Tidak ada media gambar untuk dicetak.');
+      alert('No image media available for printing.');
       return;
     }
 
     const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=900');
     if (!printWindow) {
-      alert('Popup diblokir. Izinkan popup untuk fitur print.');
+      alert('Popup blocked. Please allow popups for print feature.');
       return;
     }
 
@@ -517,20 +509,20 @@ export default function GalleryDetailPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-pink-200 bg-white text-[#d72688] hover:bg-[#fff7fb] transition"
             >
               <ArrowLeft className="w-4 h-4" />
-              Kembali ke Gallery
+              Back to Gallery
             </Link>
           </div>
         ) : null}
 
         {isLoading ? (
           <div className="bg-white rounded-2xl border border-pink-100 shadow-md p-10 text-center text-gray-500 font-medium">
-            Memuat detail gallery...
+            Loading gallery details...
           </div>
         ) : error || !item ? (
           <div className="bg-white rounded-2xl border border-pink-100 shadow-md p-10 text-center">
             <ImageIcon className="w-10 h-10 text-pink-300 mx-auto mb-3" />
-            <p className="text-gray-700 font-medium">{error ?? 'Item gallery tidak ditemukan.'}</p>
-            <p className="text-sm text-gray-500 mt-1">Pastikan link yang dibuka benar.</p>
+            <p className="text-gray-700 font-medium">{error ?? 'Gallery item not found.'}</p>
+            <p className="text-sm text-gray-500 mt-1">Please make sure the opened link is correct.</p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -538,7 +530,7 @@ export default function GalleryDetailPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2">
                 <div className="bg-pink-50 p-4 flex items-center justify-center">
                   {mediaSlides.length === 0 ? (
-                    <p className="text-sm text-gray-500">Media belum tersedia untuk item ini.</p>
+                    <p className="text-sm text-gray-500">Media is not available for this item yet.</p>
                   ) : (
                     <div className="space-y-3 w-full">
                       <div
@@ -569,19 +561,12 @@ export default function GalleryDetailPage() {
                                       />
                                     </div>
                                   ) : isStripSlide ? (
-                                    <div
-                                      className="w-full rounded-xl border border-pink-100 bg-white flex items-center justify-center overflow-hidden"
-                                      style={{
-                                        aspectRatio: stripAspectRatio ?? undefined,
-                                        minHeight: stripAspectRatio ? '320px' : undefined,
-                                        maxHeight: '70vh',
-                                      }}
-                                    >
+                                    <div className="w-full h-[62vh] max-h-[70vh] rounded-xl border border-pink-100 bg-white flex items-center justify-center overflow-hidden">
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
                                       <img
                                         src={slide.src}
                                         alt={slide.label}
-                                        className="w-full h-full object-contain object-center"
+                                        className="max-w-full max-h-full object-contain object-center"
                                       />
                                     </div>
                                   ) : (
@@ -606,7 +591,7 @@ export default function GalleryDetailPage() {
                               type="button"
                               onClick={() => setMediaIndex(prev => Math.max(prev - 1, 0))}
                               className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-[#d72688]/80 text-white flex items-center justify-center hover:bg-[#d72688] transition"
-                              aria-label="Media sebelumnya"
+                              aria-label="Previous media"
                             >
                               <ChevronLeft className="w-5 h-5" />
                             </button>
@@ -614,7 +599,7 @@ export default function GalleryDetailPage() {
                               type="button"
                               onClick={() => setMediaIndex(prev => Math.min(prev + 1, mediaSlides.length - 1))}
                               className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-[#d72688]/80 text-white flex items-center justify-center hover:bg-[#d72688] transition"
-                              aria-label="Media berikutnya"
+                              aria-label="Next media"
                             >
                               <ChevronRight className="w-5 h-5" />
                             </button>
@@ -642,7 +627,7 @@ export default function GalleryDetailPage() {
                               key={`media-dot-${slide.key}`}
                               type="button"
                               onClick={() => setMediaIndex(idx)}
-                              aria-label={`Lihat ${slide.label}`}
+                              aria-label={`View ${slide.label}`}
                               className={`h-2.5 rounded-full transition-all ${idx === mediaIndex ? 'w-6 bg-[#d72688]' : 'w-2.5 bg-pink-200 hover:bg-pink-300'}`}
                             />
                           ))}
@@ -659,7 +644,7 @@ export default function GalleryDetailPage() {
 
                     <div className="mt-4 space-y-2 text-sm text-gray-700">
                       <div className="flex items-start justify-between gap-3">
-                        <span className="font-semibold text-[#d72688]">Tanggal</span>
+                        <span className="font-semibold text-[#d72688]">Date</span>
                         <span className="text-right">{new Date(item.createdAt).toLocaleString('id-ID')}</span>
                       </div>
                       <div className="flex items-start justify-between gap-3">
@@ -671,7 +656,7 @@ export default function GalleryDetailPage() {
                         <span className="text-right">{item.filter}</span>
                       </div>
                       <div className="flex items-start justify-between gap-3">
-                        <span className="font-semibold text-[#d72688]">Jumlah Foto</span>
+                        <span className="font-semibold text-[#d72688]">Photo Count</span>
                         <span className="text-right">{capturePhotos.length}</span>
                       </div>
                     </div>
@@ -747,7 +732,7 @@ export default function GalleryDetailPage() {
                           className="gallery-detail-action-btn w-full inline-flex items-center justify-center gap-2 px-2 py-2 rounded-lg border border-[#f8bfd7] bg-white text-[#d72688] hover:bg-[#fff7fb] transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ImageIcon className="w-4 h-4" />
-                          {isPreparingEditor ? 'Menyiapkan...' : 'Edit Editor'}
+                          {isPreparingEditor ? 'Preparing...' : 'Edit in Editor'}
                         </button>
 
                         <button

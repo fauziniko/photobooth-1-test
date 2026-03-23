@@ -18,8 +18,8 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Hapus',
-  cancelLabel = 'Batal',
+  confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
   loading = false,
   onCancel,
   onConfirm,
@@ -80,7 +80,7 @@ export default function ConfirmDialog({
             disabled={loading}
             className="px-4 py-2 rounded-lg border border-red-200 bg-red-500 text-white hover:bg-red-600 transition disabled:opacity-60"
           >
-            {loading ? 'Memproses...' : confirmLabel}
+            {loading ? 'Processing...' : confirmLabel}
           </button>
         </div>
       </div>

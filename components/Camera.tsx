@@ -7,6 +7,8 @@ interface Props {
   onCapture: (dataUrl: string) => void;
   onLiveVideoCapture?: (blob: Blob | null) => void | Promise<void>;
   photosToTake: number;
+  poseCount?: number;
+  onPoseCountChange?: (value: number) => void;
   onStartCapture?: () => void;
   filter?: string;
   frameColor?: string;
@@ -21,6 +23,8 @@ export default function Camera({
   onCapture,
   onLiveVideoCapture,
   photosToTake,
+  poseCount,
+  onPoseCountChange,
   onStartCapture,
   filter,
   frameColor,
@@ -312,14 +316,22 @@ export default function Camera({
           style={{
             marginBottom: 12,
             display: 'flex',
+            flexDirection: 'row',
             alignItems: 'center',
-            gap: 8,
-            flexWrap: 'wrap',
-            justifyContent: 'center',
+            gap: 10,
             width: '100%',
             padding: '0 8px',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
           }}
         >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
           {isMobile ? (
             <>
               <select
@@ -338,7 +350,6 @@ export default function Camera({
                   flex: '1 1 auto',
                   minWidth: '110px',
                   maxWidth: '150px',
-                  marginBottom: '4px',
                 }}
               >
                 <option value="environment">Back Camera</option>
@@ -382,7 +393,6 @@ export default function Camera({
                   flex: '1 1 auto',
                   minWidth: '110px',
                   maxWidth: '180px',
-                  marginBottom: '4px',
                 }}
               >
                 {devices.map(device => (
@@ -433,7 +443,6 @@ export default function Camera({
               width: '80px',
               textAlign: 'center',
               flex: '0 0 auto',
-              marginBottom: '4px',
             }}
             disabled={isCapturing}
           >
@@ -441,6 +450,32 @@ export default function Camera({
             <option value={3}>3s</option>
             <option value={5}>5s</option>
           </select>
+
+          {typeof poseCount === 'number' && onPoseCountChange && (
+            <select
+              value={poseCount}
+              onChange={e => onPoseCountChange(Number(e.target.value))}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 12,
+                border: '1px solid #fa75aa',
+                color: '#d72688',
+                fontWeight: 600,
+                fontSize: 14,
+                background: '#fff',
+                outline: 'none',
+                cursor: 'pointer',
+                width: '160px',
+                textAlign: 'center',
+              }}
+              disabled={isCapturing}
+            >
+              <option value={2}>2 Pose</option>
+              <option value={3}>3 Pose</option>
+              <option value={4}>4 Pose</option>
+            </select>
+          )}
+          </div>
         </div>
       )}
 
@@ -499,7 +534,7 @@ export default function Camera({
       <div
         style={{
           position: fullscreenMode ? 'absolute' : 'static',
-          bottom: fullscreenMode ? '20px' : undefined,
+          bottom: fullscreenMode ? (isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 12px)' : '20px') : undefined,
           left: fullscreenMode ? '50%' : undefined,
           transform: fullscreenMode ? 'translateX(-50%)' : undefined,
           display: 'flex',
@@ -507,8 +542,9 @@ export default function Camera({
           justifyContent: 'center',
           gap: 10,
           zIndex: 4,
-          width: fullscreenMode ? 'auto' : isMobile ? 'calc(100% - 16px)' : 'auto',
+          width: fullscreenMode ? 'auto' : isMobile ? '100%' : 'auto',
           maxWidth: fullscreenMode ? 'none' : '420px',
+          padding: fullscreenMode ? 0 : isMobile ? '0 8px' : 0,
         }}
       >
         {onToggleFullscreen && (
@@ -550,9 +586,12 @@ export default function Camera({
             cursor: isCapturing ? 'not-allowed' : 'pointer',
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
             transition: 'all 0.3s ease',
-            width: fullscreenMode ? '72px' : isMobile ? 'calc(100% - 56px)' : 'auto',
+            width: fullscreenMode ? '72px' : isMobile ? 'auto' : 'auto',
             height: fullscreenMode ? '72px' : 'auto',
             maxWidth: fullscreenMode ? '72px' : '320px',
+            minWidth: fullscreenMode ? '72px' : isMobile ? 0 : 'auto',
+            flex: fullscreenMode ? '0 0 auto' : isMobile ? 1 : '0 0 auto',
+            whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

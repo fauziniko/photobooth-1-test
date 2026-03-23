@@ -19,7 +19,6 @@ type GalleryApiItem = {
   title: string;
   layout: number;
   filter: string;
-  previewDataUrl: string | null;
 };
 
 type GalleryViewItem = {
@@ -77,7 +76,7 @@ export default function PhotoGalleryPage() {
         id: row.id,
         title: row.title || 'Photo Strip',
         createdAt: row.createdAt,
-        imageSrc: row.previewDataUrl ?? row.imageUrl,
+        imageSrc: row.imageUrl,
         layout: Number.isFinite(row.layout) ? row.layout : 4,
         filter: row.filter || 'none',
       }));
@@ -132,7 +131,7 @@ export default function PhotoGalleryPage() {
   };
 
   const handleDeleteItem = (id: string) => {
-    requestDeleteItems([id], 'Hapus Foto', 'Hapus foto gallery ini?');
+    requestDeleteItems([id], 'Delete Photo', 'Delete this gallery photo?');
   };
 
   const toggleSelect = (id: string) => {
@@ -152,8 +151,8 @@ export default function PhotoGalleryPage() {
 
     requestDeleteItems(
       [...selectedIds],
-      'Hapus Foto Terpilih',
-      `Hapus ${selectedIds.length} foto yang dipilih?`
+      'Delete Selected Photos',
+      `Delete ${selectedIds.length} selected photos?`
     );
   };
 
@@ -178,7 +177,7 @@ export default function PhotoGalleryPage() {
     }).catch(() => null);
 
     if (!res || !res.ok) {
-      alert('Gagal update judul gallery');
+      alert('Failed to update gallery title');
       return;
     }
 
@@ -192,7 +191,7 @@ export default function PhotoGalleryPage() {
     try {
       const res = await fetch(`/api/gallery/${id}`, { cache: 'no-store' });
       if (!res.ok) {
-        alert('Gagal memuat data gallery untuk diedit.');
+        alert('Failed to load gallery data for editing.');
         return;
       }
 
@@ -226,7 +225,7 @@ export default function PhotoGalleryPage() {
         .map(normalizeEditorImageSource)
         .filter((v): v is string => Boolean(v));
       if (normalizedPhotos.length === 0) {
-        alert('Foto untuk item ini tidak tersedia untuk editor.');
+        alert('Photos for this item are not available in the editor.');
         return;
       }
 
@@ -247,7 +246,7 @@ export default function PhotoGalleryPage() {
 
       router.push(`/photo/edit?layout=${nextLayout}&source=gallery&id=${detail.id}`);
     } catch {
-      alert('Terjadi kesalahan saat menyiapkan editor.');
+      alert('An error occurred while preparing the editor.');
     } finally {
       setEditingGalleryId(null);
     }
@@ -258,9 +257,9 @@ export default function PhotoGalleryPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#d72688]">Photo Gallery</h1>
-          <p className="text-sm text-gray-600 mt-1">Preview strip dibuat lebih ringkas supaya banyak sesi bisa tampil sekaligus.</p>
+          <p className="text-sm text-gray-600 mt-1">Strip previews are optimized so more sessions can be displayed at once.</p>
           <Link href="/photo/edit" className="inline-block mt-2 text-sm font-semibold text-[#d72688] hover:underline">
-            + Tambah dari Editor
+            + Add from Editor
           </Link>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -269,14 +268,14 @@ export default function PhotoGalleryPage() {
               disabled={items.length === 0}
               className="px-3 py-1.5 rounded-lg border border-pink-200 text-[#d72688] bg-[#fff7fb] hover:bg-[#ffe4ef] text-sm transition disabled:opacity-50"
             >
-              Pilih Semua
+              Select All
             </button>
             <button
               onClick={clearSelection}
               disabled={selectedIds.length === 0}
               className="px-3 py-1.5 rounded-lg border border-pink-200 text-[#d72688] bg-white hover:bg-pink-50 text-sm transition disabled:opacity-50"
             >
-              Batal Pilih
+              Clear Selection
             </button>
             <button
               onClick={handleDeleteSelected}
@@ -284,20 +283,20 @@ export default function PhotoGalleryPage() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-sm transition disabled:opacity-50"
             >
               <Trash2 className="w-4 h-4" />
-              Hapus Terpilih ({selectedIds.length})
+              Delete Selected ({selectedIds.length})
             </button>
           </div>
         </div>
 
         {isLoading ? (
           <div className="bg-white rounded-2xl shadow-md border border-pink-100 p-10 text-center text-gray-500 font-medium">
-            Memuat data gallery...
+            Loading gallery data...
           </div>
         ) : items.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-md border border-pink-100 p-10 text-center">
             <ImageIcon className="w-10 h-10 text-pink-300 mx-auto mb-3" />
-            <p className="text-gray-600 font-medium">Belum ada foto di gallery.</p>
-            <p className="text-sm text-gray-500 mt-1">Buat dulu dari halaman editor lalu Simpan Gallery.</p>
+            <p className="text-gray-600 font-medium">No photos in gallery yet.</p>
+            <p className="text-sm text-gray-500 mt-1">Create one from the editor page and save to gallery.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -321,7 +320,7 @@ export default function PhotoGalleryPage() {
                         onChange={() => toggleSelect(item.id)}
                         className="rounded border-pink-300 text-[#d72688] focus:ring-pink-300"
                       />
-                      Pilih
+                      Select
                     </label>
                   </div>
 
@@ -330,6 +329,8 @@ export default function PhotoGalleryPage() {
                     <img
                       src={item.imageSrc}
                       alt={`gallery-item-${item.id}`}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-[180px] object-contain rounded-lg border border-pink-100 bg-white"
                     />
                   </div>
@@ -341,19 +342,19 @@ export default function PhotoGalleryPage() {
                           value={titleDraft}
                           onChange={e => setTitleDraft(e.target.value)}
                           className="flex-1 px-3 py-2 rounded-lg border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-                          placeholder="Judul foto"
+                          placeholder="Photo title"
                         />
                         <button
                           onClick={() => saveEditTitle(item.id)}
                           className="inline-flex items-center justify-center p-2 rounded-lg bg-[#fa75aa] text-white hover:bg-[#d72688] transition"
-                          title="Simpan"
+                          title="Save"
                         >
                           <Save className="w-4 h-4" />
                         </button>
                         <button
                           onClick={cancelEditTitle}
                           className="inline-flex items-center justify-center p-2 rounded-lg border border-pink-200 text-[#d72688] hover:bg-pink-50 transition"
-                          title="Batal"
+                          title="Cancel"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -386,14 +387,14 @@ export default function PhotoGalleryPage() {
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#f8bfd7] text-[#d72688] bg-white hover:bg-[#fff0f7] text-xs transition disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        {editingGalleryId === item.id ? 'Menyiapkan...' : 'Edit di Editor'}
+                        {editingGalleryId === item.id ? 'Preparing...' : 'Edit in Editor'}
                       </button>
                       <button
                         onClick={() => handleDeleteItem(item.id)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs transition"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        Hapus
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -408,8 +409,8 @@ export default function PhotoGalleryPage() {
         open={confirmDelete.open}
         title={confirmDelete.title}
         message={confirmDelete.message}
-        confirmLabel="Ya, Hapus"
-        cancelLabel="Batal"
+        confirmLabel="Yes, Delete"
+        cancelLabel="Cancel"
         loading={confirmLoading}
         onCancel={closeDeleteDialog}
         onConfirm={confirmDeleteItems}
