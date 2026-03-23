@@ -2,13 +2,18 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
-const AUTH_SECRET = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
+const AUTH_SECRET = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.AUTHJS_SECRET
 
 const readAuthToken = async (request: NextRequest) => {
-  return getToken({
+  const tokenOptions: Parameters<typeof getToken>[0] = {
     req: request,
-    secret: AUTH_SECRET,
-  })
+  }
+
+  if (AUTH_SECRET) {
+    tokenOptions.secret = AUTH_SECRET
+  }
+
+  return getToken(tokenOptions)
 }
 
 const withNoStore = (response: NextResponse) => {
@@ -31,6 +36,10 @@ const isPrefetchLikeRequest = (request: NextRequest) => {
 
 export async function middleware(request: NextRequest) {
   const token = await readAuthToken(request)
+  const tokenRole =
+    token && typeof token === 'object' && 'role' in token
+      ? (token.role as string | undefined)
+      : undefined
 
   const { pathname } = request.nextUrl
 
@@ -61,7 +70,7 @@ export async function middleware(request: NextRequest) {
     
     // Only registered users (USER or ADMIN role) can access admin
     // This means only logged-in users can upload
-    if (token.role !== 'ADMIN' && token.role !== 'USER') {
+    if (tokenRole !== 'ADMIN' && tokenRole !== 'USER') {
       return withNoStore(NextResponse.redirect(new URL('/', request.url)))
     }
   }
