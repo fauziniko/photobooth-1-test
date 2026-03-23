@@ -2226,16 +2226,6 @@
     background-color: var(--color-white);
   }
 
-  .bg-white\/95 {
-    background-color: rgba(255, 255, 255, .95);
-  }
-
-  @supports (color: color-mix(in lab, red, red)) {
-    .bg-white\/95 {
-      background-color: color-mix(in oklab, var(--color-white) 95%, transparent);
-    }
-  }
-
   .bg-yellow-500 {
     background-color: var(--color-yellow-500);
   }
