@@ -35,6 +35,7 @@ export default function Navbar() {
             <>
               <Link
                 href="/photo"
+                prefetch={false}
                 className="flex items-center justify-center p-2.5 rounded-lg text-[#fa75aa] hover:bg-[#ffeaf3] active:scale-95 transition"
                 title="Take Photo"
               >
@@ -44,6 +45,7 @@ export default function Navbar() {
               {session.user.role === 'ADMIN' && (
                 <Link
                   href="/admin"
+                  prefetch={false}
                   className="flex items-center justify-center p-2.5 rounded-lg text-[#d72688] hover:bg-[#ffeaf3] active:scale-95 transition"
                   title="Admin"
                 >

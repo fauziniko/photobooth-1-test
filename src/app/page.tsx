@@ -207,10 +207,10 @@ export default function HomePage() {
             
             <div className="flex gap-4 sm:gap-6 text-sm">
               <Link href="/" className="hover:text-white transition">Home</Link>
-              <Link href="/photo" className="hover:text-white transition">Booth</Link>
-              <Link href="/photo/gallery" className="hover:text-white transition">Gallery</Link>
+              <Link href="/photo" prefetch={false} className="hover:text-white transition">Booth</Link>
+              <Link href="/photo/gallery" prefetch={false} className="hover:text-white transition">Gallery</Link>
               {session?.user?.role === 'ADMIN' && (
-                <Link href="/admin" className="hover:text-white transition">Admin</Link>
+                <Link href="/admin" prefetch={false} className="hover:text-white transition">Admin</Link>
               )}
             </div>
           </div>

@@ -258,7 +258,7 @@ export default function PhotoGalleryPage() {
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#d72688]">Photo Gallery</h1>
           <p className="text-sm text-gray-600 mt-1">Strip previews are optimized so more sessions can be displayed at once.</p>
-          <Link href="/photo/edit" className="inline-block mt-2 text-sm font-semibold text-[#d72688] hover:underline">
+          <Link href="/photo/edit" prefetch={false} className="inline-block mt-2 text-sm font-semibold text-[#d72688] hover:underline">
             + Add from Editor
           </Link>
 
