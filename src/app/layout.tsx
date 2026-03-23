@@ -5,6 +5,7 @@ import Providers from "@/components/Providers";
 import Sidebar from "@/components/Sidebar";
 import MainContent from "@/components/MainContent";
 import Navbar from "@/components/Navbar";
+import { auth } from "@/lib/auth";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -20,11 +21,18 @@ export const metadata: Metadata = {
   description: "Digital photobooth made simple. Create beautiful photo strips with custom frames and stickers",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  let session = null;
+  try {
+    session = await auth();
+  } catch (error) {
+    console.error('Failed to resolve auth session on layout:', error);
+  }
+
   return (
     <html lang="en">
       <head>
@@ -34,7 +42,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Providers>
+        <Providers session={session}>
           <Navbar />
           <Sidebar />
           <MainContent>
