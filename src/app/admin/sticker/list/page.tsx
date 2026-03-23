@@ -353,14 +353,14 @@ export default function StickerListPage() {
                     <div className="space-y-2">
                       <input
                         type="text"
-                        value={editing.name}
+                        value={editing?.name ?? ''}
                         onChange={event => setEditing(prev => (prev ? { ...prev, name: event.target.value } : prev))}
                         placeholder="sticker-name"
                         className="w-full rounded-md border border-[#dec2d0] px-2 py-1 text-xs text-[#4f3040] focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"
                       />
                       <input
                         type="text"
-                        value={editing.category}
+                        value={editing?.category ?? ''}
                         onChange={event => setEditing(prev => (prev ? { ...prev, category: event.target.value } : prev))}
                         placeholder="category"
                         className="w-full rounded-md border border-[#dec2d0] px-2 py-1 text-xs text-[#4f3040] focus:outline-none focus:ring-2 focus:ring-[#f2aacb]"

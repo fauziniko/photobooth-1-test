@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server'
 
 type Provider = 'iconify' | 'openmoji'
 
+type StickerSearchItem = {
+  id: string
+  provider: Provider
+  name: string
+  previewUrl: string
+  sourceUrl: string
+}
+
+const DEFAULT_LIMIT = 24
+const MAX_LIMIT = 50
+const MAX_QUERY_LENGTH = 80
+
 type OpenMojiEntry = {
   emoji: string
   name: string
@@ -44,10 +56,20 @@ const OPENMOJI_CATALOG: OpenMojiEntry[] = [
 ]
 
 const clampLimit = (value: string | null) => {
-  const raw = Number.parseInt(value || '24', 10)
-  if (Number.isNaN(raw)) return 24
-  return Math.max(1, Math.min(raw, 50))
+  const raw = Number.parseInt(value || String(DEFAULT_LIMIT), 10)
+  if (Number.isNaN(raw)) return DEFAULT_LIMIT
+  return Math.max(1, Math.min(raw, MAX_LIMIT))
 }
+
+const parseProvider = (value: string | null): Provider | null => {
+  const normalized = (value || 'iconify').toLowerCase().trim()
+  if (normalized === 'iconify' || normalized === 'openmoji') {
+    return normalized
+  }
+  return null
+}
+
+const sanitizeQuery = (value: string | null) => (value || '').trim().slice(0, MAX_QUERY_LENGTH)
 
 const normalize = (value: string) => value.toLowerCase().trim()
 
@@ -57,7 +79,7 @@ const emojiToCodepoint = (emoji: string) =>
     .filter(Boolean)
     .join('-')
 
-const searchOpenMoji = (query: string, limit: number) => {
+const searchOpenMoji = (query: string, limit: number): StickerSearchItem[] => {
   const normalizedQuery = normalize(query)
 
   const filtered = OPENMOJI_CATALOG.filter(item => {
@@ -72,7 +94,7 @@ const searchOpenMoji = (query: string, limit: number) => {
 
     return {
       id: `openmoji:${codepoint}`,
-      provider: 'openmoji',
+      provider: 'openmoji' as const,
       name: item.name,
       previewUrl: sourceUrl,
       sourceUrl,
@@ -80,25 +102,28 @@ const searchOpenMoji = (query: string, limit: number) => {
   })
 }
 
-const searchIconify = async (query: string, limit: number) => {
+const searchIconify = async (query: string, limit: number): Promise<StickerSearchItem[]> => {
   const normalizedQuery = query.trim() || 'sparkle'
   const url = `https://api.iconify.design/search?query=${encodeURIComponent(normalizedQuery)}&limit=${limit}`
-  const response = await fetch(url, { cache: 'no-store' })
+  const response = await fetch(url, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(5000),
+  })
 
   if (!response.ok) {
     throw new Error(`Iconify request failed with status ${response.status}`)
   }
 
   const payload = await response.json()
-  const icons = Array.isArray(payload?.icons) ? payload.icons : []
+  const icons = Array.isArray(payload?.icons) ? payload.icons.filter((item: unknown): item is string => typeof item === 'string') : []
 
-  return icons.map((icon: string) => {
+  return icons.slice(0, limit).map((icon: string) => {
     const sourceUrl = `https://api.iconify.design/${encodeURIComponent(icon)}.svg`
     const iconName = icon.split(':').pop() || icon
 
     return {
       id: `iconify:${icon}`,
-      provider: 'iconify',
+      provider: 'iconify' as const,
       name: iconName.replace(/[-_]+/g, ' '),
       previewUrl: sourceUrl,
       sourceUrl,
@@ -109,19 +134,45 @@ const searchIconify = async (query: string, limit: number) => {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const provider = (searchParams.get('provider') || 'iconify').toLowerCase() as Provider
-    const query = searchParams.get('q') || ''
+    const provider = parseProvider(searchParams.get('provider'))
+    const query = sanitizeQuery(searchParams.get('q'))
     const limit = clampLimit(searchParams.get('limit'))
 
-    if (provider !== 'iconify' && provider !== 'openmoji') {
+    if (!provider) {
       return NextResponse.json({ error: 'Unsupported provider. Use iconify or openmoji.' }, { status: 400 })
     }
 
-    const items = provider === 'iconify' ? await searchIconify(query, limit) : searchOpenMoji(query, limit)
+    let items: StickerSearchItem[] = []
+    let fallbackUsed = false
 
-    return NextResponse.json({ provider, query, total: items.length, items }, { status: 200 })
+    if (provider === 'iconify') {
+      try {
+        items = await searchIconify(query, limit)
+      } catch {
+        items = searchOpenMoji(query, limit)
+        fallbackUsed = true
+      }
+    } else {
+      items = searchOpenMoji(query, limit)
+    }
+
+    return NextResponse.json(
+      { provider, query, total: items.length, fallbackUsed, items },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        },
+      }
+    )
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: 'Failed to search sticker provider.', details: message }, { status: 500 })
+    const includeDebug = process.env.NODE_ENV !== 'production'
+    const details = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json(
+      includeDebug
+        ? { error: 'Failed to search sticker provider.', details }
+        : { error: 'Failed to search sticker provider.' },
+      { status: 500 }
+    )
   }
 }

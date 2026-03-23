@@ -22,8 +22,6 @@ import {
 const ICON_SIZE = 18
 const SIDEBAR_STORAGE_KEY = 'photobooth-sidebar-open'
 const SIDEBAR_EVENT_NAME = 'photobooth-sidebar-change'
-const PHOTO_UPLOAD_SELECTED_EVENT = 'photobooth-upload-selected'
-const PHOTO_UPLOAD_PREVIEW_EVENT = 'photobooth-upload-preview'
 
 export default function Sidebar() {
   const pathname = usePathname()

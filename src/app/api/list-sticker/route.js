@@ -1,22 +1,40 @@
 import { NextResponse } from 'next/server';
 import { Client } from 'minio';
 
-const minioClient = new Client({
-  endPoint: process.env.MINIO_ENDPOINT,
-  port: parseInt(process.env.MINIO_PORT, 10),
-  useSSL: process.env.MINIO_USE_SSL === 'true',
-  accessKey: process.env.MINIO_ACCESS_KEY,
-  secretKey: process.env.MINIO_SECRET_KEY,
-});
-
-const BUCKET = process.env.MINIO_BUCKET;
 const STICKER_FOLDER = 'sticker/';
 
-export async function GET() {
-  const stickerItems = [];
-  const stream = minioClient.listObjectsV2(BUCKET, STICKER_FOLDER, true);
+const getMinioConfig = () => {
+  const endPoint = process.env.MINIO_ENDPOINT;
+  const accessKey = process.env.MINIO_ACCESS_KEY;
+  const secretKey = process.env.MINIO_SECRET_KEY;
+  const bucket = process.env.MINIO_BUCKET;
+  const portRaw = process.env.MINIO_PORT;
 
+  if (!endPoint || !accessKey || !secretKey || !bucket) {
+    throw new Error('Missing MinIO configuration. Required: MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET.');
+  }
+
+  const parsedPort = Number.parseInt(portRaw || '9000', 10);
+  const port = Number.isFinite(parsedPort) ? parsedPort : 9000;
+
+  return {
+    bucket,
+    client: new Client({
+      endPoint,
+      port,
+      useSSL: process.env.MINIO_USE_SSL === 'true',
+      accessKey,
+      secretKey,
+    }),
+  };
+};
+
+export async function GET() {
   try {
+    const { client, bucket } = getMinioConfig();
+    const stickerItems = [];
+    const stream = client.listObjectsV2(bucket, STICKER_FOLDER, true);
+
     for await (const obj of stream) {
       if (!obj?.name) continue;
 
@@ -34,11 +52,14 @@ export async function GET() {
       });
     }
 
+    stickerItems.sort((a, b) => a.name.localeCompare(b.name));
+
     return NextResponse.json({
       stickers: stickerItems.map(item => item.url),
       stickerItems,
     });
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

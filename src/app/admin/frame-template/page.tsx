@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -212,7 +212,7 @@ const inferCanvasFormat = (width: number, height: number): CanvasFormat => {
   return best
 }
 
-export default function FrameTemplatePage() {
+function FrameTemplatePageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const editTemplateQuery = searchParams.get('edit')?.trim() || ''
@@ -1392,5 +1392,19 @@ export default function FrameTemplatePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function FrameTemplatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <p className="text-gray-600">Loading template editor...</p>
+        </div>
+      }
+    >
+      <FrameTemplatePageContent />
+    </Suspense>
   )
 }

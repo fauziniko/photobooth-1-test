@@ -1104,7 +1104,7 @@ export default function NewStickerPage() {
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={clearCanvas}
+                    onClick={() => clearCanvas()}
                     className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#e7a0c2] bg-[#fff3f9] px-3 py-2 text-sm text-[#6d3f55] hover:bg-[#ffe7f2]"
                   >
                     <Eraser className="w-4 h-4" /> Clear
