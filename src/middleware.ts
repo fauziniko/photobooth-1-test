@@ -42,14 +42,15 @@ export async function middleware(request: NextRequest) {
       : undefined
 
   const { pathname } = request.nextUrl
+  const isPrefetch = isPrefetchLikeRequest(request)
 
   // Protect all PhotoBooth pages.
   if (pathname.startsWith('/photo') || pathname.startsWith('/photo-result')) {
-    if (!token) {
-      if (isPrefetchLikeRequest(request)) {
-        return withNoStore(new NextResponse(null, { status: 204 }))
-      }
+    if (isPrefetch) {
+      return withNoStore(new NextResponse(null, { status: 204 }))
+    }
 
+    if (!token) {
       const url = new URL('/auth/signin', request.url)
       url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
       return withNoStore(NextResponse.redirect(url))
@@ -58,11 +59,11 @@ export async function middleware(request: NextRequest) {
 
   // Protect /admin route - requires ADMIN role (registered users)
   if (pathname.startsWith('/admin')) {
-    if (!token) {
-      if (isPrefetchLikeRequest(request)) {
-        return withNoStore(new NextResponse(null, { status: 204 }))
-      }
+    if (isPrefetch) {
+      return withNoStore(new NextResponse(null, { status: 204 }))
+    }
 
+    if (!token) {
       const url = new URL('/auth/signin', request.url)
       url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
       return withNoStore(NextResponse.redirect(url))
