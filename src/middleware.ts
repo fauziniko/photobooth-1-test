@@ -11,6 +11,14 @@ const readAuthToken = async (request: NextRequest) => {
   })
 }
 
+const withNoStore = (response: NextResponse) => {
+  response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0')
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
+  response.headers.set('x-middleware-cache', 'no-cache')
+  return response
+}
+
 export async function middleware(request: NextRequest) {
   const token = await readAuthToken(request)
 
@@ -21,7 +29,7 @@ export async function middleware(request: NextRequest) {
     if (!token) {
       const url = new URL('/auth/signin', request.url)
       url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
-      return NextResponse.redirect(url)
+      return withNoStore(NextResponse.redirect(url))
     }
   }
 
@@ -30,13 +38,13 @@ export async function middleware(request: NextRequest) {
     if (!token) {
       const url = new URL('/auth/signin', request.url)
       url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
-      return NextResponse.redirect(url)
+      return withNoStore(NextResponse.redirect(url))
     }
     
     // Only registered users (USER or ADMIN role) can access admin
     // This means only logged-in users can upload
     if (token.role !== 'ADMIN' && token.role !== 'USER') {
-      return NextResponse.redirect(new URL('/', request.url))
+      return withNoStore(NextResponse.redirect(new URL('/', request.url)))
     }
   }
 
@@ -47,10 +55,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/upload-frame-sticker')
   ) {
     if (!token) {
-      return NextResponse.json(
+      return withNoStore(NextResponse.json(
         { error: 'Unauthorized. Please login to upload.' },
         { status: 403 }
-      )
+      ))
     }
     // Any registered user can upload, not just ADMIN
   }
@@ -61,14 +69,14 @@ export async function middleware(request: NextRequest) {
     const isPublicDetailRead = isDetailApiPath && request.method === 'GET'
 
     if (!token && !isPublicDetailRead) {
-      return NextResponse.json(
+      return withNoStore(NextResponse.json(
         { error: 'Unauthorized. Please login first.' },
         { status: 403 }
-      )
+      ))
     }
   }
 
-  return NextResponse.next()
+  return withNoStore(NextResponse.next())
 }
 
 export const config = {
