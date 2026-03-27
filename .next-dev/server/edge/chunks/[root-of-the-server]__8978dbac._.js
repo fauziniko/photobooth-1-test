@@ -51,8 +51,18 @@ const isPrefetchLikeRequest = (request)=>{
     const isRsc = request.nextUrl.searchParams.has('_rsc') || request.headers.has('rsc');
     return purpose === 'prefetch' || secPurpose === 'prefetch' || nextPrefetch === '1' || isRsc;
 };
+const PUBLIC_PAGE_PATHS = new Set([
+    '/photo',
+    '/photo/gallery',
+    '/photo/uploaded',
+    '/admin/frame-template',
+    '/admin/frame-template/list',
+    '/admin/sticker/new',
+    '/admin/sticker/list'
+]);
+const isPublicPagePath = (pathname)=>PUBLIC_PAGE_PATHS.has(pathname);
 const isProtectedPhotoPage = (pathname)=>{
-    if (pathname === '/photo') {
+    if (isPublicPagePath(pathname)) {
         return false;
     }
     return pathname.startsWith('/photo') || pathname.startsWith('/photo-result');
@@ -76,7 +86,7 @@ async function middleware(request) {
         }
     }
     // Protect /admin route - requires ADMIN role (registered users)
-    if (pathname.startsWith('/admin')) {
+    if (pathname.startsWith('/admin') && !isPublicPagePath(pathname)) {
         if (isPrefetch) {
             return withNoStore(new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"](null, {
                 status: 204

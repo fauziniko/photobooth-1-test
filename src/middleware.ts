@@ -34,8 +34,20 @@ const isPrefetchLikeRequest = (request: NextRequest) => {
   return purpose === 'prefetch' || secPurpose === 'prefetch' || nextPrefetch === '1' || isRsc
 }
 
+const PUBLIC_PAGE_PATHS = new Set([
+  '/photo',
+  '/photo/gallery',
+  '/photo/uploaded',
+  '/admin/frame-template',
+  '/admin/frame-template/list',
+  '/admin/sticker/new',
+  '/admin/sticker/list',
+])
+
+const isPublicPagePath = (pathname: string) => PUBLIC_PAGE_PATHS.has(pathname)
+
 const isProtectedPhotoPage = (pathname: string) => {
-  if (pathname === '/photo') {
+  if (isPublicPagePath(pathname)) {
     return false
   }
 
@@ -66,7 +78,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protect /admin route - requires ADMIN role (registered users)
-  if (pathname.startsWith('/admin')) {
+  if (pathname.startsWith('/admin') && !isPublicPagePath(pathname)) {
     if (isPrefetch) {
       return withNoStore(new NextResponse(null, { status: 204 }))
     }

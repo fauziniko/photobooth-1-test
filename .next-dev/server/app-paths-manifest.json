@@ -1,7 +1,15 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
+  "/admin/frame-template/list/page": "app/admin/frame-template/list/page.js",
+  "/admin/frame-template/page": "app/admin/frame-template/page.js",
+  "/admin/sticker/list/page": "app/admin/sticker/list/page.js",
+  "/admin/sticker/new/page": "app/admin/sticker/new/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/gallery/route": "app/api/gallery/route.js",
+  "/api/list-frame-template/route": "app/api/list-frame-template/route.js",
+  "/api/list-sticker/route": "app/api/list-sticker/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/page": "app/page.js",
-  "/photo/page": "app/photo/page.js"
+  "/photo/gallery/page": "app/photo/gallery/page.js",
+  "/photo/page": "app/photo/page.js",
+  "/photo/uploaded/page": "app/photo/uploaded/page.js"
 }
