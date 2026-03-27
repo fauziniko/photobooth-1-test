@@ -34,6 +34,14 @@ const isPrefetchLikeRequest = (request: NextRequest) => {
   return purpose === 'prefetch' || secPurpose === 'prefetch' || nextPrefetch === '1' || isRsc
 }
 
+const isProtectedPhotoPage = (pathname: string) => {
+  if (pathname === '/photo') {
+    return false
+  }
+
+  return pathname.startsWith('/photo') || pathname.startsWith('/photo-result')
+}
+
 export async function middleware(request: NextRequest) {
   const token = await readAuthToken(request)
   const tokenRole =
@@ -45,7 +53,7 @@ export async function middleware(request: NextRequest) {
   const isPrefetch = isPrefetchLikeRequest(request)
 
   // Protect all PhotoBooth pages.
-  if (pathname.startsWith('/photo') || pathname.startsWith('/photo-result')) {
+  if (isProtectedPhotoPage(pathname)) {
     if (isPrefetch) {
       return withNoStore(new NextResponse(null, { status: 204 }))
     }

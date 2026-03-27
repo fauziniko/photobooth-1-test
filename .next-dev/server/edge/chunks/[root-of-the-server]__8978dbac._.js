@@ -26,45 +26,81 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$auth$2f$core$2f$jwt$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@auth/core/jwt.js [middleware-edge] (ecmascript)");
 ;
 ;
-const AUTH_SECRET = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+const AUTH_SECRET = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.AUTHJS_SECRET;
 const readAuthToken = async (request)=>{
-    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$auth$2f$core$2f$jwt$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["getToken"])({
-        req: request,
-        secret: AUTH_SECRET
-    });
+    const tokenOptions = {
+        req: request
+    };
+    if (AUTH_SECRET) {
+        tokenOptions.secret = AUTH_SECRET;
+    }
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$auth$2f$core$2f$jwt$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["getToken"])(tokenOptions);
+};
+const withNoStore = (response)=>{
+    response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    response.headers.set('x-middleware-cache', 'no-cache');
+    response.headers.set('Vary', 'Cookie, Next-Router-Prefetch, Purpose, Sec-Purpose, RSC');
+    return response;
+};
+const isPrefetchLikeRequest = (request)=>{
+    const purpose = request.headers.get('purpose');
+    const secPurpose = request.headers.get('sec-purpose');
+    const nextPrefetch = request.headers.get('next-router-prefetch');
+    const isRsc = request.nextUrl.searchParams.has('_rsc') || request.headers.has('rsc');
+    return purpose === 'prefetch' || secPurpose === 'prefetch' || nextPrefetch === '1' || isRsc;
+};
+const isProtectedPhotoPage = (pathname)=>{
+    if (pathname === '/photo') {
+        return false;
+    }
+    return pathname.startsWith('/photo') || pathname.startsWith('/photo-result');
 };
 async function middleware(request) {
     const token = await readAuthToken(request);
+    const tokenRole = token && typeof token === 'object' && 'role' in token ? token.role : undefined;
     const { pathname } = request.nextUrl;
+    const isPrefetch = isPrefetchLikeRequest(request);
     // Protect all PhotoBooth pages.
-    if (pathname.startsWith('/photo') || pathname.startsWith('/photo-result')) {
+    if (isProtectedPhotoPage(pathname)) {
+        if (isPrefetch) {
+            return withNoStore(new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"](null, {
+                status: 204
+            }));
+        }
         if (!token) {
             const url = new URL('/auth/signin', request.url);
             url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`);
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(url);
+            return withNoStore(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(url));
         }
     }
     // Protect /admin route - requires ADMIN role (registered users)
     if (pathname.startsWith('/admin')) {
+        if (isPrefetch) {
+            return withNoStore(new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"](null, {
+                status: 204
+            }));
+        }
         if (!token) {
             const url = new URL('/auth/signin', request.url);
             url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`);
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(url);
+            return withNoStore(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(url));
         }
         // Only registered users (USER or ADMIN role) can access admin
         // This means only logged-in users can upload
-        if (token.role !== 'ADMIN' && token.role !== 'USER') {
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(new URL('/', request.url));
+        if (tokenRole !== 'ADMIN' && tokenRole !== 'USER') {
+            return withNoStore(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].redirect(new URL('/', request.url)));
         }
     }
     // Protect upload APIs - requires authentication (any registered user)
     if (pathname.startsWith('/api/upload-frame-template') || pathname.startsWith('/api/upload-sticker') || pathname.startsWith('/api/upload-frame-sticker')) {
         if (!token) {
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            return withNoStore(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 error: 'Unauthorized. Please login to upload.'
             }, {
                 status: 403
-            });
+            }));
         }
     // Any registered user can upload, not just ADMIN
     }
@@ -73,14 +109,14 @@ async function middleware(request) {
         const isDetailApiPath = /^\/api\/gallery\/[^/]+$/.test(pathname);
         const isPublicDetailRead = isDetailApiPath && request.method === 'GET';
         if (!token && !isPublicDetailRead) {
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            return withNoStore(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 error: 'Unauthorized. Please login first.'
             }, {
                 status: 403
-            });
+            }));
         }
     }
-    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].next();
+    return withNoStore(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].next());
 }
 const config = {
     matcher: [
